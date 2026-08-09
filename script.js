@@ -9,7 +9,7 @@
         }
     } catch (e) {}
 })();
-console.log("%c[Azora] script.js v65.1 creator publish → Norm Games not Feed","color:#1e60ff;font-weight:bold;font-size:14px");
+console.log("%c[Azora] script.js v65.2 fun home hub layout","color:#1e60ff;font-weight:bold;font-size:14px");
 try { console.log("[Azora] Cloud ready:", typeof AZORA_CLOUD !== "undefined" && AZORA_CLOUD.isReady && AZORA_CLOUD.isReady()); } catch (e) {}
 // Configuration - Adjust these to change speed and phrases
 const fallSpeed = 2; // Higher number = faster fall
@@ -20542,4 +20542,41 @@ window.getAvatarDataForUsername = getAvatarDataForUsername;
     if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", run);
     else run();
     setTimeout(run, 800);
+})();
+
+
+// Fun home hub — keep hero stats in sync
+(function azoraFunHomeBoot() {
+    function syncHero() {
+        try {
+            var coinsEl = document.getElementById("heroCoinsStat");
+            var streakEl = document.getElementById("heroStreakStat");
+            var coins = 0;
+            try {
+                var acc = JSON.parse(localStorage.getItem("azoraAccount") || "null");
+                if (acc && typeof acc.coins === "number") coins = acc.coins;
+                else coins = parseFloat(localStorage.getItem("azoraCoins") || "0") || 0;
+            } catch (e) {}
+            if (coinsEl) coinsEl.textContent = (Math.round(coins * 100) / 100).toString();
+            var streak = 0;
+            try { streak = parseInt(localStorage.getItem("azoraDailyStreak") || "0", 10) || 0; } catch (e2) {}
+            if (streakEl) streakEl.textContent = String(streak);
+            var dailyText = document.getElementById("azoraDailyFunText");
+            if (dailyText) {
+                var tips = [
+                    "Come back every day for coins, streaks, and new things to try.",
+                    "Jump into Azora Roleplay and say hi in chat!",
+                    "Remix your avatar colors — then show up in a Norm Game.",
+                    "Publish a Creator Studio world to Norm Games for friends to Join.",
+                    "Open Shop for faces & hair, then equip them from Inventory."
+                ];
+                var i = Math.floor(Date.now() / 60000) % tips.length;
+                dailyText.textContent = tips[i];
+            }
+        } catch (e) {}
+    }
+    if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", syncHero);
+    else syncHero();
+    setInterval(syncHero, 15000);
+    window.azoraSyncFunHome = syncHero;
 })();

@@ -4848,3 +4848,280 @@ footer {
     color: #fff;
     border-color: transparent;
 }
+
+
+/* ===== Azora Fun Home Hub (v65.2) ===== */
+body {
+    background:
+        radial-gradient(1200px 600px at 10% -10%, rgba(96, 165, 250, 0.35), transparent 55%),
+        radial-gradient(900px 500px at 100% 0%, rgba(167, 139, 250, 0.28), transparent 50%),
+        radial-gradient(800px 400px at 50% 100%, rgba(52, 211, 153, 0.18), transparent 55%),
+        linear-gradient(180deg, #0b1224 0%, #12203a 40%, #0f172a 100%);
+    background-attachment: fixed;
+    color: #e8eefc;
+    min-height: 100vh;
+}
+
+.azora-community-fun {
+    background: linear-gradient(90deg, rgba(30,96,255,0.55), rgba(167,139,250,0.45), rgba(16,185,129,0.4));
+    border: 1px solid rgba(255,255,255,0.22);
+    border-radius: 16px;
+    margin: 12px 16px 8px;
+    padding: 10px 16px;
+    text-align: center;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.25);
+    animation: azoraBannerPulse 4s ease-in-out infinite;
+}
+@keyframes azoraBannerPulse {
+    0%, 100% { filter: brightness(1); }
+    50% { filter: brightness(1.08); }
+}
+
+.azora-fun-home {
+    position: relative;
+    padding-bottom: 24px;
+}
+
+.azora-hero-hub {
+    position: relative;
+    overflow: hidden;
+    border-radius: 24px;
+    padding: 22px 20px 18px;
+    margin-bottom: 18px;
+    background:
+        linear-gradient(145deg, rgba(30,96,255,0.35), rgba(15,23,42,0.75) 45%, rgba(16,185,129,0.2));
+    border: 1px solid rgba(255,255,255,0.18);
+    box-shadow: 0 16px 40px rgba(0,0,0,0.35);
+}
+.azora-hero-glow {
+    position: absolute;
+    inset: -40% -20% auto auto;
+    width: 280px;
+    height: 280px;
+    background: radial-gradient(circle, rgba(96,165,250,0.45), transparent 70%);
+    pointer-events: none;
+    animation: azoraFloat 7s ease-in-out infinite;
+}
+@keyframes azoraFloat {
+    0%, 100% { transform: translate(0, 0); }
+    50% { transform: translate(-18px, 12px); }
+}
+.azora-hero-top {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px 20px;
+    align-items: flex-start;
+    justify-content: space-between;
+    position: relative;
+    z-index: 1;
+}
+.azora-hero-kicker {
+    margin: 0 0 4px;
+    font-size: 0.78rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #93c5fd;
+}
+.azora-hero-title {
+    margin: 0 0 6px;
+    font-size: clamp(1.6rem, 3vw, 2.15rem);
+    line-height: 1.15;
+    color: #fff;
+    text-shadow: 0 4px 18px rgba(0,0,0,0.35);
+}
+.azora-hero-title span {
+    background: linear-gradient(90deg, #93c5fd, #c4b5fd, #6ee7b7);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+}
+.azora-hero-sub {
+    margin: 0;
+    max-width: 34rem;
+    color: rgba(226,232,240,0.9);
+    font-size: 0.95rem;
+    line-height: 1.45;
+}
+.azora-hero-stats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+.azora-stat-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 12px;
+    border-radius: 999px;
+    background: rgba(0,0,0,0.28);
+    border: 1px solid rgba(255,255,255,0.2);
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: #fff;
+}
+.azora-stat-ico { font-size: 1rem; }
+
+.azora-action-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+    margin-top: 18px;
+    position: relative;
+    z-index: 1;
+}
+@media (max-width: 720px) {
+    .azora-action-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+.azora-action-card {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+    text-align: left;
+    padding: 14px 14px 12px;
+    margin: 0;
+    border-radius: 16px;
+    border: 1px solid rgba(255,255,255,0.16);
+    background: rgba(15,23,42,0.55);
+    color: #fff;
+    box-shadow: 0 6px 16px rgba(0,0,0,0.22);
+    transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+}
+.azora-action-card:hover {
+    transform: translateY(-3px) scale(1.01);
+    box-shadow: 0 12px 28px rgba(0,0,0,0.35);
+    border-color: rgba(255,255,255,0.35);
+}
+.azora-action-card.play { background: linear-gradient(160deg, rgba(30,96,255,0.55), rgba(15,23,42,0.7)); }
+.azora-action-card.create { background: linear-gradient(160deg, rgba(16,185,129,0.45), rgba(15,23,42,0.7)); }
+.azora-action-card.shop { background: linear-gradient(160deg, rgba(245,158,11,0.4), rgba(15,23,42,0.7)); }
+.azora-action-card.friends { background: linear-gradient(160deg, rgba(236,72,153,0.4), rgba(15,23,42,0.7)); }
+.azora-action-card.avatar { background: linear-gradient(160deg, rgba(167,139,250,0.45), rgba(15,23,42,0.7)); }
+.azora-action-card.feed { background: linear-gradient(160deg, rgba(56,189,248,0.4), rgba(15,23,42,0.7)); }
+.azora-action-emoji { font-size: 1.45rem; line-height: 1; }
+.azora-action-title { font-size: 1rem; font-weight: 800; }
+.azora-action-desc { font-size: 0.72rem; opacity: 0.88; font-weight: 600; line-height: 1.3; }
+
+.azora-featured-row {
+    display: grid;
+    grid-template-columns: 1.4fr 1fr;
+    gap: 12px;
+    margin-top: 14px;
+    position: relative;
+    z-index: 1;
+}
+@media (max-width: 700px) {
+    .azora-featured-row { grid-template-columns: 1fr; }
+}
+.azora-featured-card {
+    margin: 0;
+    text-align: left;
+    padding: 0;
+    overflow: hidden;
+    border-radius: 18px;
+    border: 1px solid rgba(250,204,21,0.35);
+    background: linear-gradient(135deg, rgba(250,204,21,0.2), rgba(30,96,255,0.35) 50%, rgba(15,23,42,0.85));
+    color: #fff;
+    box-shadow: 0 10px 28px rgba(0,0,0,0.3);
+    transition: transform 0.18s ease;
+}
+.azora-featured-card:hover { transform: translateY(-2px); }
+.azora-featured-badge {
+    display: inline-block;
+    margin: 12px 14px 0;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 0.7rem;
+    font-weight: 800;
+    background: rgba(250,204,21,0.95);
+    color: #1e293b;
+}
+.azora-featured-body { padding: 10px 14px 14px; }
+.azora-featured-body h3 { margin: 0 0 4px; font-size: 1.15rem; color: #fff; }
+.azora-featured-body p { margin: 0 0 8px; font-size: 0.82rem; opacity: 0.92; line-height: 1.4; }
+.azora-featured-cta { font-size: 0.85rem; font-weight: 800; color: #fde68a; }
+
+.azora-daily-card {
+    border-radius: 18px;
+    padding: 14px;
+    background: linear-gradient(160deg, rgba(244,63,94,0.35), rgba(15,23,42,0.8));
+    border: 1px solid rgba(251,113,133,0.35);
+    box-shadow: 0 10px 28px rgba(0,0,0,0.28);
+}
+.azora-daily-title { font-weight: 800; font-size: 1rem; margin-bottom: 6px; }
+.azora-daily-text { margin: 0 0 12px; font-size: 0.8rem; line-height: 1.4; opacity: 0.92; }
+.azora-daily-btn {
+    width: 100%;
+    margin: 0;
+    background: linear-gradient(180deg, #fb7185, #e11d48) !important;
+    color: #fff !important;
+    border: none;
+}
+
+.azora-news-fun {
+    background: rgba(15,23,42,0.65) !important;
+    border: 1px solid rgba(255,255,255,0.14);
+    color: #e2e8f0;
+}
+.azora-news-fun h2 { color: #fff; }
+.azora-news-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 10px;
+}
+.azora-news-chip {
+    padding: 5px 10px;
+    border-radius: 999px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    background: rgba(30,96,255,0.35);
+    border: 1px solid rgba(147,197,253,0.35);
+}
+
+.azora-about-fold {
+    margin: 14px 0 8px;
+    padding: 10px 14px;
+    border-radius: 14px;
+    background: rgba(15,23,42,0.5);
+    border: 1px solid rgba(255,255,255,0.12);
+}
+.azora-about-fold summary {
+    cursor: pointer;
+    font-weight: 800;
+    color: #93c5fd;
+}
+.azora-about-fold[open] summary { margin-bottom: 8px; }
+
+/* Norm game cards — more playful */
+.norm-game-card {
+    transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+.norm-game-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 12px 28px rgba(0,0,0,0.28);
+}
+.norm-join-btn {
+    background: linear-gradient(180deg, #60a5fa, #1e60ff) !important;
+    color: #fff !important;
+}
+.azora-games-title {
+    font-size: 1.5rem;
+    letter-spacing: 0.04em;
+}
+.azora-games-section {
+    margin-top: 8px;
+    padding: 14px;
+    border-radius: 20px;
+    background: rgba(15,23,42,0.45);
+    border: 1px solid rgba(255,255,255,0.12);
+}
+
+.quick-games-open-btn {
+    background: linear-gradient(180deg, #38bdf8, #0284c7) !important;
+    color: #fff !important;
+    font-weight: 800 !important;
+}

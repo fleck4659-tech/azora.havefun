@@ -13,7 +13,7 @@
     <link rel="manifest" href="manifest-azora.json">
     <link rel="apple-touch-icon" href="logo.jpg">
     <link rel="icon" href="logo.jpg">
-    <link rel="stylesheet" href="style.css?v=65.1">
+    <link rel="stylesheet" href="style.css?v=65.2">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 </head>
 <body>
@@ -432,8 +432,8 @@
 </div>
 </div>
 
-<div class="community-banner">
-    <p>🎉 Welcome to Azora! Build games. Customize avatars. Have fun.</p>
+<div class="community-banner azora-community-fun">
+    <p>🎉 Welcome to Azora! Play together · Build worlds · Style your avatar · Make friends</p>
 </div>
 
 <div class="avatar-customizer-container">
@@ -493,28 +493,95 @@
     </div>
 </div>
 
-<div class="main-content-layout">
-    <h1>Welcome to Azora</h1>
-    <p>Welcome to Azora! Build games, customize avatars, and have fun!</p>
-    <p><strong>Subscribers:</strong> 2.41K</p>
-    <hr>
-    <div class="news-card">
+<div class="main-content-layout azora-fun-home">
+    <section class="azora-hero-hub" aria-label="Azora home">
+        <div class="azora-hero-glow" aria-hidden="true"></div>
+        <div class="azora-hero-top">
+            <div>
+                <p class="azora-hero-kicker">🎮 Your world starts here</p>
+                <h1 class="azora-hero-title">Welcome to <span>Azora</span></h1>
+                <p class="azora-hero-sub">Build. Play. Customize. Hang out. Pick something fun below — or jump straight into a game.</p>
+            </div>
+            <div class="azora-hero-stats" id="azoraHeroStats">
+                <div class="azora-stat-pill"><span class="azora-stat-ico">🪙</span><span id="heroCoinsStat">0</span> coins</div>
+                <div class="azora-stat-pill"><span class="azora-stat-ico">🔥</span><span id="heroStreakStat">0</span> day streak</div>
+                <div class="azora-stat-pill"><span class="azora-stat-ico">✨</span>Family-friendly</div>
+            </div>
+        </div>
+
+        <div class="azora-action-grid" role="navigation" aria-label="Quick actions">
+            <button type="button" class="azora-action-card play" onclick="document.getElementById('azoraGamesSection')?.scrollIntoView({behavior:'smooth'})">
+                <span class="azora-action-emoji">🕹️</span>
+                <span class="azora-action-title">Play Games</span>
+                <span class="azora-action-desc">Join Norm Games or Quick Games</span>
+            </button>
+            <button type="button" class="azora-action-card create" onclick="handleCreateClick(event)">
+                <span class="azora-action-emoji">🛠️</span>
+                <span class="azora-action-title">Create</span>
+                <span class="azora-action-desc">Build your own 3D world</span>
+            </button>
+            <button type="button" class="azora-action-card shop" onclick="openMarketplace()">
+                <span class="azora-action-emoji">🛍️</span>
+                <span class="azora-action-title">Shop</span>
+                <span class="azora-action-desc">Hair, faces, t-shirts & more</span>
+            </button>
+            <button type="button" class="azora-action-card friends" onclick="openChatPanel()">
+                <span class="azora-action-emoji">💬</span>
+                <span class="azora-action-title">Friends</span>
+                <span class="azora-action-desc">Chat and accept requests</span>
+            </button>
+            <button type="button" class="azora-action-card avatar" onclick="document.getElementById('avatar3d-canvas')?.scrollIntoView({behavior:'smooth'})">
+                <span class="azora-action-emoji">🎨</span>
+                <span class="azora-action-title">Avatar</span>
+                <span class="azora-action-desc">Remix your look</span>
+            </button>
+            <button type="button" class="azora-action-card feed" onclick="openPublicFeed()">
+                <span class="azora-action-emoji">📱</span>
+                <span class="azora-action-title">Feed</span>
+                <span class="azora-action-desc">Scroll short Quick Games</span>
+            </button>
+        </div>
+
+        <div class="azora-featured-row">
+            <button type="button" class="azora-featured-card" onclick="joinNormGame('azora-roleplay')">
+                <div class="azora-featured-badge">⭐ Featured</div>
+                <div class="azora-featured-body">
+                    <h3>Azora Roleplay</h3>
+                    <p>The official multiplayer world — explore, chat, and hang out in 3D.</p>
+                    <span class="azora-featured-cta">Join now →</span>
+                </div>
+            </button>
+            <div class="azora-daily-card" id="azoraDailyFunCard">
+                <div class="azora-daily-title">🎁 Daily fun</div>
+                <p class="azora-daily-text" id="azoraDailyFunText">Come back every day for coins, streaks, and new things to try.</p>
+                <button type="button" class="azora-daily-btn" id="azoraDailyFunBtn" onclick="if(typeof claimDailyCoins==='function')claimDailyCoins(); else if(typeof openDailyReward==='function')openDailyReward();">Check daily reward</button>
+            </div>
+        </div>
+    </section>
+
+    <div class="news-card azora-news-fun">
         <h2>📢 Azora News</h2>
-        <p>Welcome to the official Azora website! This website is currently under construction. More features will be added soon!</p>
-        <h3>Coming Soon</h3>
-        <p>More website features are currently being developed.</p>
-        <p><strong>Create a Game is back!</strong> Open Creator Studio to build and publish. AzaFn is still paused while we finish more Norm Games — including official <strong>Azora Roleplay</strong> below.</p>
-    </div>
-    <h2>About Azora</h2>
-    <p>Azora is a community-focused platform where you can build games, customize avatars, make friends, and explore creations made by players around the world. We're committed to keeping Azora friendly, creative, and fun for everyone.</p>
-    <div class="operator-card" aria-label="Operated by Azoraius Makes">
-        <img src="azoraius-makes.png" alt="Azoraius Makes logo" class="operator-logo">
-        <div class="operator-text">
-            <p class="operator-label">Operated by</p>
-            <p class="operator-name">Azoraius Makes</p>
-            <p class="operator-desc">The company behind Azora — building games, tools, and creative experiences.</p>
+        <p><strong>Create a Game is live!</strong> Build in Creator Studio and publish to <strong>Norm Games</strong> (not Feed).</p>
+        <p>Jump into <strong>Azora Roleplay</strong>, customize your avatar, and invite friends. More worlds and shop items are on the way.</p>
+        <div class="azora-news-chips">
+            <span class="azora-news-chip">🧱 Studio → Norm Games</span>
+            <span class="azora-news-chip">🎭 Roleplay online</span>
+            <span class="azora-news-chip">🪙 Daily coins</span>
         </div>
     </div>
+
+    <details class="azora-about-fold">
+        <summary>About Azora &amp; Azoraius Makes</summary>
+        <p>Azora is a community-focused platform where you can build games, customize avatars, make friends, and explore creations made by players around the world. We're committed to keeping Azora friendly, creative, and fun for everyone.</p>
+        <div class="operator-card" aria-label="Operated by Azoraius Makes">
+            <img src="azoraius-makes.png" alt="Azoraius Makes logo" class="operator-logo">
+            <div class="operator-text">
+                <p class="operator-label">Operated by</p>
+                <p class="operator-name">Azoraius Makes</p>
+                <p class="operator-desc">The company behind Azora — building games, tools, and creative experiences.</p>
+            </div>
+        </div>
+    </details>
     <div class="developer-setting-card">
         <div class="setting-info">
             <h3>BasicCharacterService</h3>
@@ -1000,7 +1067,7 @@
         </div>
     </div>
 </div>
-<script src="script.js?v=65.1"></script>
+<script src="script.js?v=65.2"></script>
 <script>
 // Register Azora as installable app (not the staff website)
 if ("serviceWorker" in navigator) {
