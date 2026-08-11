@@ -5434,9 +5434,9 @@ html[data-theme="dark"] body {
 }
 .azora-bg-wave {
     background: #2563eb;
-    /* start fully hidden; JS sets edge + animates to full cover */
-    clip-path: inset(0 100% 0 0);
-    transition: clip-path 4.5s cubic-bezier(0.4, 0, 0.2, 1);
+    /* circle bloom from a corner — JS drives radius + origin slowly */
+    clip-path: circle(0% at 0% 0%);
+    transition: clip-path 16s cubic-bezier(0.22, 0.08, 0.25, 1);
     will-change: clip-path;
 }
 html[data-theme="dark"] .azora-bg-base { background: #1e1b4b; }
