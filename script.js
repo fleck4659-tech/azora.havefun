@@ -9,7 +9,7 @@
         }
     } catch (e) {}
 })();
-console.log("%c[Azora] script.js v68.2 corner circle bloom · limb tool · clones · bg shift","color:#7c3aed;font-weight:bold;font-size:14px");
+console.log("%c[Azora] script.js v68.3 soft corner bloom · limb tool · clones · bg shift","color:#7c3aed;font-weight:bold;font-size:14px");
 try { console.log("[Azora] Cloud ready:", typeof AZORA_CLOUD !== "undefined" && AZORA_CLOUD.isReady && AZORA_CLOUD.isReady()); } catch (e) {}
 // Configuration - Adjust these to change speed and phrases
 const fallSpeed = 2; // Higher number = faster fall
@@ -21548,7 +21548,7 @@ window.getAvatarDataForUsername = getAvatarDataForUsername;
 // ============================================================
 // Azora app update checker (PWA / service worker)
 // ============================================================
-var AZORA_APP_VERSION = "68.2";
+var AZORA_APP_VERSION = "68.3";
 var _azoraSwReg = null;
 var _azoraUpdateWaiting = false;
 var _azoraUpdateApplying = false;
@@ -21733,10 +21733,10 @@ window.checkForAzoraUpdates = checkForAzoraUpdates;
 window.onAzoraServiceWorkerReady = onAzoraServiceWorkerReady;
 
 // ============================================================
-// CORNER CIRCLE COLOR WIPE BACKGROUND
-// Whole screen is one solid color. From a random CORNER, a CIRCLE
-// of a new color expands very slowly until it covers everything,
-// then another circle starts from a different corner. Repeats forever.
+// CORNER SOFT-CIRCLE COLOR BLOOM
+// Solid full-screen color. From a random CORNER only (never mid-edge),
+// a soft circle with fading edges expands slowly until it covers the
+// screen, then the next color blooms from a different corner.
 // ============================================================
 (function initAzoraEdgeColorWipe() {
     var LIGHT_COLORS = [
@@ -21750,12 +21750,12 @@ window.onAzoraServiceWorkerReady = onAzoraServiceWorkerReady;
         "#1e293b", "#4c1d95"
     ];
 
-    // Circle origin points at the four corners (with tiny inset so it reads as a corner bloom)
+    // ONLY the four corners — never top/bottom/left/right mid-edges
     var CORNERS = [
-        { name: "top-left",     x: "0%",   y: "0%" },
-        { name: "top-right",    x: "100%", y: "0%" },
-        { name: "bottom-left",  x: "0%",   y: "100%" },
-        { name: "bottom-right", x: "100%", y: "100%" }
+        { name: "top-left",     left: true,  top: true },
+        { name: "top-right",    left: false, top: true },
+        { name: "bottom-left",  left: true,  top: false },
+        { name: "bottom-right", left: false, top: false }
     ];
 
     var baseEl = null;
@@ -21787,9 +21787,23 @@ window.onAzoraServiceWorkerReady = onAzoraServiceWorkerReady;
         return c;
     }
 
-    // From a corner, a circle needs ~150% radius to fully cover a rectangular viewport
-    function circleAt(corner, radiusPct) {
-        return "circle(" + radiusPct + "% at " + corner.x + " " + corner.y + ")";
+    function hexToRgba(hex, a) {
+        var h = String(hex || "#000").replace("#", "");
+        if (h.length === 3) h = h[0] + h[0] + h[1] + h[1] + h[2] + h[2];
+        var n = parseInt(h, 16);
+        if (!isFinite(n)) return "rgba(0,0,0," + a + ")";
+        var r = (n >> 16) & 255, g = (n >> 8) & 255, b = n & 255;
+        return "rgba(" + r + "," + g + "," + b + "," + a + ")";
+    }
+
+    /** Soft radial blob: solid core → soft mid → fully transparent rim */
+    function softCircleBackground(color) {
+        return "radial-gradient(circle, " +
+            color + " 0%, " +
+            color + " 32%, " +
+            hexToRgba(color, 0.55) + " 52%, " +
+            hexToRgba(color, 0.22) + " 68%, " +
+            "transparent 78%)";
     }
 
     function ensureEls() {
@@ -21824,40 +21838,54 @@ window.onAzoraServiceWorkerReady = onAzoraServiceWorkerReady;
         el.style.background = color;
     }
 
+    /** Pin the soft circle's CENTER exactly on a screen corner */
+    function placeWaveOnCorner(corner, color, scale) {
+        waveEl.style.inset = "auto";
+        waveEl.style.width = "280vmax";
+        waveEl.style.height = "280vmax";
+        waveEl.style.borderRadius = "50%";
+        waveEl.style.clipPath = "none";
+        waveEl.style.background = softCircleBackground(color);
+        waveEl.style.left = corner.left ? "0px" : "auto";
+        waveEl.style.right = corner.left ? "auto" : "0px";
+        waveEl.style.top = corner.top ? "0px" : "auto";
+        waveEl.style.bottom = corner.top ? "auto" : "0px";
+        // Center of the 280vmax circle sits on the chosen corner
+        var tx = corner.left ? "-50%" : "50%";
+        var ty = corner.top ? "-50%" : "50%";
+        waveEl.style.transform = "translate(" + tx + ", " + ty + ") scale(" + scale + ")";
+    }
+
     function runCycle() {
         if (!running || !ensureEls()) return;
 
         var next = pickColor(currentColor);
         var corner = pickCorner();
 
-        // Start as a tiny dot in the corner (almost invisible)
+        // Start invisible (scale 0) at the corner
         waveEl.style.transition = "none";
-        setSolid(waveEl, next);
-        waveEl.style.clipPath = circleAt(corner, 0);
+        placeWaveOnCorner(corner, next, 0);
         void waveEl.offsetWidth;
 
-        // Expand as a soft circle — very slow, spreads across the whole page
-        // 14s – 22s so it feels calm and "way more spread out"
-        var duration = 14000 + Math.floor(Math.random() * 8000);
-        waveEl.style.transition = "clip-path " + (duration / 1000).toFixed(2) + "s cubic-bezier(0.22, 0.08, 0.25, 1)";
-        // 160% from a corner guarantees full coverage of any aspect ratio
-        waveEl.style.clipPath = circleAt(corner, 160);
+        // Expand slowly — soft fading rim, corner origin only
+        var duration = 16000 + Math.floor(Math.random() * 10000); // 16–26s
+        waveEl.style.transition = "transform " + (duration / 1000).toFixed(2) + "s cubic-bezier(0.15, 0.05, 0.2, 1)";
+        placeWaveOnCorner(corner, next, 1);
 
         clearTimeout(timer);
         timer = setTimeout(function () {
+            // Once fully covered, lock the solid color on the base layer
             currentColor = next;
             setSolid(baseEl, currentColor);
             try { document.body.style.background = currentColor; } catch (e) {}
 
-            // Reset wave to a new tiny corner-dot for the next cycle
             waveEl.style.transition = "none";
-            waveEl.style.clipPath = circleAt(corner, 0);
+            placeWaveOnCorner(corner, next, 0);
             void waveEl.offsetWidth;
 
-            // Longer rest on the solid color before the next bloom
-            var pause = 1800 + Math.floor(Math.random() * 2200);
+            var pause = 2000 + Math.floor(Math.random() * 2500);
             timer = setTimeout(runCycle, pause);
-        }, duration + 80);
+        }, duration + 100);
     }
 
     function start() {
@@ -21871,7 +21899,7 @@ window.onAzoraServiceWorkerReady = onAzoraServiceWorkerReady;
         setSolid(baseEl, currentColor);
         try { document.body.style.background = currentColor; } catch (e) {}
         waveEl.style.transition = "none";
-        waveEl.style.clipPath = "circle(0% at 0% 0%)";
+        placeWaveOnCorner(CORNERS[0], currentColor, 0);
         timer = setTimeout(runCycle, 900);
     }
 
@@ -21879,11 +21907,6 @@ window.onAzoraServiceWorkerReady = onAzoraServiceWorkerReady;
         running = false;
         clearTimeout(timer);
     }
-
-    try {
-        var obs = new MutationObserver(function () {});
-        obs.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
-    } catch (e) {}
 
     window.startAzoraEdgeColorWipe = start;
     window.stopAzoraEdgeColorWipe = stop;

@@ -5422,25 +5422,40 @@ html[data-theme="dark"] body {
     pointer-events: none;
     overflow: hidden;
 }
-.azora-bg-base,
-.azora-bg-wave {
+.azora-bg-base {
     position: absolute;
     inset: 0;
     width: 100%;
     height: 100%;
-}
-.azora-bg-base {
     background: #7c3aed;
 }
 .azora-bg-wave {
-    background: #2563eb;
-    /* circle bloom from a corner — JS drives radius + origin slowly */
-    clip-path: circle(0% at 0% 0%);
-    transition: clip-path 16s cubic-bezier(0.22, 0.08, 0.25, 1);
-    will-change: clip-path;
+    position: absolute;
+    /* Soft fading circle — sized/positioned by JS on a CORNER only */
+    width: 280vmax;
+    height: 280vmax;
+    border-radius: 50%;
+    pointer-events: none;
+    will-change: transform;
+    transform: translate(-50%, -50%) scale(0);
+    transition: transform 18s cubic-bezier(0.15, 0.05, 0.2, 1);
+    /* fallback soft gradient; JS sets the live color each cycle */
+    background: radial-gradient(circle,
+        #2563eb 0%,
+        #2563eb 32%,
+        rgba(37, 99, 235, 0.55) 52%,
+        rgba(37, 99, 235, 0.22) 68%,
+        transparent 78%);
 }
 html[data-theme="dark"] .azora-bg-base { background: #1e1b4b; }
-html[data-theme="dark"] .azora-bg-wave { background: #312e81; }
+html[data-theme="dark"] .azora-bg-wave {
+    background: radial-gradient(circle,
+        #312e81 0%,
+        #312e81 32%,
+        rgba(49, 46, 129, 0.55) 52%,
+        rgba(49, 46, 129, 0.22) 68%,
+        transparent 78%);
+}
 
 /* Reset to previous avatar */
 .reset-previous-avatar-btn {
