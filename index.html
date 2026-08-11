@@ -11,9 +11,9 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Azora">
     <link rel="manifest" href="manifest-azora.json">
-    <link rel="apple-touch-icon" href="logo.jpg?v=67.0">
-    <link rel="icon" href="logo.jpg?v=67.0">
-    <link rel="stylesheet" href="style.css?v=67.0">
+    <link rel="apple-touch-icon" href="logo.jpg?v=68.0">
+    <link rel="icon" href="logo.jpg?v=68.0">
+    <link rel="stylesheet" href="style.css?v=68.0">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 </head>
 <body>
@@ -70,7 +70,7 @@
 
 <div id="azoraLoadingScreen" class="azora-loading-screen" style="display:none;" aria-hidden="true">
     <div class="azora-loading-inner">
-        <img src="logo.jpg?v=67.0" alt="Azora" class="azora-loading-logo" onerror="this.onerror=null;this.src='logo.png?v=67.0'">
+        <img src="logo.jpg?v=68.0" alt="Azora" class="azora-loading-logo" onerror="this.onerror=null;this.src='logo.png?v=68.0'">
         <div class="azora-loading-title">Loading Azora</div>
         <div class="azora-loading-bar"><div class="azora-loading-bar-fill" id="azoraLoadingBarFill"></div></div>
         <div class="azora-loading-hint" id="azoraLoadingHint">Getting things ready…</div>
@@ -79,7 +79,7 @@
 
 <div id="accountOverlay" class="overlay" style="display:none;">
     <div class="popup">
-        <img src="logo.jpg?v=67.0" class="popupLogo" alt="Azora Logo">
+        <img src="logo.jpg?v=68.0" class="popupLogo" alt="Azora Logo">
         <h1 id="popupTitle">Join Azora</h1>
         <p id="popupSubtitle">Build games.<br>Customize avatars.<br>Have fun.</p>
         <input id="username" type="text" placeholder="Username">
@@ -377,7 +377,7 @@
 <div class="topbar">
     <div class="topbar-left">
         <a href="https://www.youtube.com/@Official_Azora" target="_blank" class="topbar-logo-link">
-            <img src="logo.jpg?v=67.0" alt="Azora Logo" class="logo" width="48" height="48" decoding="async" onerror="this.onerror=null;this.src='logo.png?v=67.0'">
+            <img src="logo.jpg?v=68.0" alt="Azora Logo" class="logo" width="48" height="48" decoding="async" onerror="this.onerror=null;this.src='logo.png?v=68.0'">
         </a>
         <h2 class="topbar-title">Azora</h2>
     </div>
@@ -485,6 +485,7 @@
             <label class="avatar-scale-row">Legs <input type="range" id="scaleLegs" min="0.6" max="1.6" step="0.05" value="1" oninput="onAvatarScaleInput()"></label>
         </div>
         <button type="button" id="loadPrevAvatarsBtn" class="load-prev-avatars-btn" onclick="openAvatarHistory()">📂 Load previous avatars</button>
+        <button type="button" id="resetPreviousAvatarBtn" class="reset-previous-avatar-btn" onclick="resetToPreviousAvatar()" title="Load the avatar you had before the latest save">↩ Reset to previous avatar</button>
         <button type="button" id="resetDefaultAvatarBtn" class="reset-default-avatar-btn" onclick="resetToDefaultAvatar()" title="Reset to Azora's default avatar">↺ Reset to default avatar</button>
         <button onclick="saveAvatar()" id="saveAvatarBtn">Save Avatar</button>
         <p id="guestAvatarLock" style="display:none;color:#ffcc00;font-size:12px;font-weight:bold;text-align:center;margin-top:8px;">
@@ -704,7 +705,7 @@
 <!-- Public Game Feed (discover games) -->
 <div id="publicFeedOverlay" class="azafn-overlay" style="display:none;">
     <div class="azafn-header">
-        <h2><img src="logo.jpg?v=67.0" alt="Azora"> Game Feed</h2>
+        <h2><img src="logo.jpg?v=68.0" alt="Azora"> Game Feed</h2>
         <div class="azafn-tabs">
             <button onclick="closePublicFeed()" style="margin:0;background:#ff3b30;color:#fff;">✕ Close</button>
         </div>
@@ -746,7 +747,7 @@
 <div id="profileOverlay" class="overlay" style="display:none;">
     <div class="popup profile-popup" style="max-width:min(360px,calc(100vw - 20px));">
         <div class="profile-avatar-wrap" id="profileAvatarWrap">
-            <img src="logo.jpg?v=67.0" class="popupLogo profile-avatar-img" alt="Profile picture" id="profileAvatarImg">
+            <img src="logo.jpg?v=68.0" class="popupLogo profile-avatar-img" alt="Profile picture" id="profileAvatarImg">
             <button type="button" id="profileAvatarEditBtn" class="profile-avatar-edit-btn" style="display:none;" title="Change profile picture" onclick="openProfilePicPicker()">📷</button>
             <input type="file" id="profilePicFileInput" accept="image/*" style="display:none;" onchange="onProfilePicSelected(event)">
         </div>
@@ -781,7 +782,7 @@
 <!-- Chat Panel -->
 <div id="chatOverlay" class="azafn-overlay" style="display:none;">
     <div class="azafn-header">
-        <h2><img src="logo.jpg?v=67.0" alt="Azora"> Chat</h2>
+        <h2><img src="logo.jpg?v=68.0" alt="Azora"> Chat</h2>
         <div class="azafn-tabs">
             <button type="button" onclick="openAICompanionSettings()" style="margin:0;background:linear-gradient(180deg,#a78bfa,#7c3aed);color:#fff;">Customize AI</button>
             <button type="button" onclick="closeChatPanel()" style="margin:0;background:#ff3b30;color:#fff;">✕ Close</button>
@@ -882,7 +883,7 @@
 <!-- Game Preview (private until published) -->
 <div id="gamePreviewOverlay" class="azafn-overlay" style="display:none;">
     <div class="azafn-header">
-        <h2><img src="logo.jpg?v=67.0" alt="Azora"> Game Preview</h2>
+        <h2><img src="logo.jpg?v=68.0" alt="Azora"> Game Preview</h2>
         <div class="azafn-tabs">
             <button onclick="closeGamePreview()" style="margin:0;background:#ff3b30;color:#fff;">✕ Close</button>
         </div>
@@ -910,7 +911,7 @@
 <!-- Playable Game Runtime -->
 <div id="gamePlayOverlay" class="azafn-overlay" style="display:none;">
     <div class="azafn-header">
-        <h2><img src="logo.jpg?v=67.0" alt="Azora"> <span id="gamePlayTitle">Playing</span></h2>
+        <h2><img src="logo.jpg?v=68.0" alt="Azora"> <span id="gamePlayTitle">Playing</span></h2>
         <div class="azafn-tabs">
             <button type="button" onclick="restartGamePlay()" style="margin:0;">↺ Restart</button>
             <button type="button" onclick="closeGamePlay()" style="margin:0;background:#ff3b30;color:#fff;">✕ Exit</button>
@@ -931,7 +932,7 @@
 <div id="azoraDisabledTip" class="azora-disabled-tip" style="display:none;" role="status">Oops! Looks like this button is disabled!</div>
 <div id="normGameOverlay" class="azafn-overlay" style="display:none;">
     <div class="azafn-header">
-        <h2><img src="logo.jpg?v=67.0" alt="Azora"> <span id="normGameTitle">Norm Game</span></h2>
+        <h2><img src="logo.jpg?v=68.0" alt="Azora"> <span id="normGameTitle">Norm Game</span></h2>
         <div class="azafn-tabs">
             <button type="button" id="normEmpireExpandBtn" class="norm-empire-btn" style="display:none;" onclick="expandEmpire()">Expand Empire</button>
             <button type="button" id="normMusicToggleBtn" class="norm-music-btn" onclick="toggleNormMusicPause()">Pause Music</button>
@@ -941,7 +942,7 @@
     </div>
     <div class="norm-game-body">
         <div id="normGameLoading" class="norm-game-loading">
-            <img src="logo.jpg?v=67.0" alt="" class="norm-load-logo">
+            <img src="logo.jpg?v=68.0" alt="" class="norm-load-logo">
             <div class="norm-load-title">Loading assets…</div>
             <div class="norm-load-bar"><div class="norm-load-fill" id="normLoadFill"></div></div>
             <div class="norm-load-hint" id="normLoadHint">Preparing the world</div>
@@ -973,50 +974,73 @@
                         <button type="button" onclick="toggleNormInventory()" aria-label="Close inventory">✕</button>
                     </div>
                     <div class="norm-inv-items">
-                        <button type="button" class="norm-inv-item" onclick="useNormInvClone()">
+                        <button type="button" class="norm-inv-item" onclick="openNormInvClonePanel()">
                             <span class="norm-inv-icon">👥</span>
                             <span class="norm-inv-name">Clone <span class="norm-inv-badge" id="normCloneCount">0</span></span>
-                            <span class="norm-inv-desc">Duplicate yourself nearby — no limit</span>
+                            <span class="norm-inv-desc">Duplicate yourself · delete · sync look</span>
                         </button>
                         <button type="button" class="norm-inv-item" onclick="openNormInvAddPart()">
                             <span class="norm-inv-icon">🧩</span>
                             <span class="norm-inv-name">Add Parts <span class="norm-inv-badge" id="normPartCount">0</span></span>
-                            <span class="norm-inv-desc">Attach unique shapes to your avatar (in-game)</span>
+                            <span class="norm-inv-desc">Edit part position, size &amp; rotation on a baseplate</span>
                         </button>
                         <button type="button" class="norm-inv-item" onclick="openNormInvPosition()">
-                            <span class="norm-inv-icon">📍</span>
-                            <span class="norm-inv-name">Change Position</span>
-                            <span class="norm-inv-desc">Teleport to spawn, nearby, or custom coords</span>
+                            <span class="norm-inv-icon">🦾</span>
+                            <span class="norm-inv-name">Limb Position</span>
+                            <span class="norm-inv-desc">Move &amp; rotate your avatar limbs · reset anytime</span>
                         </button>
                     </div>
-                    <div id="normInvAddPartPanel" class="norm-inv-subpanel" style="display:none;">
-                        <h4>Pick a part shape</h4>
+                    <div id="normInvClonePanel" class="norm-inv-subpanel" style="display:none;">
+                        <h4>Clones</h4>
                         <div class="norm-inv-shapes">
-                            <button type="button" onclick="useNormInvAddPart('box')">Cube</button>
-                            <button type="button" onclick="useNormInvAddPart('sphere')">Sphere</button>
-                            <button type="button" onclick="useNormInvAddPart('cylinder')">Cylinder</button>
-                            <button type="button" onclick="useNormInvAddPart('wedge')">Wedge</button>
-                            <button type="button" onclick="useNormInvAddPart('torus')">Ring</button>
+                            <button type="button" onclick="useNormInvClone()">＋ Create clone</button>
+                            <button type="button" onclick="deleteSelectedNormClone()">Delete selected</button>
+                            <button type="button" onclick="deleteAllNormClones()">Delete all</button>
+                            <button type="button" onclick="updateNormClonesToMatchAvatar()">Update clones to my look</button>
+                        </div>
+                        <p class="norm-inv-hint" style="margin-top:8px;">Tap a clone in the world to select it (glow). “Update clones” refreshes every clone to match your current avatar.</p>
+                        <div id="normCloneList" class="norm-clone-list"></div>
+                    </div>
+                    <div id="normInvAddPartPanel" class="norm-inv-subpanel" style="display:none;">
+                        <h4>Pick a shape — opens the part editor</h4>
+                        <div class="norm-inv-shapes">
+                            <button type="button" onclick="openNormPartEditor('box')">Cube</button>
+                            <button type="button" onclick="openNormPartEditor('sphere')">Sphere</button>
+                            <button type="button" onclick="openNormPartEditor('cylinder')">Cylinder</button>
+                            <button type="button" onclick="openNormPartEditor('wedge')">Wedge</button>
+                            <button type="button" onclick="openNormPartEditor('torus')">Ring</button>
                         </div>
                         <div class="norm-inv-color-row">
                             <label for="normInvPartColor">Color</label>
                             <input type="color" id="normInvPartColor" value="#a855f7">
                         </div>
-                        <p class="norm-inv-hint" style="margin-top:8px;">Parts attach to your avatar automatically. Use “Save parts to Azora avatar” to keep them on the main platform.</p>
                     </div>
                     <div id="normInvPosPanel" class="norm-inv-subpanel" style="display:none;">
-                        <h4>Change position</h4>
-                        <div class="norm-inv-pos-opts">
-                            <button type="button" onclick="useNormInvPosition('spawn')">Go to spawn</button>
-                            <button type="button" onclick="useNormInvPosition('nearby')">Random nearby</button>
-                            <input type="text" id="normInvPosX" placeholder="X (e.g. 0)" inputmode="decimal">
-                            <input type="text" id="normInvPosZ" placeholder="Z (e.g. 0)" inputmode="decimal">
-                            <button type="button" onclick="useNormInvPosition('custom')">Go to X / Z</button>
+                        <h4>Limb position &amp; rotation</h4>
+                        <label class="norm-inv-limb-row">Limb
+                            <select id="normLimbSelect" onchange="onNormLimbSelectChange()">
+                                <option value="head">Head</option>
+                                <option value="torso">Torso</option>
+                                <option value="leftArm">Left Arm</option>
+                                <option value="rightArm">Right Arm</option>
+                                <option value="leftLeg">Left Leg</option>
+                                <option value="rightLeg">Right Leg</option>
+                            </select>
+                        </label>
+                        <label class="norm-inv-limb-row">Pos X <input type="range" id="normLimbPosX" min="-1" max="1" step="0.02" value="0" oninput="applyNormLimbTransform()"></label>
+                        <label class="norm-inv-limb-row">Pos Y <input type="range" id="normLimbPosY" min="-1" max="1" step="0.02" value="0" oninput="applyNormLimbTransform()"></label>
+                        <label class="norm-inv-limb-row">Pos Z <input type="range" id="normLimbPosZ" min="-1" max="1" step="0.02" value="0" oninput="applyNormLimbTransform()"></label>
+                        <label class="norm-inv-limb-row">Rot X <input type="range" id="normLimbRotX" min="-180" max="180" step="5" value="0" oninput="applyNormLimbTransform()"></label>
+                        <label class="norm-inv-limb-row">Rot Y <input type="range" id="normLimbRotY" min="-180" max="180" step="5" value="0" oninput="applyNormLimbTransform()"></label>
+                        <label class="norm-inv-limb-row">Rot Z <input type="range" id="normLimbRotZ" min="-180" max="180" step="5" value="0" oninput="applyNormLimbTransform()"></label>
+                        <div class="norm-inv-shapes" style="margin-top:8px;">
+                            <button type="button" onclick="resetNormLimbSelected()">Reset this limb</button>
+                            <button type="button" onclick="resetAllNormLimbs()">Reset all limbs</button>
                         </div>
                     </div>
                     <div class="norm-inv-footer">
                         <button type="button" id="normInvSavePartsBtn" class="norm-inv-save-btn" style="display:none;" onclick="saveNormPartsToAzora()">Save parts to Azora avatar</button>
-                        <p class="norm-inv-hint">Default tools: Clone, Add Parts, Change Position. Parts stay in-game until you save them to Azora.</p>
+                        <p class="norm-inv-hint">Parts &amp; limb edits are in-game until you save parts to Azora. Limb poses reset when you leave the game.</p>
                     </div>
                 </div>
             </div>
@@ -1035,9 +1059,35 @@
         </div>
     </div>
 </div>
+<!-- Part editor: baseplate + avatar + transform sliders -->
+<div id="normPartEditorOverlay" class="overlay norm-part-editor-overlay" style="display:none;z-index:2147483100;">
+    <div class="norm-part-editor-popup">
+        <div class="norm-part-editor-top">
+            <h2>Part Editor</h2>
+            <button type="button" class="norm-part-editor-close" onclick="closeNormPartEditor()">✕</button>
+        </div>
+        <div id="normPartEditorCanvas" class="norm-part-editor-canvas"></div>
+        <div class="norm-part-editor-controls">
+            <div class="norm-part-editor-grid">
+                <label>Pos X <input type="range" id="pePosX" min="-1.5" max="1.5" step="0.02" value="0.55" oninput="updateNormPartEditorTransform()"></label>
+                <label>Pos Y <input type="range" id="pePosY" min="0" max="3" step="0.02" value="1.7" oninput="updateNormPartEditorTransform()"></label>
+                <label>Pos Z <input type="range" id="pePosZ" min="-1.5" max="1.5" step="0.02" value="0" oninput="updateNormPartEditorTransform()"></label>
+                <label>Rot X <input type="range" id="peRotX" min="-180" max="180" step="5" value="0" oninput="updateNormPartEditorTransform()"></label>
+                <label>Rot Y <input type="range" id="peRotY" min="-180" max="180" step="5" value="0" oninput="updateNormPartEditorTransform()"></label>
+                <label>Rot Z <input type="range" id="peRotZ" min="-180" max="180" step="5" value="0" oninput="updateNormPartEditorTransform()"></label>
+                <label>Size <input type="range" id="peScale" min="0.3" max="2.5" step="0.05" value="1" oninput="updateNormPartEditorTransform()"></label>
+            </div>
+            <div class="norm-part-editor-actions">
+                <button type="button" onclick="resetNormPartEditorTransform()">Reset transform</button>
+                <button type="button" class="norm-part-editor-apply" onclick="applyNormPartEditor()">Apply to avatar</button>
+            </div>
+            <p class="norm-inv-hint">Drag to orbit the camera. Adjust position, rotation, and size, then Apply.</p>
+        </div>
+    </div>
+</div>
 <div id="normLeaveConfirm" class="overlay" style="display:none;z-index:2147483000;">
     <div class="popup" style="max-width:min(340px,calc(100vw - 20px));">
-        <h2 style="color:#1e60ff !important;">Are you sure?</h2>
+        <h2 style="color:#7c3aed !important;">Are you sure?</h2>
         <p style="color:#333 !important;">Leave this Norm Game and return to Azora?</p>
         <div style="display:flex;gap:10px;margin-top:8px;">
             <button type="button" onclick="confirmLeaveNormGame(true)" style="flex:1;background:linear-gradient(180deg,#f87171,#ef4444);color:#fff;">Yes</button>
@@ -1086,12 +1136,12 @@
     </div>
 </div>
 
-<script src="script.js?v=67.0"></script>
+<script src="script.js?v=68.0"></script>
 <script>
 // Register Azora as installable app (not the staff website)
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", function () {
-    navigator.serviceWorker.register("./sw-azora.js?v=67.0").then(function (reg) {
+    navigator.serviceWorker.register("./sw-azora.js?v=68.0").then(function (reg) {
       try { if (typeof onAzoraServiceWorkerReady === "function") onAzoraServiceWorkerReady(reg); } catch (e) {}
     }).catch(function () {});
   });
@@ -1169,7 +1219,7 @@ if ("serviceWorker" in navigator) {
 <div id="buyCoinsOverlay" class="overlay buy-coins-overlay" style="display:none;">
     <div class="popup buy-coins-popup">
         <div class="buy-coins-header">
-            <img src="logo.jpg?v=67.0" alt="" class="buy-coins-logo">
+            <img src="logo.jpg?v=68.0" alt="" class="buy-coins-logo">
             <h2>Buy AzoraCoins</h2>
             <p class="buy-coins-sub">Subscriptions renew monthly. Coin packs are one-time.</p>
         </div>
@@ -1197,7 +1247,7 @@ if ("serviceWorker" in navigator) {
 <div id="membershipOverlay" class="overlay members-overlay" style="display:none;">
     <div class="popup members-popup">
         <div class="members-header">
-            <img src="logo.jpg?v=67.0" alt="" class="members-logo">
+            <img src="logo.jpg?v=68.0" alt="" class="members-logo">
             <h2>Azora Members</h2>
             <p class="members-sub">Simple plans. Monthly AzoraCoins. Cancel anytime.</p>
         </div>
@@ -1218,7 +1268,7 @@ if ("serviceWorker" in navigator) {
 <!-- Download Azora (website only — hidden inside installed app) -->
 <div id="downloadAzoraOverlay" class="overlay download-azora-overlay" style="display:none;" aria-hidden="true">
     <div class="popup download-azora-popup" role="dialog" aria-labelledby="downloadAzoraTitle">
-        <img src="logo.jpg?v=67.0" alt="" class="download-azora-logo">
+        <img src="logo.jpg?v=68.0" alt="" class="download-azora-logo">
         <h2 id="downloadAzoraTitle">Download Azora</h2>
         <p class="download-azora-lead">Install Azora on this device. It opens like a normal app — no browser bar.</p>
         <div id="downloadAzoraStatus" class="download-azora-status"></div>
@@ -1426,7 +1476,7 @@ if ("serviceWorker" in navigator) {
 <div id="moderationLockOverlay" class="mod-lock-overlay" style="display:none;">
     <div class="mod-lock-panel" role="dialog" aria-modal="true">
         <div class="mod-lock-brand">
-            <img src="logo.jpg?v=67.0" alt="Azora">
+            <img src="logo.jpg?v=68.0" alt="Azora">
             <span>Azora Moderation</span>
         </div>
         <div id="modLockKindTag" class="mod-lock-kind ban">Restriction</div>

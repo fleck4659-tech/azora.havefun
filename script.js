@@ -9,7 +9,7 @@
         }
     } catch (e) {}
 })();
-console.log("%c[Azora] script.js v67.0 logo colors + in-game inventory","color:#7c3aed;font-weight:bold;font-size:14px");
+console.log("%c[Azora] script.js v68.0 part editor · limb tool · clones · bg shift","color:#7c3aed;font-weight:bold;font-size:14px");
 try { console.log("[Azora] Cloud ready:", typeof AZORA_CLOUD !== "undefined" && AZORA_CLOUD.isReady && AZORA_CLOUD.isReady()); } catch (e) {}
 // Configuration - Adjust these to change speed and phrases
 const fallSpeed = 2; // Higher number = faster fall
@@ -5391,6 +5391,61 @@ function resetToDefaultAvatar() {
     } catch (e2) {}
 }
 window.resetToDefaultAvatar = resetToDefaultAvatar;
+
+/** Load the avatar from history that is one step before the latest save */
+function resetToPreviousAvatar() {
+    if (localStorage.getItem("loggedIn") !== "true") {
+        alert("Log in to restore a previous avatar.");
+        return;
+    }
+    var list = (typeof getAvatarHistory === "function") ? getAvatarHistory() : [];
+    // Prefer index 1 (previous). If only one entry exists, use it.
+    var entry = null;
+    if (list.length >= 2) entry = list[1];
+    else if (list.length === 1) entry = list[0];
+    if (!entry || !entry.avatar) {
+        alert("No previous avatar found yet. Save your avatar at least twice to build a history.");
+        return;
+    }
+    var av = (typeof cloneAvatarSnapshot === "function") ? cloneAvatarSnapshot(entry.avatar) : entry.avatar;
+    try {
+        if (typeof applyAvatarStateObject === "function") {
+            applyAvatarStateObject({
+                colors: {
+                    head: av.head, torso: av.torso,
+                    leftArm: av.leftArm, rightArm: av.rightArm,
+                    leftLeg: av.leftLeg, rightLeg: av.rightLeg
+                },
+                scales: av.scales || { head: 1, torso: 1, arms: 1, legs: 1 },
+                gender: av.gender || "boy",
+                hair: av.hair || "#3b2f2f"
+            });
+        } else if (typeof loadAvatarHistoryEntry === "function") {
+            loadAvatarHistoryEntry(entry.id);
+            return;
+        }
+        // Restore extra parts if any
+        try {
+            var raw = localStorage.getItem("azoraAccount");
+            if (raw) {
+                var acc = JSON.parse(raw);
+                if (acc && acc.avatar) {
+                    acc.avatar = Object.assign({}, acc.avatar, av);
+                    if (Array.isArray(av.extraParts)) acc.avatar.extraParts = av.extraParts;
+                    localStorage.setItem("azoraAccount", JSON.stringify(acc));
+                }
+            }
+        } catch (eA) {}
+        try {
+            if (typeof updateAvatarColors === "function") updateAvatarColors();
+        } catch (eU) {}
+        alert("Previous avatar loaded. Press Save Avatar if you want to keep it.");
+    } catch (e) {
+        console.warn("[Azora] resetToPreviousAvatar", e);
+        alert("Could not load previous avatar.");
+    }
+}
+window.resetToPreviousAvatar = resetToPreviousAvatar;
 
 function snapshotCurrentAvatarState() {
     var colors = readAvatarColorInputs();
@@ -11493,7 +11548,8 @@ function isNormGuest() {
 }
 
 function getNormAvatarColors() {
-    var av = { head: "#ffcc00", torso: "#7c3aed", leftArm: "#ffcc00", rightArm: "#ffcc00", leftLeg: "#3b82f6", rightLeg: "#3b82f6", gender: "boy", hair: "#3b2f2f", face: "male", extraParts: [] };
+    // Avatar limb colors stay the player's own — logo palette is for UI layout only
+    var av = { head: "#ffcc00", torso: "#1e60ff", leftArm: "#ffcc00", rightArm: "#ffcc00", leftLeg: "#00ebd4", rightLeg: "#00ebd4", gender: "boy", hair: "#3b2f2f", face: "male", extraParts: [] };
     try {
         var acc = JSON.parse(localStorage.getItem("azoraAccount") || "{}");
         if (acc && acc.avatar) {
@@ -14722,6 +14778,10 @@ function leaveNormGame() {
         if (layer) layer.style.display = "none";
     } catch (e) {}
     try { clearNormGameInventoryRuntime(false); } catch (eInv) {}
+    try { closeNormPartEditor(); } catch (ePe) {}
+    _normLimbDefaults = null;
+    _normLimbOffsets = {};
+    _normSelectedCloneIndex = -1;
     disposeNormWorld(false);
     _normSession = null;
     _normPlayers = [];
@@ -14776,6 +14836,7 @@ function makeExtraPartMesh(spec) {
     var mesh = new THREE.Mesh(geo, mat);
     mesh.name = "extraPart";
     mesh.userData.isExtraPart = true;
+    var sc = (typeof spec.scale === "number" && isFinite(spec.scale)) ? spec.scale : 1;
     mesh.userData.partSpec = {
         shape: shape,
         color: col,
@@ -14784,10 +14845,12 @@ function makeExtraPartMesh(spec) {
         oz: spec.oz || 0,
         rx: spec.rx || 0,
         ry: spec.ry || 0,
-        rz: spec.rz || 0
+        rz: spec.rz || 0,
+        scale: sc
     };
     mesh.position.set(spec.ox || 0, spec.oy || 0, spec.oz || 0);
     mesh.rotation.set(spec.rx || 0, spec.ry || 0, spec.rz || 0);
+    if (sc !== 1) mesh.scale.set(sc, sc, sc);
     return mesh;
 }
 
@@ -14842,6 +14905,18 @@ function updateNormInvBadges() {
     } catch (e) {}
 }
 
+var _normSelectedCloneIndex = -1;
+var _normLimbDefaults = null; // stored original limb transforms
+var _normLimbOffsets = {}; // per-limb {px,py,pz,rx,ry,rz}
+var _partEditor = null; // {scene, camera, renderer, avatar, part, animId, shape, color}
+
+function hideAllNormInvSubpanels() {
+    ["normInvAddPartPanel", "normInvPosPanel", "normInvClonePanel"].forEach(function (id) {
+        var el = document.getElementById(id);
+        if (el) el.style.display = "none";
+    });
+}
+
 function toggleNormInventory() {
     var panel = document.getElementById("normInventoryPanel");
     if (!panel) return;
@@ -14849,13 +14924,32 @@ function toggleNormInventory() {
     panel.style.display = _normInvOpen ? "block" : "none";
     if (_normInvOpen) {
         updateNormInvBadges();
+        renderNormCloneList();
         try { if (typeof playAzoraSfx === "function") playAzoraSfx("click_buttons"); } catch (e) {}
     } else {
-        var ap = document.getElementById("normInvAddPartPanel");
-        if (ap) ap.style.display = "none";
-        var pp = document.getElementById("normInvPosPanel");
-        if (pp) pp.style.display = "none";
+        hideAllNormInvSubpanels();
     }
+}
+
+function openNormInvClonePanel() {
+    hideAllNormInvSubpanels();
+    var cp = document.getElementById("normInvClonePanel");
+    if (cp) cp.style.display = "block";
+    renderNormCloneList();
+}
+
+function openNormInvAddPart() {
+    hideAllNormInvSubpanels();
+    var ap = document.getElementById("normInvAddPartPanel");
+    if (ap) ap.style.display = "block";
+}
+
+function openNormInvPosition() {
+    hideAllNormInvSubpanels();
+    var pp = document.getElementById("normInvPosPanel");
+    if (pp) pp.style.display = "block";
+    ensureNormLimbDefaults();
+    onNormLimbSelectChange();
 }
 
 function useNormInvClone() {
@@ -14864,120 +14958,413 @@ function useNormInvClone() {
     var colors = getNormAvatarColors();
     var clone = makeNormAvatarForCurrentGame(colors);
     if (!clone) return;
-    // Offset beside the player, alternating left/right
     var n = _normClones.length;
     var side = (n % 2 === 0) ? 1 : -1;
     var row = Math.floor(n / 2);
     var yaw = (_normSession && typeof _normSession.charYaw === "number") ? _normSession.charYaw : (_normLocalMesh.rotation.y || 0);
     var rightX = Math.cos(yaw);
     var rightZ = -Math.sin(yaw);
-    var ox = rightX * side * (1.4 + row * 0.15);
-    var oz = rightZ * side * (1.4 + row * 0.15);
     clone.position.set(
-        _normLocalMesh.position.x + ox,
+        _normLocalMesh.position.x + rightX * side * (1.4 + row * 0.15),
         _normLocalMesh.position.y,
-        _normLocalMesh.position.z + oz
+        _normLocalMesh.position.z + rightZ * side * (1.4 + row * 0.15)
     );
     clone.rotation.y = yaw;
     clone.userData.isClone = true;
     clone.userData.cloneIndex = n;
+    clone.userData.selected = false;
     _normScene.add(clone);
     _normClones.push(clone);
+    _normSelectedCloneIndex = n;
+    highlightNormCloneSelection();
     updateNormInvBadges();
+    renderNormCloneList();
 }
 
-function openNormInvAddPart() {
-    var ap = document.getElementById("normInvAddPartPanel");
-    var pp = document.getElementById("normInvPosPanel");
-    if (pp) pp.style.display = "none";
-    if (ap) ap.style.display = (ap.style.display === "none" || !ap.style.display) ? "block" : "none";
+function selectNormClone(index) {
+    _normSelectedCloneIndex = index;
+    highlightNormCloneSelection();
+    renderNormCloneList();
 }
 
-function openNormInvPosition() {
-    var pp = document.getElementById("normInvPosPanel");
-    var ap = document.getElementById("normInvAddPartPanel");
-    if (ap) ap.style.display = "none";
-    if (pp) pp.style.display = (pp.style.display === "none" || !pp.style.display) ? "block" : "none";
+function highlightNormCloneSelection() {
+    (_normClones || []).forEach(function (c, i) {
+        if (!c) return;
+        c.userData.selected = (i === _normSelectedCloneIndex);
+        c.traverse(function (ch) {
+            if (ch.isMesh && ch.material) {
+                try {
+                    if (c.userData.selected) {
+                        if (!ch.userData._origEmissive) {
+                            ch.userData._origEmissive = ch.material.emissive ? ch.material.emissive.clone() : null;
+                        }
+                        if (ch.material.emissive) ch.material.emissive.setHex(0x66aaff);
+                        ch.material.needsUpdate = true;
+                    } else if (ch.userData._origEmissive && ch.material.emissive) {
+                        ch.material.emissive.copy(ch.userData._origEmissive);
+                        ch.material.needsUpdate = true;
+                    }
+                } catch (e) {}
+            }
+        });
+    });
 }
 
-/** Slot offsets around the body — cycles so many parts don't stack on one point */
-var _NORM_PART_SLOTS = [
-    { ox: 0.55, oy: 1.7, oz: 0.0 },   // right shoulder
-    { ox: -0.55, oy: 1.7, oz: 0.0 },  // left shoulder
-    { ox: 0.0, oy: 2.45, oz: 0.0 },   // above head
-    { ox: 0.0, oy: 1.55, oz: -0.35 }, // back
-    { ox: 0.0, oy: 1.55, oz: 0.35 },  // chest
-    { ox: 0.4, oy: 1.1, oz: 0.2 },
-    { ox: -0.4, oy: 1.1, oz: 0.2 },
-    { ox: 0.35, oy: 0.55, oz: 0.15 },
-    { ox: -0.35, oy: 0.55, oz: 0.15 },
-    { ox: 0.0, oy: 2.1, oz: 0.25 }
-];
+function deleteSelectedNormClone() {
+    if (_normSelectedCloneIndex < 0 || !_normClones[_normSelectedCloneIndex]) {
+        alert("Select a clone first (tap it in the list or create one).");
+        return;
+    }
+    var c = _normClones[_normSelectedCloneIndex];
+    try { if (_normScene) _normScene.remove(c); } catch (e) {}
+    _normClones.splice(_normSelectedCloneIndex, 1);
+    _normSelectedCloneIndex = _normClones.length ? Math.min(_normSelectedCloneIndex, _normClones.length - 1) : -1;
+    highlightNormCloneSelection();
+    updateNormInvBadges();
+    renderNormCloneList();
+}
 
-function useNormInvAddPart(shape) {
-    if (!_normLocalMesh || typeof THREE === "undefined") return;
+function deleteAllNormClones() {
+    (_normClones || []).forEach(function (c) {
+        try { if (_normScene && c) _normScene.remove(c); } catch (e) {}
+    });
+    _normClones = [];
+    _normSelectedCloneIndex = -1;
+    updateNormInvBadges();
+    renderNormCloneList();
+}
+
+function updateNormClonesToMatchAvatar() {
+    if (!_normClones.length || !_normScene) return;
+    try { if (typeof playAzoraSfx === "function") playAzoraSfx("click_buttons"); } catch (e) {}
+    var colors = getNormAvatarColors();
+    var positions = _normClones.map(function (c) {
+        return {
+            x: c.position.x, y: c.position.y, z: c.position.z,
+            ry: c.rotation.y
+        };
+    });
+    deleteAllNormClones();
+    positions.forEach(function (p, i) {
+        var clone = makeNormAvatarForCurrentGame(colors);
+        if (!clone) return;
+        clone.position.set(p.x, p.y, p.z);
+        clone.rotation.y = p.ry;
+        clone.userData.isClone = true;
+        clone.userData.cloneIndex = i;
+        _normScene.add(clone);
+        _normClones.push(clone);
+    });
+    if (_normClones.length) _normSelectedCloneIndex = 0;
+    highlightNormCloneSelection();
+    updateNormInvBadges();
+    renderNormCloneList();
+}
+
+function renderNormCloneList() {
+    var box = document.getElementById("normCloneList");
+    if (!box) return;
+    if (!_normClones.length) {
+        box.innerHTML = '<p class="norm-inv-hint">No clones yet.</p>';
+        return;
+    }
+    var html = "";
+    _normClones.forEach(function (c, i) {
+        var sel = (i === _normSelectedCloneIndex) ? " is-selected" : "";
+        html += '<button type="button" class="norm-clone-row' + sel + '" onclick="selectNormClone(' + i + ')">Clone #' + (i + 1) + (sel ? " · selected" : "") + "</button>";
+    });
+    box.innerHTML = html;
+}
+
+/* ---- Limb position / rotation tool ---- */
+function ensureNormLimbDefaults() {
+    if (!_normLocalMesh || _normLimbDefaults) return;
+    _normLimbDefaults = {};
+    var names = ["head", "torso", "leftArm", "rightArm", "leftLeg", "rightLeg", "leftArmPivot", "rightArmPivot", "leftLegPivot", "rightLegPivot"];
+    names.forEach(function (n) {
+        var obj = _normLocalMesh.getObjectByName(n);
+        if (!obj) return;
+        _normLimbDefaults[n] = {
+            px: obj.position.x, py: obj.position.y, pz: obj.position.z,
+            rx: obj.rotation.x, ry: obj.rotation.y, rz: obj.rotation.z
+        };
+    });
+    _normLimbOffsets = {};
+}
+
+function getNormLimbObject(limbKey) {
+    if (!_normLocalMesh) return null;
+    // Prefer pivots for arms/legs
+    if (limbKey === "leftArm") return _normLocalMesh.getObjectByName("leftArmPivot") || _normLocalMesh.getObjectByName("leftArm");
+    if (limbKey === "rightArm") return _normLocalMesh.getObjectByName("rightArmPivot") || _normLocalMesh.getObjectByName("rightArm");
+    if (limbKey === "leftLeg") return _normLocalMesh.getObjectByName("leftLegPivot") || _normLocalMesh.getObjectByName("leftLeg");
+    if (limbKey === "rightLeg") return _normLocalMesh.getObjectByName("rightLegPivot") || _normLocalMesh.getObjectByName("rightLeg");
+    return _normLocalMesh.getObjectByName(limbKey);
+}
+
+function onNormLimbSelectChange() {
+    ensureNormLimbDefaults();
+    var key = (document.getElementById("normLimbSelect") || {}).value || "head";
+    var off = _normLimbOffsets[key] || { px: 0, py: 0, pz: 0, rx: 0, ry: 0, rz: 0 };
+    var map = {
+        normLimbPosX: off.px, normLimbPosY: off.py, normLimbPosZ: off.pz,
+        normLimbRotX: off.rx * 180 / Math.PI, normLimbRotY: off.ry * 180 / Math.PI, normLimbRotZ: off.rz * 180 / Math.PI
+    };
+    Object.keys(map).forEach(function (id) {
+        var el = document.getElementById(id);
+        if (el) el.value = map[id];
+    });
+}
+
+function applyNormLimbTransform() {
+    ensureNormLimbDefaults();
+    var key = (document.getElementById("normLimbSelect") || {}).value || "head";
+    var obj = getNormLimbObject(key);
+    if (!obj) return;
+    var defKey = obj.name;
+    var def = _normLimbDefaults[defKey] || _normLimbDefaults[key];
+    if (!def) return;
+    function val(id) {
+        var el = document.getElementById(id);
+        return el ? parseFloat(el.value) : 0;
+    }
+    var px = val("normLimbPosX"), py = val("normLimbPosY"), pz = val("normLimbPosZ");
+    var rx = val("normLimbRotX") * Math.PI / 180;
+    var ry = val("normLimbRotY") * Math.PI / 180;
+    var rz = val("normLimbRotZ") * Math.PI / 180;
+    _normLimbOffsets[key] = { px: px, py: py, pz: pz, rx: rx, ry: ry, rz: rz };
+    obj.position.set(def.px + px, def.py + py, def.pz + pz);
+    obj.rotation.set(def.rx + rx, def.ry + ry, def.rz + rz);
+}
+
+function resetNormLimbSelected() {
+    var key = (document.getElementById("normLimbSelect") || {}).value || "head";
+    _normLimbOffsets[key] = { px: 0, py: 0, pz: 0, rx: 0, ry: 0, rz: 0 };
+    ["normLimbPosX", "normLimbPosY", "normLimbPosZ", "normLimbRotX", "normLimbRotY", "normLimbRotZ"].forEach(function (id) {
+        var el = document.getElementById(id);
+        if (el) el.value = 0;
+    });
+    applyNormLimbTransform();
+}
+
+function resetAllNormLimbs() {
+    if (!_normLimbDefaults || !_normLocalMesh) return;
+    Object.keys(_normLimbDefaults).forEach(function (n) {
+        var obj = _normLocalMesh.getObjectByName(n);
+        var def = _normLimbDefaults[n];
+        if (obj && def) {
+            obj.position.set(def.px, def.py, def.pz);
+            obj.rotation.set(def.rx, def.ry, def.rz);
+        }
+    });
+    _normLimbOffsets = {};
+    ["normLimbPosX", "normLimbPosY", "normLimbPosZ", "normLimbRotX", "normLimbRotY", "normLimbRotZ"].forEach(function (id) {
+        var el = document.getElementById(id);
+        if (el) el.value = 0;
+    });
+}
+
+/* ---- Part Editor popup (baseplate + transform) ---- */
+function openNormPartEditor(shape) {
+    if (typeof THREE === "undefined") {
+        alert("3D is not ready yet.");
+        return;
+    }
     try { if (typeof playAzoraSfx === "function") playAzoraSfx("click_buttons"); } catch (e) {}
     shape = shape || "box";
     var colorEl = document.getElementById("normInvPartColor");
     var color = (colorEl && colorEl.value) ? colorEl.value : "#a855f7";
-    var slot = _NORM_PART_SLOTS[_normSessionParts.length % _NORM_PART_SLOTS.length];
-    var jitter = 0.04 * (_normSessionParts.length % 5);
-    var spec = {
-        shape: shape,
-        color: color,
-        ox: slot.ox + (Math.random() - 0.5) * jitter,
-        oy: slot.oy + (Math.random() - 0.5) * jitter * 0.5,
-        oz: slot.oz + (Math.random() - 0.5) * jitter,
-        rx: (Math.random() - 0.5) * 0.4,
-        ry: (Math.random() - 0.5) * 0.6,
-        rz: (Math.random() - 0.5) * 0.4
+    closeNormPartEditor();
+    var ov = document.getElementById("normPartEditorOverlay");
+    if (ov) ov.style.display = "flex";
+
+    var container = document.getElementById("normPartEditorCanvas");
+    if (!container) return;
+    while (container.firstChild) container.removeChild(container.firstChild);
+
+    var w = Math.max(container.clientWidth || 320, 280);
+    var h = Math.max(container.clientHeight || 220, 200);
+
+    var scene = new THREE.Scene();
+    scene.background = new THREE.Color(0xb8d4f8);
+    var camera = new THREE.PerspectiveCamera(50, w / h, 0.1, 100);
+    camera.position.set(2.8, 2.4, 3.6);
+    camera.lookAt(0, 1.1, 0);
+
+    var renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(w, h);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    container.appendChild(renderer.domElement);
+
+    scene.add(new THREE.AmbientLight(0xffffff, 0.7));
+    var sun = new THREE.DirectionalLight(0xfff5e0, 0.55);
+    sun.position.set(4, 8, 3);
+    scene.add(sun);
+
+    // Baseplate
+    var baseMat = (typeof azoraGlossMaterial === "function")
+        ? azoraGlossMaterial("#6b8f71")
+        : new THREE.MeshLambertMaterial({ color: 0x6b8f71 });
+    var base = new THREE.Mesh(new THREE.BoxGeometry(6, 0.12, 6), baseMat);
+    base.position.y = -0.06;
+    scene.add(base);
+    // Grid lines hint
+    try {
+        var grid = new THREE.GridHelper(6, 12, 0xffffff, 0xa0c4a8);
+        grid.position.y = 0.01;
+        scene.add(grid);
+    } catch (eG) {}
+
+    // Avatar preview
+    var avatar = makeNormAvatarForCurrentGame(getNormAvatarColors());
+    if (avatar) {
+        avatar.position.set(0, 0.02, 0);
+        scene.add(avatar);
+    }
+
+    // Default slot for this shape
+    var defaults = { ox: 0.55, oy: 1.7, oz: 0, rx: 0, ry: 0, rz: 0, scale: 1 };
+    setPartEditorSliderDefaults(defaults);
+
+    var part = makeExtraPartMesh({
+        shape: shape, color: color,
+        ox: defaults.ox, oy: defaults.oy, oz: defaults.oz,
+        rx: 0, ry: 0, rz: 0
+    });
+    if (part && avatar) avatar.add(part);
+    else if (part) scene.add(part);
+
+    // Orbit drag
+    var dragging = false, lastX = 0, lastY = 0, yaw = 0.6, pitch = 0.35, dist = 4.5;
+    function updateCam() {
+        camera.position.x = Math.sin(yaw) * Math.cos(pitch) * dist;
+        camera.position.y = Math.sin(pitch) * dist + 1.0;
+        camera.position.z = Math.cos(yaw) * Math.cos(pitch) * dist;
+        camera.lookAt(0, 1.1, 0);
+    }
+    updateCam();
+    var canvas = renderer.domElement;
+    function onDown(e) {
+        dragging = true;
+        lastX = (e.touches ? e.touches[0].clientX : e.clientX);
+        lastY = (e.touches ? e.touches[0].clientY : e.clientY);
+    }
+    function onMove(e) {
+        if (!dragging) return;
+        var x = (e.touches ? e.touches[0].clientX : e.clientX);
+        var y = (e.touches ? e.touches[0].clientY : e.clientY);
+        yaw -= (x - lastX) * 0.01;
+        pitch = Math.max(-0.2, Math.min(1.2, pitch + (y - lastY) * 0.008));
+        lastX = x; lastY = y;
+        updateCam();
+    }
+    function onUp() { dragging = false; }
+    canvas.addEventListener("mousedown", onDown);
+    canvas.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+    canvas.addEventListener("touchstart", onDown, { passive: true });
+    canvas.addEventListener("touchmove", onMove, { passive: true });
+    canvas.addEventListener("touchend", onUp);
+
+    var animId = 0;
+    function tick() {
+        animId = requestAnimationFrame(tick);
+        try { renderer.render(scene, camera); } catch (e) {}
+    }
+    tick();
+
+    _partEditor = {
+        scene: scene, camera: camera, renderer: renderer,
+        avatar: avatar, part: part, animId: animId,
+        shape: shape, color: color,
+        canvas: canvas, onDown: onDown, onMove: onMove, onUp: onUp
     };
-    var mesh = makeExtraPartMesh(spec);
-    if (!mesh) return;
-    _normLocalMesh.add(mesh);
-    _normSessionParts.push(spec);
-    updateNormInvBadges();
+    updateNormPartEditorTransform();
 }
 
-function useNormInvPosition(mode) {
-    if (!_normLocalMesh) return;
-    try { if (typeof playAzoraSfx === "function") playAzoraSfx("click_buttons"); } catch (e) {}
-    mode = mode || "spawn";
-    var x = 0, z = 0;
-    if (mode === "spawn") {
-        var sp = (typeof getNormSpawnForWorld === "function")
-            ? getNormSpawnForWorld((_normSession && _normSession.world) || "city")
-            : { x: 0, z: 0 };
-        x = sp.x || 0;
-        z = sp.z || 0;
-    } else if (mode === "nearby") {
-        x = _normLocalMesh.position.x + (Math.random() - 0.5) * 8;
-        z = _normLocalMesh.position.z + (Math.random() - 0.5) * 8;
-    } else if (mode === "custom") {
-        var xi = document.getElementById("normInvPosX");
-        var zi = document.getElementById("normInvPosZ");
-        var xv = parseFloat(xi && xi.value);
-        var zv = parseFloat(zi && zi.value);
-        if (!isFinite(xv) || !isFinite(zv)) {
-            alert("Enter valid X and Z numbers.");
-            return;
+function setPartEditorSliderDefaults(d) {
+    var map = {
+        pePosX: d.ox, pePosY: d.oy, pePosZ: d.oz,
+        peRotX: (d.rx || 0) * 180 / Math.PI,
+        peRotY: (d.ry || 0) * 180 / Math.PI,
+        peRotZ: (d.rz || 0) * 180 / Math.PI,
+        peScale: d.scale || 1
+    };
+    Object.keys(map).forEach(function (id) {
+        var el = document.getElementById(id);
+        if (el) el.value = map[id];
+    });
+}
+
+function updateNormPartEditorTransform() {
+    if (!_partEditor || !_partEditor.part) return;
+    function val(id, fallback) {
+        var el = document.getElementById(id);
+        var v = el ? parseFloat(el.value) : fallback;
+        return isFinite(v) ? v : fallback;
+    }
+    var ox = val("pePosX", 0.55), oy = val("pePosY", 1.7), oz = val("pePosZ", 0);
+    var rx = val("peRotX", 0) * Math.PI / 180;
+    var ry = val("peRotY", 0) * Math.PI / 180;
+    var rz = val("peRotZ", 0) * Math.PI / 180;
+    var sc = val("peScale", 1);
+    _partEditor.part.position.set(ox, oy, oz);
+    _partEditor.part.rotation.set(rx, ry, rz);
+    _partEditor.part.scale.set(sc, sc, sc);
+    _partEditor.part.userData.partSpec = {
+        shape: _partEditor.shape,
+        color: _partEditor.color,
+        ox: ox, oy: oy, oz: oz, rx: rx, ry: ry, rz: rz, scale: sc
+    };
+}
+
+function resetNormPartEditorTransform() {
+    setPartEditorSliderDefaults({ ox: 0.55, oy: 1.7, oz: 0, rx: 0, ry: 0, rz: 0, scale: 1 });
+    updateNormPartEditorTransform();
+}
+
+function applyNormPartEditor() {
+    if (!_partEditor || !_normLocalMesh) {
+        closeNormPartEditor();
+        return;
+    }
+    updateNormPartEditorTransform();
+    var spec = (_partEditor.part && _partEditor.part.userData.partSpec) || {
+        shape: _partEditor.shape, color: _partEditor.color,
+        ox: 0.55, oy: 1.7, oz: 0, rx: 0, ry: 0, rz: 0, scale: 1
+    };
+    var mesh = makeExtraPartMesh(spec);
+    if (mesh) {
+        if (spec.scale && spec.scale !== 1) mesh.scale.set(spec.scale, spec.scale, spec.scale);
+        _normLocalMesh.add(mesh);
+        _normSessionParts.push(spec);
+        updateNormInvBadges();
+    }
+    closeNormPartEditor();
+}
+
+function closeNormPartEditor() {
+    var ov = document.getElementById("normPartEditorOverlay");
+    if (ov) ov.style.display = "none";
+    if (!_partEditor) return;
+    try {
+        if (_partEditor.animId) cancelAnimationFrame(_partEditor.animId);
+        if (_partEditor.canvas) {
+            _partEditor.canvas.removeEventListener("mousedown", _partEditor.onDown);
+            _partEditor.canvas.removeEventListener("mousemove", _partEditor.onMove);
+            _partEditor.canvas.removeEventListener("touchstart", _partEditor.onDown);
+            _partEditor.canvas.removeEventListener("touchmove", _partEditor.onMove);
         }
-        x = xv;
-        z = zv;
-    }
-    x = Math.max(-180, Math.min(180, x));
-    z = Math.max(-180, Math.min(180, z));
-    if (typeof placeNormAvatarOnGround === "function") {
-        placeNormAvatarOnGround(_normLocalMesh, x, z, 0);
-    } else {
-        _normLocalMesh.position.x = x;
-        _normLocalMesh.position.z = z;
-        _normLocalMesh.position.y = 0.02;
-    }
-    if (_normSession) {
-        _normSession.velY = 0;
-        _normSession.onGround = true;
-    }
+        window.removeEventListener("mouseup", _partEditor.onUp);
+        window.removeEventListener("touchend", _partEditor.onUp);
+        if (_partEditor.renderer) {
+            _partEditor.renderer.dispose();
+            if (_partEditor.renderer.domElement && _partEditor.renderer.domElement.parentNode) {
+                _partEditor.renderer.domElement.parentNode.removeChild(_partEditor.renderer.domElement);
+            }
+        }
+    } catch (e) {}
+    _partEditor = null;
 }
 
 function saveNormPartsToAzora() {
@@ -15004,7 +15391,8 @@ function saveNormPartsToAzora() {
                 shape: p.shape,
                 color: p.color,
                 ox: p.ox, oy: p.oy, oz: p.oz,
-                rx: p.rx, ry: p.ry, rz: p.rz
+                rx: p.rx, ry: p.ry, rz: p.rz,
+                scale: p.scale || 1
             };
         }));
         localStorage.setItem("azoraAccount", JSON.stringify(acc));
@@ -15037,8 +15425,20 @@ window.toggleNormInventory = toggleNormInventory;
 window.useNormInvClone = useNormInvClone;
 window.openNormInvAddPart = openNormInvAddPart;
 window.openNormInvPosition = openNormInvPosition;
-window.useNormInvAddPart = useNormInvAddPart;
-window.useNormInvPosition = useNormInvPosition;
+window.openNormInvClonePanel = openNormInvClonePanel;
+window.selectNormClone = selectNormClone;
+window.deleteSelectedNormClone = deleteSelectedNormClone;
+window.deleteAllNormClones = deleteAllNormClones;
+window.updateNormClonesToMatchAvatar = updateNormClonesToMatchAvatar;
+window.openNormPartEditor = openNormPartEditor;
+window.closeNormPartEditor = closeNormPartEditor;
+window.updateNormPartEditorTransform = updateNormPartEditorTransform;
+window.resetNormPartEditorTransform = resetNormPartEditorTransform;
+window.applyNormPartEditor = applyNormPartEditor;
+window.onNormLimbSelectChange = onNormLimbSelectChange;
+window.applyNormLimbTransform = applyNormLimbTransform;
+window.resetNormLimbSelected = resetNormLimbSelected;
+window.resetAllNormLimbs = resetAllNormLimbs;
 window.saveNormPartsToAzora = saveNormPartsToAzora;
 window.applySavedExtraPartsToMesh = applySavedExtraPartsToMesh;
 window.getSavedExtraParts = getSavedExtraParts;
@@ -21148,7 +21548,7 @@ window.getAvatarDataForUsername = getAvatarDataForUsername;
 // ============================================================
 // Azora app update checker (PWA / service worker)
 // ============================================================
-var AZORA_APP_VERSION = "67.0";
+var AZORA_APP_VERSION = "68.0";
 var _azoraSwReg = null;
 var _azoraUpdateWaiting = false;
 var _azoraUpdateApplying = false;
