@@ -232,10 +232,14 @@ button:hover {
 .logo {
     width: 48px;
     height: 48px;
-    border-radius: 50%;
+    min-width: 48px;
+    min-height: 48px;
+    border-radius: 12px;
     cursor: pointer;
     display: block;
     object-fit: cover;
+    background: transparent;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.25);
 }
 
 .coins-menu-btn {
@@ -935,7 +939,7 @@ html[data-theme="dark"] .azafn-overlay { background: #0f172a; }
 .azafn-header h2 {
     margin: 0; font-size: 1.3rem; display: flex; align-items: center; gap: 10px;
 }
-.azafn-header img { width: 36px; height: 36px; border-radius: 50%; }
+.azafn-header img { width: 36px; height: 36px; border-radius: 10px; object-fit: cover; }
 .azafn-tabs { display: flex; gap: 8px; }
 .azafn-tab {
     background: rgba(255,255,255,0.2); color: #fff;
@@ -975,7 +979,7 @@ html[data-theme="dark"] .azafn-msg.user { background: #1e2937; color: #e2e8f0; }
     cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.3);
 }
 .azafn-build-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(0,0,0,0.4); }
-.azafn-build-btn img { width: 24px; height: 24px; border-radius: 50%; }
+.azafn-build-btn img { width: 24px; height: 24px; border-radius: 7px; object-fit: cover; }
 
 .azafn-input-row {
     display: flex; gap: 10px; padding: 14px 20px;
@@ -5151,4 +5155,13 @@ body {
     background: linear-gradient(180deg, #38bdf8, #0284c7) !important;
     color: #fff !important;
     font-weight: 800 !important;
+}
+
+/* Azora logo — rounded corners site-wide */
+img[src="logo.png"],
+img[src^="logo.png"],
+img[src="./logo.png"],
+.topbar-logo-link img {
+    border-radius: 14px !important;
+    object-fit: cover;
 }
