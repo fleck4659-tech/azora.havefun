@@ -9,7 +9,7 @@
         }
     } catch (e) {}
 })();
-console.log("%c[Azora] script.js v68.3 soft corner bloom · limb tool · clones · bg shift","color:#7c3aed;font-weight:bold;font-size:14px");
+console.log("%c[Azora] script.js v68.4 soft blend bloom · limb tool · clones · bg shift","color:#7c3aed;font-weight:bold;font-size:14px");
 try { console.log("[Azora] Cloud ready:", typeof AZORA_CLOUD !== "undefined" && AZORA_CLOUD.isReady && AZORA_CLOUD.isReady()); } catch (e) {}
 // Configuration - Adjust these to change speed and phrases
 const fallSpeed = 2; // Higher number = faster fall
@@ -21548,7 +21548,7 @@ window.getAvatarDataForUsername = getAvatarDataForUsername;
 // ============================================================
 // Azora app update checker (PWA / service worker)
 // ============================================================
-var AZORA_APP_VERSION = "68.3";
+var AZORA_APP_VERSION = "68.4";
 var _azoraSwReg = null;
 var _azoraUpdateWaiting = false;
 var _azoraUpdateApplying = false;
@@ -21733,10 +21733,11 @@ window.checkForAzoraUpdates = checkForAzoraUpdates;
 window.onAzoraServiceWorkerReady = onAzoraServiceWorkerReady;
 
 // ============================================================
-// CORNER SOFT-CIRCLE COLOR BLOOM
-// Solid full-screen color. From a random CORNER only (never mid-edge),
-// a soft circle with fading edges expands slowly until it covers the
-// screen, then the next color blooms from a different corner.
+
+// CORNER SOFT-BLEND COLOR BLOOM
+// Solid base color. From a random CORNER only, a new color expands
+// as a soft circle whose OUTER EDGE fades to fully transparent so it
+// blends into the color underneath (no hard cut between colors).
 // ============================================================
 (function initAzoraEdgeColorWipe() {
     var LIGHT_COLORS = [
@@ -21750,12 +21751,12 @@ window.onAzoraServiceWorkerReady = onAzoraServiceWorkerReady;
         "#1e293b", "#4c1d95"
     ];
 
-    // ONLY the four corners — never top/bottom/left/right mid-edges
+    // ONLY corners — never mid top / bottom / left / right
     var CORNERS = [
-        { name: "top-left",     left: true,  top: true },
-        { name: "top-right",    left: false, top: true },
-        { name: "bottom-left",  left: true,  top: false },
-        { name: "bottom-right", left: false, top: false }
+        { name: "top-left",     x: "0%",   y: "0%" },
+        { name: "top-right",    x: "100%", y: "0%" },
+        { name: "bottom-left",  x: "0%",   y: "100%" },
+        { name: "bottom-right", x: "100%", y: "100%" }
     ];
 
     var baseEl = null;
@@ -21763,6 +21764,7 @@ window.onAzoraServiceWorkerReady = onAzoraServiceWorkerReady;
     var currentColor = LIGHT_COLORS[2];
     var lastCorner = null;
     var timer = null;
+    var rafId = null;
     var running = false;
 
     function palette() {
@@ -21796,14 +21798,21 @@ window.onAzoraServiceWorkerReady = onAzoraServiceWorkerReady;
         return "rgba(" + r + "," + g + "," + b + "," + a + ")";
     }
 
-    /** Soft radial blob: solid core → soft mid → fully transparent rim */
-    function softCircleBackground(color) {
-        return "radial-gradient(circle, " +
-            color + " 0%, " +
-            color + " 32%, " +
-            hexToRgba(color, 0.55) + " 52%, " +
-            hexToRgba(color, 0.22) + " 68%, " +
-            "transparent 78%)";
+    /**
+     * Soft-blend radial gradient from a corner.
+     * Core = new color. Toward the edge it becomes more transparent
+     * so it mixes with the base color underneath — no hard cut-off.
+     */
+    function softBlendGradient(color, corner, radiusPx) {
+        var r = Math.max(1, radiusPx);
+        return "radial-gradient(circle at " + corner.x + " " + corner.y + ", " +
+            color + " 0px, " +
+            color + " " + (r * 0.10) + "px, " +
+            hexToRgba(color, 0.82) + " " + (r * 0.26) + "px, " +
+            hexToRgba(color, 0.55) + " " + (r * 0.42) + "px, " +
+            hexToRgba(color, 0.32) + " " + (r * 0.58) + "px, " +
+            hexToRgba(color, 0.14) + " " + (r * 0.74) + "px, " +
+            "transparent " + r + "px)";
     }
 
     function ensureEls() {
@@ -21838,22 +21847,14 @@ window.onAzoraServiceWorkerReady = onAzoraServiceWorkerReady;
         el.style.background = color;
     }
 
-    /** Pin the soft circle's CENTER exactly on a screen corner */
-    function placeWaveOnCorner(corner, color, scale) {
-        waveEl.style.inset = "auto";
-        waveEl.style.width = "280vmax";
-        waveEl.style.height = "280vmax";
-        waveEl.style.borderRadius = "50%";
-        waveEl.style.clipPath = "none";
-        waveEl.style.background = softCircleBackground(color);
-        waveEl.style.left = corner.left ? "0px" : "auto";
-        waveEl.style.right = corner.left ? "auto" : "0px";
-        waveEl.style.top = corner.top ? "0px" : "auto";
-        waveEl.style.bottom = corner.top ? "auto" : "0px";
-        // Center of the 280vmax circle sits on the chosen corner
-        var tx = corner.left ? "-50%" : "50%";
-        var ty = corner.top ? "-50%" : "50%";
-        waveEl.style.transform = "translate(" + tx + ", " + ty + ") scale(" + scale + ")";
+    function maxRadiusNeeded() {
+        var w = window.innerWidth || 1200;
+        var h = window.innerHeight || 800;
+        return Math.sqrt(w * w + h * h) * 1.4;
+    }
+
+    function easeInOut(t) {
+        return t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
     }
 
     function runCycle() {
@@ -21861,31 +21862,48 @@ window.onAzoraServiceWorkerReady = onAzoraServiceWorkerReady;
 
         var next = pickColor(currentColor);
         var corner = pickCorner();
+        var maxR = maxRadiusNeeded();
+        var duration = 18000 + Math.floor(Math.random() * 10000); // 18–28s
+        var startTime = performance.now();
 
-        // Start invisible (scale 0) at the corner
+        // Full-screen wave layer; only the soft radial grows from the corner
         waveEl.style.transition = "none";
-        placeWaveOnCorner(corner, next, 0);
-        void waveEl.offsetWidth;
+        waveEl.style.inset = "0";
+        waveEl.style.width = "100%";
+        waveEl.style.height = "100%";
+        waveEl.style.left = "0";
+        waveEl.style.top = "0";
+        waveEl.style.right = "0";
+        waveEl.style.bottom = "0";
+        waveEl.style.borderRadius = "0";
+        waveEl.style.transform = "none";
+        waveEl.style.clipPath = "none";
+        waveEl.style.background = softBlendGradient(next, corner, 0);
 
-        // Expand slowly — soft fading rim, corner origin only
-        var duration = 16000 + Math.floor(Math.random() * 10000); // 16–26s
-        waveEl.style.transition = "transform " + (duration / 1000).toFixed(2) + "s cubic-bezier(0.15, 0.05, 0.2, 1)";
-        placeWaveOnCorner(corner, next, 1);
+        if (rafId) cancelAnimationFrame(rafId);
 
-        clearTimeout(timer);
-        timer = setTimeout(function () {
-            // Once fully covered, lock the solid color on the base layer
-            currentColor = next;
-            setSolid(baseEl, currentColor);
-            try { document.body.style.background = currentColor; } catch (e) {}
+        function frame(now) {
+            if (!running) return;
+            var t = Math.min(1, (now - startTime) / duration);
+            var eased = easeInOut(t);
+            var r = maxR * eased;
+            waveEl.style.background = softBlendGradient(next, corner, r);
 
-            waveEl.style.transition = "none";
-            placeWaveOnCorner(corner, next, 0);
-            void waveEl.offsetWidth;
+            if (t < 1) {
+                rafId = requestAnimationFrame(frame);
+            } else {
+                currentColor = next;
+                setSolid(baseEl, currentColor);
+                try { document.body.style.background = currentColor; } catch (e) {}
+                waveEl.style.background = "transparent";
 
-            var pause = 2000 + Math.floor(Math.random() * 2500);
-            timer = setTimeout(runCycle, pause);
-        }, duration + 100);
+                var pause = 2200 + Math.floor(Math.random() * 2800);
+                clearTimeout(timer);
+                timer = setTimeout(runCycle, pause);
+            }
+        }
+
+        rafId = requestAnimationFrame(frame);
     }
 
     function start() {
@@ -21898,14 +21916,18 @@ window.onAzoraServiceWorkerReady = onAzoraServiceWorkerReady;
         currentColor = pickColor(null);
         setSolid(baseEl, currentColor);
         try { document.body.style.background = currentColor; } catch (e) {}
-        waveEl.style.transition = "none";
-        placeWaveOnCorner(CORNERS[0], currentColor, 0);
+        waveEl.style.background = "transparent";
+        waveEl.style.inset = "0";
+        waveEl.style.width = "100%";
+        waveEl.style.height = "100%";
+        waveEl.style.transform = "none";
         timer = setTimeout(runCycle, 900);
     }
 
     function stop() {
         running = false;
         clearTimeout(timer);
+        if (rafId) cancelAnimationFrame(rafId);
     }
 
     window.startAzoraEdgeColorWipe = start;

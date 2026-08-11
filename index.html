@@ -11,9 +11,9 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Azora">
     <link rel="manifest" href="manifest-azora.json">
-    <link rel="apple-touch-icon" href="logo.jpg?v=68.3">
-    <link rel="icon" href="logo.jpg?v=68.3">
-    <link rel="stylesheet" href="style.css?v=68.3">
+    <link rel="apple-touch-icon" href="logo.jpg?v=68.4">
+    <link rel="icon" href="logo.jpg?v=68.4">
+    <link rel="stylesheet" href="style.css?v=68.4">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 </head>
 <body>
@@ -76,7 +76,7 @@
 
 <div id="azoraLoadingScreen" class="azora-loading-screen" style="display:none;" aria-hidden="true">
     <div class="azora-loading-inner">
-        <img src="logo.jpg?v=68.3" alt="Azora" class="azora-loading-logo" onerror="this.onerror=null;this.src='logo.png?v=68.3'">
+        <img src="logo.jpg?v=68.4" alt="Azora" class="azora-loading-logo" onerror="this.onerror=null;this.src='logo.png?v=68.4'">
         <div class="azora-loading-title">Loading Azora</div>
         <div class="azora-loading-bar"><div class="azora-loading-bar-fill" id="azoraLoadingBarFill"></div></div>
         <div class="azora-loading-hint" id="azoraLoadingHint">Getting things ready…</div>
@@ -85,7 +85,7 @@
 
 <div id="accountOverlay" class="overlay" style="display:none;">
     <div class="popup">
-        <img src="logo.jpg?v=68.3" class="popupLogo" alt="Azora Logo">
+        <img src="logo.jpg?v=68.4" class="popupLogo" alt="Azora Logo">
         <h1 id="popupTitle">Join Azora</h1>
         <p id="popupSubtitle">Build games.<br>Customize avatars.<br>Have fun.</p>
         <input id="username" type="text" placeholder="Username">
@@ -383,7 +383,7 @@
 <div class="topbar">
     <div class="topbar-left">
         <a href="https://www.youtube.com/@Official_Azora" target="_blank" class="topbar-logo-link">
-            <img src="logo.jpg?v=68.3" alt="Azora Logo" class="logo" width="48" height="48" decoding="async" onerror="this.onerror=null;this.src='logo.png?v=68.3'">
+            <img src="logo.jpg?v=68.4" alt="Azora Logo" class="logo" width="48" height="48" decoding="async" onerror="this.onerror=null;this.src='logo.png?v=68.4'">
         </a>
         <h2 class="topbar-title">Azora</h2>
     </div>
@@ -711,7 +711,7 @@
 <!-- Public Game Feed (discover games) -->
 <div id="publicFeedOverlay" class="azafn-overlay" style="display:none;">
     <div class="azafn-header">
-        <h2><img src="logo.jpg?v=68.3" alt="Azora"> Game Feed</h2>
+        <h2><img src="logo.jpg?v=68.4" alt="Azora"> Game Feed</h2>
         <div class="azafn-tabs">
             <button onclick="closePublicFeed()" style="margin:0;background:#ff3b30;color:#fff;">✕ Close</button>
         </div>
@@ -753,7 +753,7 @@
 <div id="profileOverlay" class="overlay" style="display:none;">
     <div class="popup profile-popup" style="max-width:min(360px,calc(100vw - 20px));">
         <div class="profile-avatar-wrap" id="profileAvatarWrap">
-            <img src="logo.jpg?v=68.3" class="popupLogo profile-avatar-img" alt="Profile picture" id="profileAvatarImg">
+            <img src="logo.jpg?v=68.4" class="popupLogo profile-avatar-img" alt="Profile picture" id="profileAvatarImg">
             <button type="button" id="profileAvatarEditBtn" class="profile-avatar-edit-btn" style="display:none;" title="Change profile picture" onclick="openProfilePicPicker()">📷</button>
             <input type="file" id="profilePicFileInput" accept="image/*" style="display:none;" onchange="onProfilePicSelected(event)">
         </div>
@@ -788,7 +788,7 @@
 <!-- Chat Panel -->
 <div id="chatOverlay" class="azafn-overlay" style="display:none;">
     <div class="azafn-header">
-        <h2><img src="logo.jpg?v=68.3" alt="Azora"> Chat</h2>
+        <h2><img src="logo.jpg?v=68.4" alt="Azora"> Chat</h2>
         <div class="azafn-tabs">
             <button type="button" onclick="openAICompanionSettings()" style="margin:0;background:linear-gradient(180deg,#a78bfa,#7c3aed);color:#fff;">Customize AI</button>
             <button type="button" onclick="closeChatPanel()" style="margin:0;background:#ff3b30;color:#fff;">✕ Close</button>
@@ -889,7 +889,7 @@
 <!-- Game Preview (private until published) -->
 <div id="gamePreviewOverlay" class="azafn-overlay" style="display:none;">
     <div class="azafn-header">
-        <h2><img src="logo.jpg?v=68.3" alt="Azora"> Game Preview</h2>
+        <h2><img src="logo.jpg?v=68.4" alt="Azora"> Game Preview</h2>
         <div class="azafn-tabs">
             <button onclick="closeGamePreview()" style="margin:0;background:#ff3b30;color:#fff;">✕ Close</button>
         </div>
@@ -917,7 +917,7 @@
 <!-- Playable Game Runtime -->
 <div id="gamePlayOverlay" class="azafn-overlay" style="display:none;">
     <div class="azafn-header">
-        <h2><img src="logo.jpg?v=68.3" alt="Azora"> <span id="gamePlayTitle">Playing</span></h2>
+        <h2><img src="logo.jpg?v=68.4" alt="Azora"> <span id="gamePlayTitle">Playing</span></h2>
         <div class="azafn-tabs">
             <button type="button" onclick="restartGamePlay()" style="margin:0;">↺ Restart</button>
             <button type="button" onclick="closeGamePlay()" style="margin:0;background:#ff3b30;color:#fff;">✕ Exit</button>
@@ -938,7 +938,7 @@
 <div id="azoraDisabledTip" class="azora-disabled-tip" style="display:none;" role="status">Oops! Looks like this button is disabled!</div>
 <div id="normGameOverlay" class="azafn-overlay" style="display:none;">
     <div class="azafn-header">
-        <h2><img src="logo.jpg?v=68.3" alt="Azora"> <span id="normGameTitle">Norm Game</span></h2>
+        <h2><img src="logo.jpg?v=68.4" alt="Azora"> <span id="normGameTitle">Norm Game</span></h2>
         <div class="azafn-tabs">
             <button type="button" id="normEmpireExpandBtn" class="norm-empire-btn" style="display:none;" onclick="expandEmpire()">Expand Empire</button>
             <button type="button" id="normMusicToggleBtn" class="norm-music-btn" onclick="toggleNormMusicPause()">Pause Music</button>
@@ -948,7 +948,7 @@
     </div>
     <div class="norm-game-body">
         <div id="normGameLoading" class="norm-game-loading">
-            <img src="logo.jpg?v=68.3" alt="" class="norm-load-logo">
+            <img src="logo.jpg?v=68.4" alt="" class="norm-load-logo">
             <div class="norm-load-title">Loading assets…</div>
             <div class="norm-load-bar"><div class="norm-load-fill" id="normLoadFill"></div></div>
             <div class="norm-load-hint" id="normLoadHint">Preparing the world</div>
@@ -1142,12 +1142,12 @@
     </div>
 </div>
 
-<script src="script.js?v=68.3"></script>
+<script src="script.js?v=68.4"></script>
 <script>
 // Register Azora as installable app (not the staff website)
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", function () {
-    navigator.serviceWorker.register("./sw-azora.js?v=68.3").then(function (reg) {
+    navigator.serviceWorker.register("./sw-azora.js?v=68.4").then(function (reg) {
       try { if (typeof onAzoraServiceWorkerReady === "function") onAzoraServiceWorkerReady(reg); } catch (e) {}
     }).catch(function () {});
   });
@@ -1225,7 +1225,7 @@ if ("serviceWorker" in navigator) {
 <div id="buyCoinsOverlay" class="overlay buy-coins-overlay" style="display:none;">
     <div class="popup buy-coins-popup">
         <div class="buy-coins-header">
-            <img src="logo.jpg?v=68.3" alt="" class="buy-coins-logo">
+            <img src="logo.jpg?v=68.4" alt="" class="buy-coins-logo">
             <h2>Buy AzoraCoins</h2>
             <p class="buy-coins-sub">Subscriptions renew monthly. Coin packs are one-time.</p>
         </div>
@@ -1253,7 +1253,7 @@ if ("serviceWorker" in navigator) {
 <div id="membershipOverlay" class="overlay members-overlay" style="display:none;">
     <div class="popup members-popup">
         <div class="members-header">
-            <img src="logo.jpg?v=68.3" alt="" class="members-logo">
+            <img src="logo.jpg?v=68.4" alt="" class="members-logo">
             <h2>Azora Members</h2>
             <p class="members-sub">Simple plans. Monthly AzoraCoins. Cancel anytime.</p>
         </div>
@@ -1274,7 +1274,7 @@ if ("serviceWorker" in navigator) {
 <!-- Download Azora (website only — hidden inside installed app) -->
 <div id="downloadAzoraOverlay" class="overlay download-azora-overlay" style="display:none;" aria-hidden="true">
     <div class="popup download-azora-popup" role="dialog" aria-labelledby="downloadAzoraTitle">
-        <img src="logo.jpg?v=68.3" alt="" class="download-azora-logo">
+        <img src="logo.jpg?v=68.4" alt="" class="download-azora-logo">
         <h2 id="downloadAzoraTitle">Download Azora</h2>
         <p class="download-azora-lead">Install Azora on this device. It opens like a normal app — no browser bar.</p>
         <div id="downloadAzoraStatus" class="download-azora-status"></div>
@@ -1482,7 +1482,7 @@ if ("serviceWorker" in navigator) {
 <div id="moderationLockOverlay" class="mod-lock-overlay" style="display:none;">
     <div class="mod-lock-panel" role="dialog" aria-modal="true">
         <div class="mod-lock-brand">
-            <img src="logo.jpg?v=68.3" alt="Azora">
+            <img src="logo.jpg?v=68.4" alt="Azora">
             <span>Azora Moderation</span>
         </div>
         <div id="modLockKindTag" class="mod-lock-kind ban">Restriction</div>
