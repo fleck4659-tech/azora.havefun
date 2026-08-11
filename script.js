@@ -9,7 +9,7 @@
         }
     } catch (e) {}
 })();
-console.log("%c[Azora] script.js v68.0 part editor · limb tool · clones · bg shift","color:#7c3aed;font-weight:bold;font-size:14px");
+console.log("%c[Azora] script.js v68.1 edge color wipe · limb tool · clones · bg shift","color:#7c3aed;font-weight:bold;font-size:14px");
 try { console.log("[Azora] Cloud ready:", typeof AZORA_CLOUD !== "undefined" && AZORA_CLOUD.isReady && AZORA_CLOUD.isReady()); } catch (e) {}
 // Configuration - Adjust these to change speed and phrases
 const fallSpeed = 2; // Higher number = faster fall
@@ -21548,7 +21548,7 @@ window.getAvatarDataForUsername = getAvatarDataForUsername;
 // ============================================================
 // Azora app update checker (PWA / service worker)
 // ============================================================
-var AZORA_APP_VERSION = "68.0";
+var AZORA_APP_VERSION = "68.1";
 var _azoraSwReg = null;
 var _azoraUpdateWaiting = false;
 var _azoraUpdateApplying = false;
@@ -21731,3 +21731,167 @@ window.dismissAzoraUpdateBanner = dismissAzoraUpdateBanner;
 window.applyAzoraAppUpdate = applyAzoraAppUpdate;
 window.checkForAzoraUpdates = checkForAzoraUpdates;
 window.onAzoraServiceWorkerReady = onAzoraServiceWorkerReady;
+
+// ============================================================
+// EDGE COLOR WIPE BACKGROUND
+// Whole screen is one solid color. From a random edge, another
+// solid color expands until it fills the screen, then a new
+// color starts from a different random edge. Repeats forever.
+// ============================================================
+(function initAzoraEdgeColorWipe() {
+    var LIGHT_COLORS = [
+        "#c026d3", "#a855f7", "#7c3aed", "#6366f1",
+        "#2563eb", "#3b82f6", "#0ea5e9", "#06b6d4",
+        "#8b5cf6", "#d946ef"
+    ];
+    var DARK_COLORS = [
+        "#2e1065", "#4c1d95", "#1e1b4b", "#312e81",
+        "#1e3a8a", "#172554", "#0f172a", "#3b0764",
+        "#1e293b", "#4c1d95"
+    ];
+
+    var EDGES = ["left", "right", "top", "bottom"];
+    // clip-path inset(top right bottom left) — fully hidden from each edge
+    var HIDDEN = {
+        left:   "inset(0 100% 0 0)",
+        right:  "inset(0 0 0 100%)",
+        top:    "inset(0 0 100% 0)",
+        bottom: "inset(100% 0 0 0)"
+    };
+    var FULL = "inset(0 0 0 0)";
+
+    var baseEl = null;
+    var waveEl = null;
+    var currentColor = LIGHT_COLORS[2];
+    var lastEdge = null;
+    var timer = null;
+    var running = false;
+
+    function palette() {
+        try {
+            if (document.documentElement.getAttribute("data-theme") === "dark") return DARK_COLORS;
+        } catch (e) {}
+        return LIGHT_COLORS;
+    }
+
+    function pickColor(avoid) {
+        var list = palette();
+        var pool = list.filter(function (c) { return c.toLowerCase() !== String(avoid || "").toLowerCase(); });
+        if (!pool.length) pool = list;
+        return pool[Math.floor(Math.random() * pool.length)];
+    }
+
+    function pickEdge() {
+        var pool = EDGES.filter(function (e) { return e !== lastEdge; });
+        if (!pool.length) pool = EDGES;
+        var e = pool[Math.floor(Math.random() * pool.length)];
+        lastEdge = e;
+        return e;
+    }
+
+    function ensureEls() {
+        baseEl = document.getElementById("azoraBgBase");
+        waveEl = document.getElementById("azoraBgWave");
+        if (!baseEl || !waveEl) {
+            var root = document.getElementById("azoraBgWipe");
+            if (!root) {
+                root = document.createElement("div");
+                root.id = "azoraBgWipe";
+                root.setAttribute("aria-hidden", "true");
+                document.body.insertBefore(root, document.body.firstChild);
+            }
+            if (!baseEl) {
+                baseEl = document.createElement("div");
+                baseEl.className = "azora-bg-base";
+                baseEl.id = "azoraBgBase";
+                root.appendChild(baseEl);
+            }
+            if (!waveEl) {
+                waveEl = document.createElement("div");
+                waveEl.className = "azora-bg-wave";
+                waveEl.id = "azoraBgWave";
+                root.appendChild(waveEl);
+            }
+        }
+        return !!(baseEl && waveEl);
+    }
+
+    function setSolid(el, color) {
+        if (!el) return;
+        el.style.background = color;
+    }
+
+    function runCycle() {
+        if (!running || !ensureEls()) return;
+
+        var next = pickColor(currentColor);
+        var edge = pickEdge();
+
+        // Prepare wave: new color, fully clipped from chosen edge (no transition yet)
+        waveEl.style.transition = "none";
+        setSolid(waveEl, next);
+        waveEl.style.clipPath = HIDDEN[edge];
+        // Force reflow so the browser registers the hidden state
+        void waveEl.offsetWidth;
+
+        // Expand smoothly until the new color covers the whole screen
+        var duration = 3800 + Math.floor(Math.random() * 2200); // 3.8s – 6s
+        waveEl.style.transition = "clip-path " + (duration / 1000).toFixed(2) + "s cubic-bezier(0.4, 0, 0.2, 1)";
+        waveEl.style.clipPath = FULL;
+
+        clearTimeout(timer);
+        timer = setTimeout(function () {
+            // Wave has fully taken over — promote it to the base, hide wave again
+            currentColor = next;
+            setSolid(baseEl, currentColor);
+            try { document.body.style.background = currentColor; } catch (e) {}
+
+            waveEl.style.transition = "none";
+            waveEl.style.clipPath = HIDDEN[edge]; // reset off-screen for next cycle
+            void waveEl.offsetWidth;
+
+            // Brief pause on the solid color, then start the next edge wipe
+            var pause = 700 + Math.floor(Math.random() * 900);
+            timer = setTimeout(runCycle, pause);
+        }, duration + 40);
+    }
+
+    function start() {
+        if (running) return;
+        if (!ensureEls()) {
+            setTimeout(start, 200);
+            return;
+        }
+        running = true;
+        currentColor = pickColor(null);
+        setSolid(baseEl, currentColor);
+        try { document.body.style.background = currentColor; } catch (e) {}
+        waveEl.style.transition = "none";
+        waveEl.style.clipPath = HIDDEN.left;
+        // First wipe after a short beat so the page can settle
+        timer = setTimeout(runCycle, 600);
+    }
+
+    function stop() {
+        running = false;
+        clearTimeout(timer);
+    }
+
+    // Restart wipe colors when theme flips
+    try {
+        var obs = new MutationObserver(function () {
+            if (!running) return;
+            // Keep going; next cycle will use the dark/light palette
+        });
+        obs.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+    } catch (e) {}
+
+    window.startAzoraEdgeColorWipe = start;
+    window.stopAzoraEdgeColorWipe = stop;
+
+    if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", start);
+    } else {
+        start();
+    }
+})();

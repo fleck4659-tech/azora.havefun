@@ -880,7 +880,8 @@ html[data-theme="dark"] {
 }
 
 body {
-    background: linear-gradient(160deg, var(--bg-1), var(--bg-2), var(--bg-3)) !important;
+    /* Solid color only — edge wipe layers paint the animated background */
+    background: var(--bg-2, #7c3aed) !important;
     color: var(--text-1) !important;
 }
 
@@ -5405,22 +5406,41 @@ html[data-theme="dark"] .popup h2 {
     font-weight: 700;
 }
 
-/* === Smooth shifting background (logo palette) === */
-@keyframes azoraBgShift {
-    0%   { background-position: 0% 50%; }
-    50%  { background-position: 100% 50%; }
-    100% { background-position: 0% 50%; }
-}
+/* === Edge color-wipe background (solid color expands from a random edge) === */
 body {
-    background: linear-gradient(135deg, #c026d3, #7c3aed, #2563eb, #0ea5e9, #7c3aed, #c026d3) !important;
-    background-size: 300% 300% !important;
-    animation: azoraBgShift 18s ease-in-out infinite !important;
+    background: #7c3aed !important; /* fallback under the wipe layers */
+    animation: none !important;
 }
 html[data-theme="dark"] body {
-    background: linear-gradient(135deg, #2e1065, #1e1b4b, #0f172a, #1e3a8a, #1e1b4b, #2e1065) !important;
-    background-size: 300% 300% !important;
-    animation: azoraBgShift 22s ease-in-out infinite !important;
+    background: #1e1b4b !important;
+    animation: none !important;
 }
+#azoraBgWipe {
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    overflow: hidden;
+}
+.azora-bg-base,
+.azora-bg-wave {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+}
+.azora-bg-base {
+    background: #7c3aed;
+}
+.azora-bg-wave {
+    background: #2563eb;
+    /* start fully hidden; JS sets edge + animates to full cover */
+    clip-path: inset(0 100% 0 0);
+    transition: clip-path 4.5s cubic-bezier(0.4, 0, 0.2, 1);
+    will-change: clip-path;
+}
+html[data-theme="dark"] .azora-bg-base { background: #1e1b4b; }
+html[data-theme="dark"] .azora-bg-wave { background: #312e81; }
 
 /* Reset to previous avatar */
 .reset-previous-avatar-btn {
