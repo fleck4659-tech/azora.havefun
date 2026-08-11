@@ -9,7 +9,7 @@
         }
     } catch (e) {}
 })();
-console.log("%c[Azora] script.js v65.4 presence + avatar drag + tshirt + daily + pending","color:#1e60ff;font-weight:bold;font-size:14px");
+console.log("%c[Azora] script.js v65.8 avatar rotate-only centered","color:#1e60ff;font-weight:bold;font-size:14px");
 try { console.log("[Azora] Cloud ready:", typeof AZORA_CLOUD !== "undefined" && AZORA_CLOUD.isReady && AZORA_CLOUD.isReady()); } catch (e) {}
 // Configuration - Adjust these to change speed and phrases
 const fallSpeed = 2; // Higher number = faster fall
@@ -4480,7 +4480,7 @@ function init3DAvatar() {
         if (canvasEl && !canvasEl._azoraAvatarDragBound) {
             canvasEl._azoraAvatarDragBound = true;
             canvasEl.style.cursor = "grab";
-            canvasEl.title = "Drag to move & rotate your avatar";
+            canvasEl.title = "Drag to rotate your avatar";
             function ptrDown(ev) {
                 window._avatarDrag.active = true;
                 window._avatarDrag.moved = false;
@@ -4489,6 +4489,11 @@ function init3DAvatar() {
                 canvasEl.style.cursor = "grabbing";
                 window._avatarSpinEnabled = false;
                 try { sessionStorage.setItem("azoraAvatarSpinStopped", "1"); } catch (err) {}
+                // Always keep avatar perfectly centered (only rotate)
+                try {
+                    avatarCharacterGroup.position.x = 0;
+                    avatarCharacterGroup.position.z = 0;
+                } catch (eC) {}
                 try { ev.preventDefault(); } catch (eP) {}
             }
             function ptrMove(ev) {
@@ -4496,22 +4501,24 @@ function init3DAvatar() {
                 var cx = (ev.touches && ev.touches[0] ? ev.touches[0].clientX : ev.clientX);
                 var cy = (ev.touches && ev.touches[0] ? ev.touches[0].clientY : ev.clientY);
                 var dx = cx - window._avatarDrag.x;
-                var dy = cy - window._avatarDrag.y;
-                if (Math.abs(dx) + Math.abs(dy) > 2) window._avatarDrag.moved = true;
+                if (Math.abs(dx) > 1) window._avatarDrag.moved = true;
                 window._avatarDrag.x = cx;
                 window._avatarDrag.y = cy;
-                // Horizontal drag = turn; vertical drag = move forward/back a bit
-                avatarCharacterGroup.rotation.y += dx * 0.012;
-                avatarCharacterGroup.position.x += dx * 0.004;
-                avatarCharacterGroup.position.z += dy * 0.004;
-                // Soft bounds so they stay on the pad
-                avatarCharacterGroup.position.x = Math.max(-1.8, Math.min(1.8, avatarCharacterGroup.position.x));
-                avatarCharacterGroup.position.z = Math.max(-1.8, Math.min(1.8, avatarCharacterGroup.position.z));
+                // Horizontal drag only = spin in place (no moving away from center)
+                avatarCharacterGroup.rotation.y += dx * 0.015;
+                avatarCharacterGroup.position.x = 0;
+                avatarCharacterGroup.position.z = 0;
                 try { ev.preventDefault(); } catch (eP) {}
             }
             function ptrUp() {
                 window._avatarDrag.active = false;
                 canvasEl.style.cursor = "grab";
+                try {
+                    if (avatarCharacterGroup) {
+                        avatarCharacterGroup.position.x = 0;
+                        avatarCharacterGroup.position.z = 0;
+                    }
+                } catch (eU) {}
             }
             canvasEl.addEventListener("mousedown", ptrDown);
             window.addEventListener("mousemove", ptrMove);
@@ -20814,3 +20821,191 @@ window.getAvatarDataForUsername = getAvatarDataForUsername;
     else scrub();
     setTimeout(scrub, 500);
 })();
+
+
+// ============================================================
+// Azora app update checker (PWA / service worker)
+// ============================================================
+var AZORA_APP_VERSION = "65.7";
+var _azoraSwReg = null;
+var _azoraUpdateWaiting = false;
+var _azoraUpdateApplying = false;
+
+function showAzoraUpdateBanner() {
+    _azoraUpdateWaiting = true;
+    var b = document.getElementById("azoraUpdateBanner");
+    if (b) {
+        b.classList.add("show");
+        b.style.display = "block";
+    }
+    var st = document.getElementById("checkForUpdatesStatus");
+    if (st) {
+        st.textContent = "Oh I need to update my app! A newer version is ready.";
+        st.style.color = "#fbbf24";
+    }
+}
+
+function dismissAzoraUpdateBanner() {
+    var b = document.getElementById("azoraUpdateBanner");
+    if (b) {
+        b.classList.remove("show");
+        b.style.display = "none";
+    }
+}
+
+/** Force-close current session and open the updated app */
+function applyAzoraAppUpdate() {
+    if (_azoraUpdateApplying) return;
+    _azoraUpdateApplying = true;
+    var btn = document.getElementById("azoraUpdateNowBtn");
+    if (btn) {
+        btn.disabled = true;
+        btn.textContent = "Updating… closing Azora…";
+    }
+    try {
+        if (typeof playClickSound === "function") playClickSound();
+    } catch (e) {}
+
+    function hardReload() {
+        try {
+            // Clear only the app cache keys so the next open is fresh
+            if (window.caches && caches.keys) {
+                caches.keys().then(function (keys) {
+                    return Promise.all(keys.map(function (k) {
+                        if (String(k).indexOf("azora") !== -1) return caches.delete(k);
+                    }));
+                }).finally(function () {
+                    window.location.href = window.location.href.split("#")[0].split("?")[0] + "?updated=" + Date.now();
+                });
+                return;
+            }
+        } catch (e2) {}
+        window.location.reload(true);
+    }
+
+    try {
+        if (navigator.serviceWorker && navigator.serviceWorker.controller) {
+            var reloaded = false;
+            navigator.serviceWorker.addEventListener("controllerchange", function () {
+                if (reloaded) return;
+                reloaded = true;
+                hardReload();
+            });
+        }
+        if (_azoraSwReg && _azoraSwReg.waiting) {
+            _azoraSwReg.waiting.postMessage({ type: "SKIP_WAITING" });
+            // Fallback if controllerchange is slow
+            setTimeout(hardReload, 1200);
+            return;
+        }
+        if (_azoraSwReg) {
+            _azoraSwReg.update().then(function () {
+                if (_azoraSwReg.waiting) {
+                    _azoraSwReg.waiting.postMessage({ type: "SKIP_WAITING" });
+                    setTimeout(hardReload, 1200);
+                } else {
+                    hardReload();
+                }
+            }).catch(hardReload);
+            return;
+        }
+    } catch (e3) {}
+    hardReload();
+}
+
+function onAzoraServiceWorkerReady(reg) {
+    _azoraSwReg = reg;
+    try {
+        if (reg.waiting) showAzoraUpdateBanner();
+        reg.addEventListener("updatefound", function () {
+            var installing = reg.installing;
+            if (!installing) return;
+            installing.addEventListener("statechange", function () {
+                if (installing.state === "installed" && navigator.serviceWorker.controller) {
+                    // New version ready while old one still controls page
+                    showAzoraUpdateBanner();
+                }
+            });
+        });
+        // Periodic quiet check every 15 minutes
+        setInterval(function () {
+            try { reg.update(); } catch (e) {}
+        }, 15 * 60 * 1000);
+    } catch (e) {}
+}
+
+/** Manual "Check for updates" from Settings */
+function checkForAzoraUpdates(fromSettings) {
+    var st = document.getElementById("checkForUpdatesStatus");
+    if (st) {
+        st.textContent = "Checking for updates…";
+        st.style.color = "#94a3b8";
+    }
+    if (!("serviceWorker" in navigator)) {
+        if (st) st.textContent = "This browser cannot install app updates here. Refresh the page instead.";
+        return;
+    }
+    var done = function (found) {
+        if (found) {
+            showAzoraUpdateBanner();
+            if (st) {
+                st.textContent = "Oh I need to update my app! Tap the update button below (or the banner).";
+                st.style.color = "#fbbf24";
+            }
+            if (fromSettings && typeof showAzoraToast === "function") {
+                showAzoraToast("Oh I need to update my app!");
+            }
+        } else {
+            if (st) {
+                st.textContent = "You're on the latest version of Azora (v" + AZORA_APP_VERSION + ").";
+                st.style.color = "#86efac";
+            }
+            if (fromSettings && typeof showAzoraToast === "function") {
+                showAzoraToast("You're up to date!");
+            }
+        }
+    };
+    navigator.serviceWorker.getRegistration("./sw-azora.js").then(function (reg) {
+        if (!reg) {
+            // Try default scope
+            return navigator.serviceWorker.getRegistration().then(function (r2) { return r2; });
+        }
+        return reg;
+    }).then(function (reg) {
+        if (!reg) {
+            // No SW — hard refresh suggestion still useful
+            if (st) st.textContent = "No app service worker yet. Refresh the page to load the newest files.";
+            return;
+        }
+        _azoraSwReg = reg;
+        if (reg.waiting) {
+            done(true);
+            return;
+        }
+        return reg.update().then(function () {
+            // After update(), waiting worker appears if a new one installed
+            setTimeout(function () {
+                if (reg.waiting) done(true);
+                else if (reg.installing) {
+                    reg.installing.addEventListener("statechange", function () {
+                        if (reg.waiting || (reg.installing && reg.installing.state === "installed")) done(true);
+                    });
+                    setTimeout(function () {
+                        if (reg.waiting) done(true);
+                        else done(false);
+                    }, 2500);
+                } else {
+                    done(false);
+                }
+            }, 600);
+        });
+    }).catch(function () {
+        if (st) st.textContent = "Could not check right now. Try again on Wi‑Fi.";
+    });
+}
+
+window.showAzoraUpdateBanner = showAzoraUpdateBanner;
+window.dismissAzoraUpdateBanner = dismissAzoraUpdateBanner;
+window.applyAzoraAppUpdate = applyAzoraAppUpdate;
+window.checkForAzoraUpdates = checkForAzoraUpdates;
+window.onAzoraServiceWorkerReady = onAzoraServiceWorkerReady;
