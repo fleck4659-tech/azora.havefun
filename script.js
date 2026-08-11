@@ -9,7 +9,7 @@
         }
     } catch (e) {}
 })();
-console.log("%c[Azora] script.js v65.2 fun home hub layout","color:#1e60ff;font-weight:bold;font-size:14px");
+console.log("%c[Azora] script.js v65.4 presence + avatar drag + tshirt + daily + pending","color:#1e60ff;font-weight:bold;font-size:14px");
 try { console.log("[Azora] Cloud ready:", typeof AZORA_CLOUD !== "undefined" && AZORA_CLOUD.isReady && AZORA_CLOUD.isReady()); } catch (e) {}
 // Configuration - Adjust these to change speed and phrases
 const fallSpeed = 2; // Higher number = faster fall
@@ -57,6 +57,12 @@ var AZORA_COIN_PACKS = [
     { id: "pack_medium", name: "Medium Pack", emoji: "💰", priceUsd: 6.99,  coins: 5.0,  blurb: "Solid one-time balance boost." },
     { id: "pack_large",  name: "Large Pack",  emoji: "💎", priceUsd: 14.99, coins: 12.0, blurb: "Biggest one-time pack for serious shopping." }
 ];
+
+
+// Pending AzoraCoins timing
+var AZORA_PENDING_DONATION_MS = 5 * 60 * 1000;              // player→player donation: 5 minutes
+var AZORA_PENDING_TSHIRT_SALE_MS = Math.round(5.4 * 24 * 60 * 60 * 1000); // T-shirt sale: ~5.4 days
+var AZORA_PENDING_DEFAULT_MS = 60 * 1000;                   // other pending (legacy default 1 min)
 
 
 // ============================================================
@@ -4451,13 +4457,14 @@ function init3DAvatar() {
         buildBlockyAvatarMeshes("boy", {});
     }
 
-    // Spin until user clicks the avatar canvas; stays stopped until page/app is reopened
+    // Auto-spin until the player drags the avatar — then they control rotation & position
     if (typeof window._avatarSpinEnabled === "undefined") {
         window._avatarSpinEnabled = (sessionStorage.getItem("azoraAvatarSpinStopped") !== "1");
     }
+    window._avatarDrag = window._avatarDrag || { active: false, x: 0, y: 0, moved: false };
     function animate() {
         requestAnimationFrame(animate);
-        if (avatarCharacterGroup && window._avatarSpinEnabled) {
+        if (avatarCharacterGroup && window._avatarSpinEnabled && !(window._avatarDrag && window._avatarDrag.active)) {
             avatarCharacterGroup.rotation.y += 0.008;
         }
         try {
@@ -4467,17 +4474,51 @@ function init3DAvatar() {
     }
     animate();
 
-    // Click avatar canvas (not color controls) to stop spinning for this session
+    // Drag avatar to rotate / move it around the preview (not just stop spin)
     try {
         var canvasEl = container.querySelector("canvas") || container;
-        if (canvasEl && !canvasEl._azoraSpinClickBound) {
-            canvasEl._azoraSpinClickBound = true;
-            canvasEl.style.cursor = "pointer";
-            canvasEl.title = "Click to stop spinning";
-            canvasEl.addEventListener("click", function () {
+        if (canvasEl && !canvasEl._azoraAvatarDragBound) {
+            canvasEl._azoraAvatarDragBound = true;
+            canvasEl.style.cursor = "grab";
+            canvasEl.title = "Drag to move & rotate your avatar";
+            function ptrDown(ev) {
+                window._avatarDrag.active = true;
+                window._avatarDrag.moved = false;
+                window._avatarDrag.x = (ev.touches && ev.touches[0] ? ev.touches[0].clientX : ev.clientX);
+                window._avatarDrag.y = (ev.touches && ev.touches[0] ? ev.touches[0].clientY : ev.clientY);
+                canvasEl.style.cursor = "grabbing";
                 window._avatarSpinEnabled = false;
                 try { sessionStorage.setItem("azoraAvatarSpinStopped", "1"); } catch (err) {}
-            });
+                try { ev.preventDefault(); } catch (eP) {}
+            }
+            function ptrMove(ev) {
+                if (!window._avatarDrag.active || !avatarCharacterGroup) return;
+                var cx = (ev.touches && ev.touches[0] ? ev.touches[0].clientX : ev.clientX);
+                var cy = (ev.touches && ev.touches[0] ? ev.touches[0].clientY : ev.clientY);
+                var dx = cx - window._avatarDrag.x;
+                var dy = cy - window._avatarDrag.y;
+                if (Math.abs(dx) + Math.abs(dy) > 2) window._avatarDrag.moved = true;
+                window._avatarDrag.x = cx;
+                window._avatarDrag.y = cy;
+                // Horizontal drag = turn; vertical drag = move forward/back a bit
+                avatarCharacterGroup.rotation.y += dx * 0.012;
+                avatarCharacterGroup.position.x += dx * 0.004;
+                avatarCharacterGroup.position.z += dy * 0.004;
+                // Soft bounds so they stay on the pad
+                avatarCharacterGroup.position.x = Math.max(-1.8, Math.min(1.8, avatarCharacterGroup.position.x));
+                avatarCharacterGroup.position.z = Math.max(-1.8, Math.min(1.8, avatarCharacterGroup.position.z));
+                try { ev.preventDefault(); } catch (eP) {}
+            }
+            function ptrUp() {
+                window._avatarDrag.active = false;
+                canvasEl.style.cursor = "grab";
+            }
+            canvasEl.addEventListener("mousedown", ptrDown);
+            window.addEventListener("mousemove", ptrMove);
+            window.addEventListener("mouseup", ptrUp);
+            canvasEl.addEventListener("touchstart", ptrDown, { passive: false });
+            window.addEventListener("touchmove", ptrMove, { passive: false });
+            window.addEventListener("touchend", ptrUp);
         }
     } catch (e) {}
 
@@ -5988,6 +6029,9 @@ window.ensureAIAvatarPreview = ensureAIAvatarPreview;
 window.disposeAIAvatarPreview = disposeAIAvatarPreview;
 
 function openAIAvatarGenerator() {
+    console.log('[Azora] AI Avatar Generator has been removed.');
+    return; // feature removed
+
     if (localStorage.getItem("loggedIn") !== "true") {
         alert("Log in or create an account to use AI Avatar Generator.");
         if (typeof openCreateAccount === "function") openCreateAccount();
@@ -6005,6 +6049,8 @@ function openAIAvatarGenerator() {
 }
 
 function closeAIAvatarGenerator() {
+    return; // feature removed
+
     // If preview pending and not applied, reject on close
     if (_aiAvatarPending && _aiAvatarSnapshot) {
         applyAvatarStateObject(_aiAvatarSnapshot);
@@ -6023,6 +6069,8 @@ function fillAIAvatarExample(text) {
 }
 
 function startAIAvatarGenerate() {
+    return; // feature removed
+
     if (_aiAvatarBusy) return;
     if (localStorage.getItem("loggedIn") !== "true") {
         alert("Log in to generate an avatar.");
@@ -6109,6 +6157,8 @@ function startAIAvatarGenerate() {
 }
 
 function applyAIAvatarResult() {
+    return; // feature removed
+
     if (!_aiAvatarPending) {
         showAIAvatarStatus("rejected", "Generate an avatar first.");
         return;
@@ -6163,6 +6213,8 @@ function applyAIAvatarResult() {
 }
 
 function rejectAIAvatarResult() {
+    return; // feature removed
+
     if (_aiAvatarSnapshot) {
         applyAvatarStateObject(_aiAvatarSnapshot);
     }
@@ -6176,11 +6228,11 @@ function rejectAIAvatarResult() {
 
 window.onAvatarScaleInput = onAvatarScaleInput;
 window.applyAvatarScales = applyAvatarScales;
-window.openAIAvatarGenerator = openAIAvatarGenerator;
+window.openAIAvatarGenerator = function () { console.log('[Azora] AI Avatar Generator removed'); };
 window.closeAIAvatarGenerator = closeAIAvatarGenerator;
-window.startAIAvatarGenerate = startAIAvatarGenerate;
-window.applyAIAvatarResult = applyAIAvatarResult;
-window.rejectAIAvatarResult = rejectAIAvatarResult;
+window.startAIAvatarGenerate = function () {};
+window.applyAIAvatarResult = function () {};
+window.rejectAIAvatarResult = function () {};
 window.fillAIAvatarExample = fillAIAvatarExample;
 window.generateAvatarFromDescription = generateAvatarFromDescription;
 
@@ -6611,6 +6663,9 @@ let azaFnPendingDescription = "";
 let azaFnGames = [];
 
 function openAzaFn() {
+    console.log('[Azora] AzaFn has been removed.');
+    return; // feature removed
+
     if (typeof AZORA_TEMP_DISABLE_AZAFN !== "undefined" && AZORA_TEMP_DISABLE_AZAFN) {
         handleDisabledFeatureClick(window.event, document.getElementById("azafnButton"));
         return;
@@ -6641,6 +6696,8 @@ function openAzaFn() {
 }
 
 function closeAzaFn() {
+    return; // feature removed
+
     document.getElementById("azafnOverlay").style.display = "none";
 }
 
@@ -6719,6 +6776,8 @@ function hideAzaFnTyping() {
 }
 
 function sendAzaFnMessage() {
+    return; // feature removed
+
     var input = document.getElementById("azafnInput");
     var text = (input.value || "").trim();
     if (!text) return;
@@ -7708,7 +7767,7 @@ function azaFnRepublish(gameId) {
 }
 
 window.renderProfileGames = renderProfileGames;
-window.openAzaFn = openAzaFn;
+window.openAzaFn = function () { console.log('[Azora] AzaFn removed'); };
 window.closeAzaFn = closeAzaFn;
 window.switchAzaFnTab = switchAzaFnTab;
 window.sendAzaFnMessage = sendAzaFnMessage;
@@ -9604,7 +9663,7 @@ function generateAIReply(userText) {
 
     // ===== AZORA / PLATFORM =====
     if (/\b(what is azora|what's azora|about azora|this (site|app|platform|game))\b/.test(t)) {
-        return "Azora is a fun social platform where you customize avatars, build games with AzaFn, discover games on Feed, chat with friends, and hang out with me — your AI companion!";
+        return "Azora is a fun social platform where you customize avatars, build games in Creator Studio, discover games, chat with friends, and hang out with me — your robot friend!";
     }
     if (/\b(aza\s*fn|azafn|build a game|create a game|make a game)\b/.test(t)) {
         return pickRandom([
@@ -10287,15 +10346,114 @@ function initStatusSystem() {
 
     var me = getMyUsername();
     if (me && localStorage.getItem("loggedIn") === "true") {
-        // Coming online on page load
         var cur = getUserStatus(me);
         if (cur === "offline" || cur === "afk" || !cur) {
             setUserStatus(me, "online");
         }
         var sel = document.getElementById("statusSelect");
         if (sel) sel.value = getUserStatus(me);
+        try { if (typeof startPresenceHeartbeat === "function") startPresenceHeartbeat(); } catch (eP) {}
+        try { if (typeof writeFirebasePresence === "function") writeFirebasePresence("online"); } catch (eW) {}
     }
 }
+
+
+// ============================================================
+// Firebase real-time presence (online tracking)
+// ============================================================
+var _presenceHeartbeat = null;
+var _presenceLastWrite = 0;
+
+function presenceSafeUser(name) {
+    return String(name || "").trim().toLowerCase().replace(/[.#$\[\]]/g, "_").slice(0, 48);
+}
+
+function writeFirebasePresence(status) {
+    try {
+        var acc = typeof getActiveAccount === "function" ? getActiveAccount() : null;
+        var logged = localStorage.getItem("loggedIn");
+        if (!acc || !acc.username || acc.isGuest || logged !== "true") return;
+        if (typeof AZORA_CLOUD === "undefined" || !AZORA_CLOUD.firebaseUrl) return;
+        var base = String(AZORA_CLOUD.firebaseUrl || "").replace(/\/$/, "");
+        if (!base) return;
+        var now = Date.now();
+        if (now - _presenceLastWrite < 4000 && status === "online") return; // throttle
+        _presenceLastWrite = now;
+        var uname = acc.username;
+        var safe = presenceSafeUser(uname);
+        var payload = {
+            username: uname,
+            userId: acc.userId || "",
+            status: status || (typeof getUserStatus === "function" ? getUserStatus(uname) : "online"),
+            online: status !== "offline",
+            lastSeen: now,
+            updatedAt: now
+        };
+        fetch(base + "/azoraPresence/" + encodeURIComponent(safe) + ".json", {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload)
+        }).catch(function () {});
+        // Local mirror
+        try {
+            var all = JSON.parse(localStorage.getItem("azoraPresenceCache") || "{}");
+            all[safe] = payload;
+            localStorage.setItem("azoraPresenceCache", JSON.stringify(all));
+        } catch (eL) {}
+    } catch (e) {}
+}
+
+function fetchFirebasePresence(username, cb) {
+    cb = cb || function () {};
+    try {
+        var safe = presenceSafeUser(username);
+        var cached = null;
+        try {
+            var all = JSON.parse(localStorage.getItem("azoraPresenceCache") || "{}");
+            cached = all[safe] || null;
+        } catch (eC) {}
+        if (typeof AZORA_CLOUD === "undefined" || !AZORA_CLOUD.firebaseUrl) {
+            cb(cached);
+            return;
+        }
+        var base = String(AZORA_CLOUD.firebaseUrl || "").replace(/\/$/, "");
+        fetch(base + "/azoraPresence/" + encodeURIComponent(safe) + ".json?ts=" + Date.now())
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+                if (data && data.username) {
+                    try {
+                        var all = JSON.parse(localStorage.getItem("azoraPresenceCache") || "{}");
+                        all[safe] = data;
+                        localStorage.setItem("azoraPresenceCache", JSON.stringify(all));
+                    } catch (e) {}
+                    cb(data);
+                } else cb(cached);
+            })
+            .catch(function () { cb(cached); });
+    } catch (e) { cb(null); }
+}
+
+function startPresenceHeartbeat() {
+    try { if (_presenceHeartbeat) clearInterval(_presenceHeartbeat); } catch (e) {}
+    writeFirebasePresence("online");
+    _presenceHeartbeat = setInterval(function () {
+        var logged = localStorage.getItem("loggedIn");
+        if (logged !== "true") return;
+        var me = typeof getMyUsername === "function" ? getMyUsername() : null;
+        if (!me) return;
+        var st = typeof getUserStatus === "function" ? getUserStatus(me) : "online";
+        writeFirebasePresence(st || "online");
+    }, 25000);
+    try {
+        window.addEventListener("beforeunload", function () {
+            writeFirebasePresence("offline");
+        });
+    } catch (e2) {}
+}
+
+window.writeFirebasePresence = writeFirebasePresence;
+window.fetchFirebasePresence = fetchFirebasePresence;
+window.startPresenceHeartbeat = startPresenceHeartbeat;
 
 // --- Notifications ---
 function getNotifications(username) {
@@ -15483,10 +15641,29 @@ function saveSalesLedger(list) {
     try { localStorage.setItem("azoraSalesLedger", JSON.stringify(list || [])); } catch (e) {}
 }
 
-function getPendingForUser(username) {
+function pendingRowDelayMs(row) {
+    if (!row) return (typeof AZORA_PENDING_DEFAULT_MS !== "undefined" ? AZORA_PENDING_DEFAULT_MS : 60000);
+    if (row.kind === "donation" || row.type === "donation" || row.itemName === "Donation") {
+        return (typeof AZORA_PENDING_DONATION_MS !== "undefined" ? AZORA_PENDING_DONATION_MS : 300000);
+    }
+    if (row.kind === "tshirt") {
+        return (typeof AZORA_PENDING_TSHIRT_SALE_MS !== "undefined" ? AZORA_PENDING_TSHIRT_SALE_MS : 466560000);
+    }
+    return (typeof AZORA_PENDING_DEFAULT_MS !== "undefined" ? AZORA_PENDING_DEFAULT_MS : 60000);
+}
+function pendingRowAvailableAt(row) {
+    if (!row) return Date.now();
+    if (row.availableAt) return row.availableAt;
+    return (row.at || 0) + pendingRowDelayMs(row);
+}
+function getPendingForUser(username, onlyMatured) {
     var u = String(username || "").trim().toLowerCase();
+    var now = Date.now();
     return getSalesLedger().filter(function (row) {
-        return row && !row.collected && String(row.toUser || "").trim().toLowerCase() === u;
+        if (!row || row.collected) return false;
+        if (String(row.toUser || "").trim().toLowerCase() !== u) return false;
+        if (onlyMatured && now < pendingRowAvailableAt(row)) return false;
+        return true;
     });
 }
 
@@ -15504,7 +15681,7 @@ function collectPendingCoins() {
         alert("Log in with an account to collect pending AzoraCoins.");
         return;
     }
-    var pending = getPendingForUser(acc.username);
+    var pending = getPendingForUser(acc.username, true); // only matured
     if (!pending.length) {
         showAzoraToast("No pending AzoraCoins.");
         return;
@@ -15525,13 +15702,21 @@ function collectPendingCoins() {
     updateCoinsUI();
 }
 
-/** Record a sale. amountToSeller goes pending for seller; amountToPlatform pending for Azora. */
+/** Record a sale. amountToSeller goes pending for seller; amountToPlatform pending for Azora.
+ *  opts.kind: "donation" | "tshirt" | "official" | other — sets availableAt delay
+ */
 function recordSale(opts) {
     opts = opts || {};
     var ledger = getSalesLedger();
     var ts = Date.now();
     var buyer = opts.buyerName || "Someone";
     var itemName = opts.itemName || "Item";
+    var kind = opts.kind || "sale";
+    var delay = AZORA_PENDING_DEFAULT_MS;
+    if (kind === "donation") delay = AZORA_PENDING_DONATION_MS;
+    else if (kind === "tshirt") delay = AZORA_PENDING_TSHIRT_SALE_MS;
+    else if (kind === "official") delay = AZORA_PENDING_DEFAULT_MS;
+    var availableAt = ts + delay;
     if (opts.amountToSeller > 0 && opts.sellerName) {
         ledger.unshift({
             id: "sale_" + ts + "_s",
@@ -15541,7 +15726,9 @@ function recordSale(opts) {
             amount: Math.round(opts.amountToSeller * 1000) / 1000,
             fee: false,
             collected: false,
-            at: ts
+            kind: kind,
+            at: ts,
+            availableAt: availableAt
         });
     }
     if (opts.amountToPlatform > 0) {
@@ -15553,10 +15740,11 @@ function recordSale(opts) {
             amount: Math.round(opts.amountToPlatform * 1000) / 1000,
             fee: true,
             collected: false,
-            at: ts
+            kind: kind,
+            at: ts,
+            availableAt: availableAt
         });
     }
-    // keep ledger from growing forever
     if (ledger.length > 300) ledger = ledger.slice(0, 300);
     saveSalesLedger(ledger);
 }
@@ -15887,6 +16075,22 @@ function claimDailyGiftAnimated() {
         var reward = getDailyRewardAmount(streak);
 
         // Grant after a short delay into the animation (slow start → speeds up visually)
+        // Animate topbar coin number on top of transparent overlay while coins fly
+        var startBal = (typeof getCoins === "function") ? getCoins() : 0;
+        var targetBal = startBal + reward;
+        var t0 = Date.now();
+        var infl = setInterval(function () {
+            var p = Math.min(1, (Date.now() - t0) / 1600);
+            // ease-in then speed up
+            var e = p < 0.4 ? (p * p * 1.2) : Math.min(1, 0.2 + (p - 0.4) * 1.6);
+            var val = startBal + (targetBal - startBal) * e;
+            var bucks = document.getElementById("bucks");
+            if (bucks) bucks.textContent = (Math.round(val * 100) / 100).toString();
+            var hero = document.getElementById("heroCoinsStat");
+            if (hero) hero.textContent = (Math.round(val * 100) / 100).toString();
+            if (p >= 1) clearInterval(infl);
+        }, 40);
+
         runDailyCoinAnimation(function () {
             localStorage.setItem("azoraLoginStreak", String(streak));
             localStorage.setItem("azoraLastDailyClaim", today);
@@ -15894,6 +16098,7 @@ function claimDailyGiftAnimated() {
             if (typeof addCoins === "function") addCoins(reward);
             try { if (typeof updateCoinsUI === "function") updateCoinsUI(); } catch (eU) {}
             try { refreshFunTopbar(); } catch (eR) {}
+            try { if (typeof azoraSyncFunHome === "function") azoraSyncFunHome(); } catch (eH) {}
             if (btn) btn.style.display = "none";
             var success = document.getElementById("dailyClaimSuccess");
             if (success) success.style.display = "block";
@@ -16237,7 +16442,8 @@ function buyMarketplaceItem(itemId) {
             buyerName: buyerName,
             itemName: item.name || "T-Shirt",
             amountToSeller: split.seller,
-            amountToPlatform: split.fee
+            amountToPlatform: split.fee,
+            kind: "tshirt"
         });
         if (price > 0) {
             splitNote = split.taxFree
@@ -19669,7 +19875,7 @@ function commitDonateTransaction(toUser, amount) {
         collected: false,
         type: "donation",
         at: ts,
-        availableAt: ts + 60000 // 1 minute in pending
+        availableAt: ts + (typeof AZORA_PENDING_DONATION_MS !== "undefined" ? AZORA_PENDING_DONATION_MS : 300000) // 5 minutes in pending
     };
 
     // Local ledger (recipient may be same device)
@@ -19711,7 +19917,7 @@ function commitDonateTransaction(toUser, amount) {
     return true;
 }
 
-/** Mature donation pending rows into balance after 1 minute */
+/** Mature pending donations (5 min) and other ledger rows when availableAt passes */
 function processMaturedDonations() {
     try {
         var acc = typeof getActiveAccount === "function" ? getActiveAccount() : null;
@@ -19727,8 +19933,15 @@ function processMaturedDonations() {
             ledger.forEach(function (row) {
                 if (!row || row.collected) return;
                 if (String(row.toUser || "").toLowerCase() !== String(uname).toLowerCase()) return;
-                if (row.type !== "donation" && row.itemName !== "Donation") return;
-                var avail = row.availableAt || ((row.at || 0) + 60000);
+                var isDonation = row.type === "donation" || row.itemName === "Donation" || row.kind === "donation";
+                var isTshirt = row.kind === "tshirt";
+                // Mature all pending kinds when availableAt is reached
+                var delay = isDonation
+                    ? (typeof AZORA_PENDING_DONATION_MS !== "undefined" ? AZORA_PENDING_DONATION_MS : 300000)
+                    : (isTshirt
+                        ? (typeof AZORA_PENDING_TSHIRT_SALE_MS !== "undefined" ? AZORA_PENDING_TSHIRT_SALE_MS : 466560000)
+                        : (typeof AZORA_PENDING_DEFAULT_MS !== "undefined" ? AZORA_PENDING_DEFAULT_MS : 60000));
+                var avail = row.availableAt || ((row.at || 0) + delay);
                 if (now >= avail) {
                     matured.push(row);
                     row.collected = true;
@@ -19746,7 +19959,7 @@ function processMaturedDonations() {
             var keep = [];
             list.forEach(function (row) {
                 if (!row) return;
-                var avail = row.availableAt || ((row.at || 0) + 60000);
+                var avail = row.availableAt || ((row.at || 0) + (typeof AZORA_PENDING_DONATION_MS !== "undefined" ? AZORA_PENDING_DONATION_MS : 300000));
                 if (!row.collected && now >= avail) {
                     // avoid double-count if already in matured by id
                     var exists = matured.some(function (m) { return m.id === row.id; });
@@ -19771,7 +19984,7 @@ function processMaturedDonations() {
                     Object.keys(data).forEach(function (k) {
                         var row = data[k];
                         if (!row || row.collected) return;
-                        var avail = row.availableAt || ((row.at || 0) + 60000);
+                        var avail = row.availableAt || ((row.at || 0) + (typeof AZORA_PENDING_DONATION_MS !== "undefined" ? AZORA_PENDING_DONATION_MS : 300000));
                         if (now < avail) return;
                         if (ids[row.id]) return;
                         ids[row.id] = true;
@@ -20579,4 +20792,25 @@ window.getAvatarDataForUsername = getAvatarDataForUsername;
     else syncHero();
     setInterval(syncHero, 15000);
     window.azoraSyncFunHome = syncHero;
+})();
+
+
+// Remove AI product entry points from UI (AzaFn + AI Avatar). Arrow Friend stays.
+(function removeAiProductUi() {
+    function scrub() {
+        ["azafnButton", "aiAvatarBtn", "azafnOverlay", "aiAvatarOverlay"].forEach(function (id) {
+            var el = document.getElementById(id);
+            if (!el) return;
+            if (id.indexOf("Overlay") !== -1) {
+                el.style.display = "none";
+                try { el.remove(); } catch (e) { el.innerHTML = ""; }
+            } else {
+                el.style.display = "none";
+                try { el.remove(); } catch (e2) {}
+            }
+        });
+    }
+    if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", scrub);
+    else scrub();
+    setTimeout(scrub, 500);
 })();

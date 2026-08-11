@@ -13,7 +13,7 @@
     <link rel="manifest" href="manifest-azora.json">
     <link rel="apple-touch-icon" href="logo.jpg">
     <link rel="icon" href="logo.jpg">
-    <link rel="stylesheet" href="style.css?v=65.2">
+    <link rel="stylesheet" href="style.css?v=65.4">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 </head>
 <body>
@@ -420,7 +420,6 @@
     </div>
     <div class="topbar-fun-right" id="topbarFunRight">
         <button id="searchButton" type="button" onclick="openSearch()">🔍 Search</button>
-        <button id="azafnButton" class="azora-temp-disabled" type="button" aria-disabled="true" onclick="handleDisabledFeatureClick(event, this)">🤖 AzaFn</button>
         <button id="chatButton" type="button" onclick="openChatPanel()" class="chat-btn-wrap">💬 Chat<span id="chatBadge" class="notif-badge chat-badge" style="display:none;">0</span></button>
         <button id="notifButton" class="notif-bell-btn" type="button" onclick="toggleNotifPanel()">
             🔔<span id="notifBadge" class="notif-badge" style="display:none;">0</span>
@@ -477,7 +476,6 @@
             <label class="avatar-scale-row">Arms <input type="range" id="scaleArms" min="0.6" max="1.6" step="0.05" value="1" oninput="onAvatarScaleInput()"></label>
             <label class="avatar-scale-row">Legs <input type="range" id="scaleLegs" min="0.6" max="1.6" step="0.05" value="1" oninput="onAvatarScaleInput()"></label>
         </div>
-        <button type="button" id="aiAvatarBtn" class="ai-avatar-btn" onclick="openAIAvatarGenerator()">✨ AI Generate Avatar</button>
         <button type="button" id="loadPrevAvatarsBtn" class="load-prev-avatars-btn" onclick="openAvatarHistory()">📂 Load previous avatars</button>
         <button type="button" id="resetDefaultAvatarBtn" class="reset-default-avatar-btn" onclick="resetToDefaultAvatar()" title="Reset to Azora's default avatar">↺ Reset to default avatar</button>
         <button onclick="saveAvatar()" id="saveAvatarBtn">Save Avatar</button>
@@ -693,26 +691,6 @@
     </div>
     <p class="footer-meta"><strong>Creation date:</strong> June 26, 2026</p>
 </footer>
-
-<!-- AzaFn-1.0 -->
-<div id="azafnOverlay" class="azafn-overlay">
-    <div class="azafn-header">
-        <h2><img src="logo.jpg" alt="Azora"> AzaFn-1.0</h2>
-        <div class="azafn-tabs">
-            <button onclick="closeAzaFn()" style="margin:0;background:#ff3b30;color:#fff;">✕ Close</button>
-        </div>
-    </div>
-    <div class="azafn-body">
-        <div class="azafn-chat-panel" id="azafnChatPanel">
-            <div class="azafn-messages" id="azafnMessages"></div>
-            <div class="azafn-input-row">
-                <input type="text" id="azafnInput" placeholder="Describe the game you want to build..." onkeydown="if(event.key==='Enter')sendAzaFnMessage()">
-                <button onclick="sendAzaFnMessage()">Send</button>
-            </div>
-        </div>
-        <div class="azafn-feed-panel" id="azafnFeedPanel"></div>
-    </div>
-</div>
 
 
 <!-- Public Game Feed (discover games) -->
@@ -1032,42 +1010,8 @@
     </div>
 </div>
 
-<div id="aiAvatarOverlay" class="overlay" style="display:none;">
-    <div class="popup ai-avatar-popup" style="max-width:min(380px,calc(100vw - 20px));text-align:left;">
-        <h2 style="text-align:center;margin-top:0;">✨ AI Avatar Generator</h2>
-        <p class="ai-img-policy">Describe the avatar you want. Azora stays family-friendly — no violence, gore, or inappropriate requests.</p>
-        <label class="settings-label" for="aiAvatarPrompt">Describe your avatar</label>
-        <textarea id="aiAvatarPrompt" class="ai-image-prompt" maxlength="350" placeholder="Example: girl with a big head, pink torso, long teal legs, and tiny arms"></textarea>
-        <div class="ai-avatar-examples">
-            <button type="button" class="ai-avatar-ex" onclick="fillAIAvatarExample('cool blue hero with a large head')">Blue hero</button>
-            <button type="button" class="ai-avatar-ex" onclick="fillAIAvatarExample('girl with pink body, small head, long arms')">Pink girl</button>
-            <button type="button" class="ai-avatar-ex" onclick="fillAIAvatarExample('robot with gray skin, huge torso, short legs')">Robot</button>
-            <button type="button" class="ai-avatar-ex" onclick="fillAIAvatarExample('rainbow arms and legs with a yellow head')">Rainbow</button>
-            <button type="button" class="ai-avatar-ex" onclick="fillAIAvatarExample('ninja with dark body and tiny arms')">Ninja</button>
-            <button type="button" class="ai-avatar-ex" onclick="fillAIAvatarExample('fire avatar with orange torso and red legs')">Fire</button>
-            <button type="button" class="ai-avatar-ex" onclick="fillAIAvatarExample('tall ice girl with cyan legs and white head')">Ice girl</button>
-        </div>
-        <div class="ai-img-status" id="aiAvatarStatus" style="display:none;"></div>
-        <div class="ai-img-progress-wrap" id="aiAvatarProgressWrap" style="display:none;">
-            <div class="ai-img-progress"><div class="ai-img-progress-fill" id="aiAvatarProgressFill"></div></div>
-            <span id="aiAvatarProgressText">Designing…</span>
-        </div>
-        <div id="aiAvatarResultBox" class="ai-avatar-result" style="display:none;">
-            <p id="aiAvatarSummary" class="ai-avatar-summary"></p>
-            <div id="aiAvatarPreviewCanvas" class="ai-avatar-preview-canvas" aria-label="3D avatar preview"></div>
-            <p class="ai-avatar-hint">3D preview above. <strong>Apply</strong> keeps it on your avatar · <strong>Reject</strong> undoes it.</p>
-            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;">
-                <button type="button" id="aiAvatarApplyBtn" onclick="applyAIAvatarResult()" style="flex:1;background:linear-gradient(180deg,#34d399,#059669);color:#fff;">Apply</button>
-                <button type="button" id="aiAvatarRejectBtn" onclick="rejectAIAvatarResult()" style="flex:1;background:linear-gradient(180deg,#f87171,#dc2626);color:#fff;">Reject</button>
-            </div>
-        </div>
-        <div style="display:flex;gap:10px;margin-top:14px;flex-wrap:wrap;">
-            <button type="button" id="aiAvatarGenerateBtn" onclick="startAIAvatarGenerate()" style="flex:1;background:linear-gradient(180deg,#c4b5fd,#7c3aed);color:#fff;">Generate</button>
-            <button type="button" onclick="closeAIAvatarGenerator()" style="flex:1;">Close</button>
-        </div>
-    </div>
-</div>
-<script src="script.js?v=65.2"></script>
+
+<script src="script.js?v=65.4"></script>
 <script>
 // Register Azora as installable app (not the staff website)
 if ("serviceWorker" in navigator) {
@@ -1107,7 +1051,7 @@ if ("serviceWorker" in navigator) {
                     <option value="shirts">T-Shirts</option>
                 </select>
             </label>
-            <button type="button" id="uploadTShirtBtn" class="market-upload-btn" style="display:none;" onclick="openCreateTShirt()">Upload T-Shirt (Free)</button>
+            <button type="button" id="uploadTShirtBtn" class="market-upload-btn" style="display:none;" onclick="openCreateTShirt()">📤 Upload T-Shirt (Free · 0 🪙)</button>
             <label id="marketGenderFilterWrap" style="font-size:0.85rem;">Filter:
                 <select id="marketGenderFilter" onchange="renderMarketplace()">
                     <option value="all">All</option>
@@ -1266,7 +1210,7 @@ if ("serviceWorker" in navigator) {
             <input id="tshirtPriceInput" type="number" min="0" max="50" step="0.01" value="0.02" style="width:100%;margin-top:4px;">
         </label>
         <label style="display:block;margin-bottom:8px;font-size:0.85rem;">Image
-            <input id="tshirtFileInput" type="file" accept="image/*" onchange="onTShirtFileChosen(this)" style="width:100%;margin-top:4px;">
+            <input id="tshirtFileInput" type="file" accept="image/*" capture="environment" onchange="onTShirtFileChosen(this)" style="width:100%;margin-top:4px;">
         </label>
         <div style="text-align:center;margin:10px 0;">
             <img id="tshirtPreviewImg" alt="" style="display:none;max-width:128px;max-height:128px;border-radius:12px;border:1px solid rgba(255,255,255,0.2);">

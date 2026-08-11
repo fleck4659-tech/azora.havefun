@@ -4241,7 +4241,34 @@ footer {
     text-align: center;
 }
 
-.daily-claim-overlay { z-index: 100060; }
+.daily-claim-overlay {
+    z-index: 100060;
+    background: transparent !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+}
+.daily-claim-popup {
+    background: rgba(15, 23, 42, 0.72) !important;
+    border: 1px solid rgba(255,255,255,0.25) !important;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.45) !important;
+    position: relative;
+    overflow: visible !important;
+}
+.daily-claim-coins-fx {
+    position: absolute !important;
+    inset: -40px -20px auto -20px !important;
+    height: 180px !important;
+    pointer-events: none !important;
+    z-index: 5 !important;
+    overflow: visible !important;
+}
+.daily-claim-popup h2,
+.daily-claim-btn,
+.daily-claim-success {
+    position: relative;
+    z-index: 6;
+}
+
 .daily-claim-popup {
     position: relative;
     overflow: hidden;
