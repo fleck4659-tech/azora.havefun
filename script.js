@@ -9,7 +9,7 @@
         }
     } catch (e) {}
 })();
-console.log("%c[Azora] script.js v66.0 logo force jpg","color:#1e60ff;font-weight:bold;font-size:14px");
+console.log("%c[Azora] script.js v67.0 logo colors + in-game inventory","color:#7c3aed;font-weight:bold;font-size:14px");
 try { console.log("[Azora] Cloud ready:", typeof AZORA_CLOUD !== "undefined" && AZORA_CLOUD.isReady && AZORA_CLOUD.isReady()); } catch (e) {}
 // Configuration - Adjust these to change speed and phrases
 const fallSpeed = 2; // Higher number = faster fall
@@ -3901,6 +3901,13 @@ function buildBlockyAvatarMeshes(gender, colors) {
             applyGenderVisualsToCustomizer(gender, colors);
         }
     } catch (eG) {}
+    // Show parts saved from in-game inventory on the main Azora avatar
+    try {
+        if (typeof applySavedExtraPartsToMesh === "function") {
+            var parts = (colors && colors.extraParts) ? colors.extraParts : (typeof getSavedExtraParts === "function" ? getSavedExtraParts() : []);
+            applySavedExtraPartsToMesh(avatarCharacterGroup, parts);
+        }
+    } catch (ePartsMain) {}
 }
 
 /**
@@ -11486,7 +11493,7 @@ function isNormGuest() {
 }
 
 function getNormAvatarColors() {
-    var av = { head: "#ffcc00", torso: "#1e60ff", leftArm: "#ffcc00", rightArm: "#ffcc00", leftLeg: "#00ebd4", rightLeg: "#00ebd4", gender: "boy", hair: "#3b2f2f", face: "male" };
+    var av = { head: "#ffcc00", torso: "#7c3aed", leftArm: "#ffcc00", rightArm: "#ffcc00", leftLeg: "#3b82f6", rightLeg: "#3b82f6", gender: "boy", hair: "#3b2f2f", face: "male", extraParts: [] };
     try {
         var acc = JSON.parse(localStorage.getItem("azoraAccount") || "{}");
         if (acc && acc.avatar) {
@@ -11499,6 +11506,8 @@ function getNormAvatarColors() {
             av.gender = acc.avatar.gender || acc.gender || av.gender;
             av.hair = acc.avatar.hair || av.hair;
             av.face = acc.avatar.face || av.face;
+            av.hairStyle = acc.avatar.hairStyle || av.hairStyle;
+            if (Array.isArray(acc.avatar.extraParts)) av.extraParts = acc.avatar.extraParts.slice();
         } else if (acc && acc.gender) {
             av.gender = acc.gender;
         }
@@ -11741,6 +11750,12 @@ function makeNormAvatar(colors) {
     g.userData.footOffset = 0; // feet already at y=0 in local space
     g.userData.gender = gender;
     try { bindGameAvatarLimbs(g); } catch (eB) {}
+    // Attach any parts saved from in-game inventory to Azora avatar
+    try {
+        if (typeof applySavedExtraPartsToMesh === "function") {
+            applySavedExtraPartsToMesh(g, colors && colors.extraParts);
+        }
+    } catch (eParts) {}
     return g;
 }
 
@@ -14025,6 +14040,7 @@ window.toggleNormMusicPause = toggleNormMusicPause;
 
 function startNormGameWorld(def) {
     disposeNormWorld(false);
+    try { clearNormGameInventoryRuntime(false); } catch (eClr) {}
     startNormMusic();
     try {
         if (!_normSession) _normSession = {};
@@ -14705,6 +14721,7 @@ function leaveNormGame() {
         var layer = document.getElementById("normJoystickLayer");
         if (layer) layer.style.display = "none";
     } catch (e) {}
+    try { clearNormGameInventoryRuntime(false); } catch (eInv) {}
     disposeNormWorld(false);
     _normSession = null;
     _normPlayers = [];
@@ -14718,8 +14735,313 @@ function leaveNormGame() {
     if (fill) fill.style.width = "0%";
     var conf = document.getElementById("normLeaveConfirm");
     if (conf) conf.style.display = "none";
+    try {
+        var invP = document.getElementById("normInventoryPanel");
+        if (invP) invP.style.display = "none";
+    } catch (e2) {}
 }
 
+
+// ============================================================
+// IN-GAME INVENTORY — Clone / Add Parts / Change Position
+// Default tools available in every Norm Game session
+// ============================================================
+var _normClones = [];
+var _normSessionParts = []; // parts attached this session (not yet saved)
+var _normInvOpen = false;
+
+function getSavedExtraParts() {
+    try {
+        var acc = JSON.parse(localStorage.getItem("azoraAccount") || "{}");
+        if (acc && acc.avatar && Array.isArray(acc.avatar.extraParts)) {
+            return acc.avatar.extraParts.slice();
+        }
+    } catch (e) {}
+    return [];
+}
+
+function makeExtraPartMesh(spec) {
+    if (typeof THREE === "undefined" || !spec) return null;
+    var shape = (spec.shape || "box").toLowerCase();
+    var col = spec.color || "#a855f7";
+    var mat = (typeof azoraGlossMaterial === "function")
+        ? azoraGlossMaterial(col)
+        : new THREE.MeshLambertMaterial({ color: col });
+    var geo;
+    if (shape === "sphere") geo = new THREE.SphereGeometry(0.18, 12, 10);
+    else if (shape === "cylinder") geo = new THREE.CylinderGeometry(0.12, 0.12, 0.36, 10);
+    else if (shape === "wedge") geo = new THREE.ConeGeometry(0.18, 0.36, 4);
+    else if (shape === "torus") geo = new THREE.TorusGeometry(0.16, 0.05, 8, 14);
+    else geo = new THREE.BoxGeometry(0.28, 0.28, 0.28);
+    var mesh = new THREE.Mesh(geo, mat);
+    mesh.name = "extraPart";
+    mesh.userData.isExtraPart = true;
+    mesh.userData.partSpec = {
+        shape: shape,
+        color: col,
+        ox: spec.ox || 0,
+        oy: spec.oy || 0,
+        oz: spec.oz || 0,
+        rx: spec.rx || 0,
+        ry: spec.ry || 0,
+        rz: spec.rz || 0
+    };
+    mesh.position.set(spec.ox || 0, spec.oy || 0, spec.oz || 0);
+    mesh.rotation.set(spec.rx || 0, spec.ry || 0, spec.rz || 0);
+    return mesh;
+}
+
+function applySavedExtraPartsToMesh(root, partsArr) {
+    if (!root || typeof THREE === "undefined") return;
+    var list = Array.isArray(partsArr) ? partsArr : getSavedExtraParts();
+    if (!list.length) return;
+    list.forEach(function (spec) {
+        try {
+            var m = makeExtraPartMesh(spec);
+            if (m) root.add(m);
+        } catch (e) {}
+    });
+}
+
+function clearNormGameInventoryRuntime(keepPanel) {
+    // Remove clones from scene
+    try {
+        (_normClones || []).forEach(function (c) {
+            if (c && _normScene) {
+                try { _normScene.remove(c); } catch (e) {}
+            }
+        });
+    } catch (e) {}
+    _normClones = [];
+    // Session parts are children of local mesh — removed with dispose
+    _normSessionParts = [];
+    _normInvOpen = false;
+    if (!keepPanel) {
+        try {
+            var p = document.getElementById("normInventoryPanel");
+            if (p) p.style.display = "none";
+            var ap = document.getElementById("normInvAddPartPanel");
+            if (ap) ap.style.display = "none";
+            var pp = document.getElementById("normInvPosPanel");
+            if (pp) pp.style.display = "none";
+        } catch (e2) {}
+    }
+    updateNormInvBadges();
+}
+
+function updateNormInvBadges() {
+    try {
+        var cc = document.getElementById("normCloneCount");
+        if (cc) cc.textContent = String((_normClones && _normClones.length) || 0);
+        var pc = document.getElementById("normPartCount");
+        if (pc) pc.textContent = String((_normSessionParts && _normSessionParts.length) || 0);
+        var saveBtn = document.getElementById("normInvSavePartsBtn");
+        if (saveBtn) {
+            saveBtn.style.display = (_normSessionParts && _normSessionParts.length) ? "block" : "none";
+        }
+    } catch (e) {}
+}
+
+function toggleNormInventory() {
+    var panel = document.getElementById("normInventoryPanel");
+    if (!panel) return;
+    _normInvOpen = !_normInvOpen;
+    panel.style.display = _normInvOpen ? "block" : "none";
+    if (_normInvOpen) {
+        updateNormInvBadges();
+        try { if (typeof playAzoraSfx === "function") playAzoraSfx("click_buttons"); } catch (e) {}
+    } else {
+        var ap = document.getElementById("normInvAddPartPanel");
+        if (ap) ap.style.display = "none";
+        var pp = document.getElementById("normInvPosPanel");
+        if (pp) pp.style.display = "none";
+    }
+}
+
+function useNormInvClone() {
+    if (!_normLocalMesh || !_normScene || typeof THREE === "undefined") return;
+    try { if (typeof playAzoraSfx === "function") playAzoraSfx("click_buttons"); } catch (e) {}
+    var colors = getNormAvatarColors();
+    var clone = makeNormAvatarForCurrentGame(colors);
+    if (!clone) return;
+    // Offset beside the player, alternating left/right
+    var n = _normClones.length;
+    var side = (n % 2 === 0) ? 1 : -1;
+    var row = Math.floor(n / 2);
+    var yaw = (_normSession && typeof _normSession.charYaw === "number") ? _normSession.charYaw : (_normLocalMesh.rotation.y || 0);
+    var rightX = Math.cos(yaw);
+    var rightZ = -Math.sin(yaw);
+    var ox = rightX * side * (1.4 + row * 0.15);
+    var oz = rightZ * side * (1.4 + row * 0.15);
+    clone.position.set(
+        _normLocalMesh.position.x + ox,
+        _normLocalMesh.position.y,
+        _normLocalMesh.position.z + oz
+    );
+    clone.rotation.y = yaw;
+    clone.userData.isClone = true;
+    clone.userData.cloneIndex = n;
+    _normScene.add(clone);
+    _normClones.push(clone);
+    updateNormInvBadges();
+}
+
+function openNormInvAddPart() {
+    var ap = document.getElementById("normInvAddPartPanel");
+    var pp = document.getElementById("normInvPosPanel");
+    if (pp) pp.style.display = "none";
+    if (ap) ap.style.display = (ap.style.display === "none" || !ap.style.display) ? "block" : "none";
+}
+
+function openNormInvPosition() {
+    var pp = document.getElementById("normInvPosPanel");
+    var ap = document.getElementById("normInvAddPartPanel");
+    if (ap) ap.style.display = "none";
+    if (pp) pp.style.display = (pp.style.display === "none" || !pp.style.display) ? "block" : "none";
+}
+
+/** Slot offsets around the body — cycles so many parts don't stack on one point */
+var _NORM_PART_SLOTS = [
+    { ox: 0.55, oy: 1.7, oz: 0.0 },   // right shoulder
+    { ox: -0.55, oy: 1.7, oz: 0.0 },  // left shoulder
+    { ox: 0.0, oy: 2.45, oz: 0.0 },   // above head
+    { ox: 0.0, oy: 1.55, oz: -0.35 }, // back
+    { ox: 0.0, oy: 1.55, oz: 0.35 },  // chest
+    { ox: 0.4, oy: 1.1, oz: 0.2 },
+    { ox: -0.4, oy: 1.1, oz: 0.2 },
+    { ox: 0.35, oy: 0.55, oz: 0.15 },
+    { ox: -0.35, oy: 0.55, oz: 0.15 },
+    { ox: 0.0, oy: 2.1, oz: 0.25 }
+];
+
+function useNormInvAddPart(shape) {
+    if (!_normLocalMesh || typeof THREE === "undefined") return;
+    try { if (typeof playAzoraSfx === "function") playAzoraSfx("click_buttons"); } catch (e) {}
+    shape = shape || "box";
+    var colorEl = document.getElementById("normInvPartColor");
+    var color = (colorEl && colorEl.value) ? colorEl.value : "#a855f7";
+    var slot = _NORM_PART_SLOTS[_normSessionParts.length % _NORM_PART_SLOTS.length];
+    var jitter = 0.04 * (_normSessionParts.length % 5);
+    var spec = {
+        shape: shape,
+        color: color,
+        ox: slot.ox + (Math.random() - 0.5) * jitter,
+        oy: slot.oy + (Math.random() - 0.5) * jitter * 0.5,
+        oz: slot.oz + (Math.random() - 0.5) * jitter,
+        rx: (Math.random() - 0.5) * 0.4,
+        ry: (Math.random() - 0.5) * 0.6,
+        rz: (Math.random() - 0.5) * 0.4
+    };
+    var mesh = makeExtraPartMesh(spec);
+    if (!mesh) return;
+    _normLocalMesh.add(mesh);
+    _normSessionParts.push(spec);
+    updateNormInvBadges();
+}
+
+function useNormInvPosition(mode) {
+    if (!_normLocalMesh) return;
+    try { if (typeof playAzoraSfx === "function") playAzoraSfx("click_buttons"); } catch (e) {}
+    mode = mode || "spawn";
+    var x = 0, z = 0;
+    if (mode === "spawn") {
+        var sp = (typeof getNormSpawnForWorld === "function")
+            ? getNormSpawnForWorld((_normSession && _normSession.world) || "city")
+            : { x: 0, z: 0 };
+        x = sp.x || 0;
+        z = sp.z || 0;
+    } else if (mode === "nearby") {
+        x = _normLocalMesh.position.x + (Math.random() - 0.5) * 8;
+        z = _normLocalMesh.position.z + (Math.random() - 0.5) * 8;
+    } else if (mode === "custom") {
+        var xi = document.getElementById("normInvPosX");
+        var zi = document.getElementById("normInvPosZ");
+        var xv = parseFloat(xi && xi.value);
+        var zv = parseFloat(zi && zi.value);
+        if (!isFinite(xv) || !isFinite(zv)) {
+            alert("Enter valid X and Z numbers.");
+            return;
+        }
+        x = xv;
+        z = zv;
+    }
+    x = Math.max(-180, Math.min(180, x));
+    z = Math.max(-180, Math.min(180, z));
+    if (typeof placeNormAvatarOnGround === "function") {
+        placeNormAvatarOnGround(_normLocalMesh, x, z, 0);
+    } else {
+        _normLocalMesh.position.x = x;
+        _normLocalMesh.position.z = z;
+        _normLocalMesh.position.y = 0.02;
+    }
+    if (_normSession) {
+        _normSession.velY = 0;
+        _normSession.onGround = true;
+    }
+}
+
+function saveNormPartsToAzora() {
+    if (!_normSessionParts || !_normSessionParts.length) {
+        alert("No new parts to save. Add some parts first.");
+        return;
+    }
+    try {
+        var raw = localStorage.getItem("azoraAccount");
+        if (!raw) {
+            alert("Log in or create an account to save parts to your Azora avatar.");
+            return;
+        }
+        var acc = JSON.parse(raw);
+        if (!acc || acc.isGuest) {
+            alert("Guests can't save avatar parts. Create an account first.");
+            return;
+        }
+        if (!acc.avatar || typeof acc.avatar !== "object") acc.avatar = {};
+        var existing = Array.isArray(acc.avatar.extraParts) ? acc.avatar.extraParts : [];
+        // Append session parts (no hard limit — user said no limit)
+        acc.avatar.extraParts = existing.concat(_normSessionParts.map(function (p) {
+            return {
+                shape: p.shape,
+                color: p.color,
+                ox: p.ox, oy: p.oy, oz: p.oz,
+                rx: p.rx, ry: p.ry, rz: p.rz
+            };
+        }));
+        localStorage.setItem("azoraAccount", JSON.stringify(acc));
+        // Also mirror into accounts registry if present
+        try {
+            var all = JSON.parse(localStorage.getItem("azoraAccounts") || "{}");
+            var key = (acc.username || "").toLowerCase();
+            if (key && all[key]) {
+                all[key].avatar = acc.avatar;
+                localStorage.setItem("azoraAccounts", JSON.stringify(all));
+            }
+        } catch (eReg) {}
+        // Clear session list (parts stay on mesh for this game)
+        _normSessionParts = [];
+        updateNormInvBadges();
+        // Refresh main avatar preview if visible
+        try {
+            if (typeof refreshAvatarDisplay === "function") refreshAvatarDisplay();
+            else if (typeof buildAvatar === "function") buildAvatar();
+            else if (typeof updateAvatarPreview === "function") updateAvatarPreview();
+        } catch (eRef) {}
+        alert("Parts saved to your Azora avatar! They'll show on the main platform and in future games.");
+    } catch (e) {
+        console.warn("[Azora] save parts", e);
+        alert("Could not save parts. Try again.");
+    }
+}
+
+window.toggleNormInventory = toggleNormInventory;
+window.useNormInvClone = useNormInvClone;
+window.openNormInvAddPart = openNormInvAddPart;
+window.openNormInvPosition = openNormInvPosition;
+window.useNormInvAddPart = useNormInvAddPart;
+window.useNormInvPosition = useNormInvPosition;
+window.saveNormPartsToAzora = saveNormPartsToAzora;
+window.applySavedExtraPartsToMesh = applySavedExtraPartsToMesh;
+window.getSavedExtraParts = getSavedExtraParts;
 
 // ============================================================
 // CHARACTER RESET — "Are you sure?" then fall-apart collapse
@@ -20826,7 +21148,7 @@ window.getAvatarDataForUsername = getAvatarDataForUsername;
 // ============================================================
 // Azora app update checker (PWA / service worker)
 // ============================================================
-var AZORA_APP_VERSION = "66.0";
+var AZORA_APP_VERSION = "67.0";
 var _azoraSwReg = null;
 var _azoraUpdateWaiting = false;
 var _azoraUpdateApplying = false;
