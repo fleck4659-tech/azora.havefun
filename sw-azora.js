@@ -1,5 +1,5 @@
-/* Azora main app service worker — v65.9 check for updates */
-var CACHE = "azora-app-v65-9-update";
+/* Azora main app service worker — v66.0 check for updates */
+var CACHE = "azora-app-v66-0-update";
 var ASSETS = [
   "./", "./index.html", "./checkout.html", "./style.css", "./script.js",
   "./logo.png", "./logo.jpg", "./logo-192.png", "./logo-512.png", "./manifest-azora.json", "./Smile.png", "./female_smile.png", "./cartoonish_smile.png", "./crying.png", "./greedy_smile.png", "./mysterious.png", "./red_mysterious.png", "./robotic.png", "./sad_tears.png", "./simple_smile.png", "./tears_of_joy.png", "./wide_mouth.png",
@@ -37,7 +37,7 @@ self.addEventListener("fetch", function (e) {
   if (e.request.url.indexOf("creator.html") !== -1) return;
   var url = e.request.url;
   // Always try network first for app shell so updates are found
-  if (url.indexOf("script.js") !== -1 || url.indexOf("style.css") !== -1 || url.indexOf("sw-azora.js") !== -1 || url.indexOf("index.html") !== -1) {
+  if (url.indexOf("script.js") !== -1 || url.indexOf("style.css") !== -1 || url.indexOf("sw-azora.js") !== -1 || url.indexOf("index.html") !== -1 || url.indexOf("logo.jpg") !== -1 || url.indexOf("logo.png") !== -1) {
     e.respondWith(
       fetch(e.request, { cache: "no-store" }).then(function (res) {
         var copy = res.clone();

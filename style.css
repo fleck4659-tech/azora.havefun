@@ -5165,3 +5165,33 @@ img[src="./logo.png"],
     border-radius: 14px !important;
     object-fit: cover;
 }
+
+
+/* v66.0 — force logo always visible */
+.logo,
+.topbar .logo,
+.topbar-left .logo,
+img.logo {
+    width: 48px !important;
+    height: 48px !important;
+    min-width: 48px !important;
+    min-height: 48px !important;
+    max-width: 48px !important;
+    max-height: 48px !important;
+    border-radius: 12px !important;
+    object-fit: cover !important;
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    background: #1e60ff !important;
+}
+.azora-loading-logo,
+.popupLogo,
+.buy-coins-logo,
+.members-logo,
+.download-azora-logo,
+.norm-load-logo {
+    object-fit: cover !important;
+    border-radius: 14px !important;
+    display: inline-block !important;
+}
