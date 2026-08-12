@@ -3500,30 +3500,20 @@ function azoraGlossMaterial(color) {
 }
 
 /**
- * Soft rounded box geometry — still blocky, but corners are rounded
- * so limbs look less sharp. Uses ExtrudeGeometry + bevel.
+ * Slightly softened box — still mostly blocky (not pill-shaped).
+ * Tiny corner radius only so edges aren't razor-sharp.
  */
 function azoraRoundedBoxGeometry(w, h, d, radius) {
     w = Math.max(0.04, Number(w) || 0.3);
     h = Math.max(0.04, Number(h) || 0.3);
     d = Math.max(0.04, Number(d) || 0.3);
-    var maxR = Math.min(w, h, d) * 0.42;
-    var r = Math.min(Math.max(0.02, radius != null ? radius : Math.min(w, h, d) * 0.22), maxR);
-
-    // Prefer Capsule for long thin limbs when available (very soft ends)
-    try {
-        if (typeof THREE.CapsuleGeometry === "function" && h >= w * 1.6 && Math.abs(w - d) < 0.05) {
-            var rad = Math.min(w, d) * 0.5;
-            var cylLen = Math.max(0.02, h - rad * 2);
-            var cap = new THREE.CapsuleGeometry(rad, cylLen, 4, 10);
-            return cap;
-        }
-    } catch (eCap) {}
+    // Keep radius SMALL — user wants less round bodies
+    var maxR = Math.min(w, h, d) * 0.14;
+    var r = Math.min(Math.max(0.012, radius != null ? radius : Math.min(w, h, d) * 0.08), maxR);
 
     try {
         var shape = new THREE.Shape();
         var hw = w / 2, hh = h / 2;
-        // Rounded rectangle in XY, extruded along Z
         shape.moveTo(-hw + r, -hh);
         shape.lineTo(hw - r, -hh);
         shape.quadraticCurveTo(hw, -hh, hw, -hh + r);
@@ -3537,15 +3527,13 @@ function azoraRoundedBoxGeometry(w, h, d, radius) {
         var geo = new THREE.ExtrudeGeometry(shape, {
             depth: d,
             bevelEnabled: true,
-            bevelThickness: r * 0.55,
-            bevelSize: r * 0.45,
+            bevelThickness: r * 0.35,
+            bevelSize: r * 0.3,
             bevelOffset: 0,
-            bevelSegments: 2,
-            curveSegments: 4
+            bevelSegments: 1,
+            curveSegments: 2
         });
-        // Center the extrusion on Z (ExtrudeGeometry goes 0 → depth)
         geo.translate(0, 0, -d / 2);
-        // Soften any remaining sharp bevel normals
         try { geo.computeVertexNormals(); } catch (eN) {}
         return geo;
     } catch (eEx) {
@@ -3555,7 +3543,7 @@ function azoraRoundedBoxGeometry(w, h, d, radius) {
 window.azoraRoundedBoxGeometry = azoraRoundedBoxGeometry;
 
 function makeBox(w, h, d, color) {
-    var radius = Math.min(w, h, d) * 0.24;
+    var radius = Math.min(w, h, d) * 0.08;
     return new THREE.Mesh(
         azoraRoundedBoxGeometry(w, h, d, radius),
         azoraGlossMaterial(color)
@@ -3682,7 +3670,7 @@ function makeAvatarHair(hairColor, headY, headSize, styleId) {
     var mat = (typeof azoraGlossMaterial === 'function') ? azoraGlossMaterial(hairColor) : ((typeof azoraGlossMaterial==="function")?azoraGlossMaterial(hairColor ):new THREE.MeshLambertMaterial({color:hairColor }));
 
     function addPart(name, x, y, z, w, h, d) {
-        var radius = Math.min(w, h, d) * 0.22;
+        var radius = Math.min(w, h, d) * 0.08;
         var geo = (typeof azoraRoundedBoxGeometry === "function")
             ? azoraRoundedBoxGeometry(w, h, d, radius)
             : new THREE.BoxGeometry(w, h, d);
@@ -4482,6 +4470,276 @@ window.toggleAvatarStyleTest = toggleAvatarStyleTest;
 window.getAvatarRenderStyle = getAvatarRenderStyle;
 window.rebuildAvatarCustomizerMeshes = rebuildAvatarCustomizerMeshes;
 
+
+/** Closet theme presets — chaotic, nostalgic, anti-corporate */
+var AZORA_CLOSET_THEMES = {
+    chaos: {
+        id: "chaos",
+        name: "Chaos Closet",
+        wall: 0x6b3fa0,
+        wall2: 0x4c1d95,
+        floor: 0x3b2f2f,
+        shelf: 0x8b5a2b,
+        rod: 0xc0c0c0,
+        accent: 0xfbbf24,
+        note: "NO CORPORATE ENERGY ALLOWED"
+    },
+    midnight: {
+        id: "midnight",
+        name: "Midnight Snack Shelf",
+        wall: 0x1e1b4b,
+        wall2: 0x312e81,
+        floor: 0x0f172a,
+        shelf: 0x57534e,
+        rod: 0x94a3b8,
+        accent: 0x22d3ee,
+        note: "SNACKS > MEETINGS"
+    },
+    thrift: {
+        id: "thrift",
+        name: "Thrift Haul Stash",
+        wall: 0x854d0e,
+        wall2: 0xa16207,
+        floor: 0x44403c,
+        shelf: 0x78716c,
+        rod: 0xd6d3d1,
+        accent: 0xf97316,
+        note: "$3 JACKET SUPREMACY"
+    },
+    neon: {
+        id: "neon",
+        name: "Definitely Not Stolen Fits",
+        wall: 0x0f172a,
+        wall2: 0x164e63,
+        floor: 0x020617,
+        shelf: 0x334155,
+        rod: 0x67e8f9,
+        accent: 0xe879f9,
+        note: "BORROWED FOREVER"
+    },
+    scrap: {
+        id: "scrap",
+        name: "Cardboard HQ",
+        wall: 0xa8a29e,
+        wall2: 0x78716c,
+        floor: 0x57534e,
+        shelf: 0xd6d3d1,
+        rod: 0x292524,
+        accent: 0xef4444,
+        note: "HR CAMERA IS FAKE"
+    }
+};
+
+function getClosetThemeId() {
+    try {
+        return localStorage.getItem("azoraClosetTheme") || "chaos";
+    } catch (e) { return "chaos"; }
+}
+
+function setClosetThemeId(id) {
+    if (!AZORA_CLOSET_THEMES[id]) id = "chaos";
+    try { localStorage.setItem("azoraClosetTheme", id); } catch (e) {}
+    try { rebuildAvatarClosetBackground(); } catch (e2) {}
+    try {
+        document.querySelectorAll(".closet-theme-chip").forEach(function (el) {
+            el.classList.toggle("active", el.getAttribute("data-theme") === id);
+        });
+    } catch (e3) {}
+}
+window.setClosetThemeId = setClosetThemeId;
+window.getClosetThemeId = getClosetThemeId;
+
+function _closetMat(color, opts) {
+    opts = opts || {};
+    try {
+        if (typeof azoraGlossMaterial === "function" && !opts.flat) {
+            return azoraGlossMaterial(color);
+        }
+    } catch (e) {}
+    return new THREE.MeshLambertMaterial({ color: color, transparent: !!opts.transparent, opacity: opts.opacity != null ? opts.opacity : 1 });
+}
+
+function buildAvatarClosetBackground(themeId) {
+    if (typeof THREE === "undefined" || !scene) return null;
+    themeId = themeId || getClosetThemeId();
+    var theme = AZORA_CLOSET_THEMES[themeId] || AZORA_CLOSET_THEMES.chaos;
+
+    try {
+        var old = scene.getObjectByName("avatarCloset");
+        if (old) {
+            scene.remove(old);
+            old.traverse(function (o) {
+                try { if (o.geometry) o.geometry.dispose(); } catch (e) {}
+            });
+        }
+    } catch (eR) {}
+
+    var closet = new THREE.Group();
+    closet.name = "avatarCloset";
+    closet.userData.themeId = theme.id;
+
+    var back = new THREE.Mesh(new THREE.BoxGeometry(5.2, 4.4, 0.12), _closetMat(theme.wall));
+    back.position.set(0, 1.3, -1.85);
+    closet.add(back);
+    var sideL = new THREE.Mesh(new THREE.BoxGeometry(0.12, 4.4, 2.4), _closetMat(theme.wall2));
+    sideL.position.set(-2.55, 1.3, -0.7);
+    closet.add(sideL);
+    var sideR = new THREE.Mesh(new THREE.BoxGeometry(0.12, 4.4, 2.4), _closetMat(theme.wall2));
+    sideR.position.set(2.55, 1.3, -0.7);
+    closet.add(sideR);
+    var floor = new THREE.Mesh(new THREE.BoxGeometry(5.2, 0.1, 2.6), _closetMat(theme.floor));
+    floor.position.set(0, -0.95, -0.55);
+    closet.add(floor);
+    var ceil = new THREE.Mesh(new THREE.BoxGeometry(5.2, 0.1, 2.6), _closetMat(theme.wall2));
+    ceil.position.set(0, 3.45, -0.55);
+    closet.add(ceil);
+
+    function shelf(y) {
+        var s = new THREE.Mesh(new THREE.BoxGeometry(4.6, 0.08, 0.7), _closetMat(theme.shelf));
+        s.position.set(0, y, -1.45);
+        closet.add(s);
+    }
+    shelf(2.55);
+    shelf(0.15);
+    shelf(-0.55);
+
+    var rod = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 4.2, 8), _closetMat(theme.rod));
+    rod.rotation.z = Math.PI / 2;
+    rod.position.set(0, 2.05, -1.25);
+    closet.add(rod);
+
+    var shirtColors = [0xf472b6, 0x38bdf8, 0xfbbf24, 0x4ade80, 0xf87171, 0xa78bfa];
+    var hangers = new THREE.Group();
+    hangers.name = "closetHangers";
+    for (var i = 0; i < 6; i++) {
+        var hx = -1.8 + i * 0.72;
+        var hanger = new THREE.Group();
+        hanger.position.set(hx, 2.05, -1.25);
+        var hook = new THREE.Mesh(new THREE.TorusGeometry(0.08, 0.015, 6, 10, Math.PI), _closetMat(0x94a3b8));
+        hook.rotation.x = Math.PI / 2;
+        hook.position.y = 0.02;
+        hanger.add(hook);
+        var shirt = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.55, 0.08), _closetMat(shirtColors[i % shirtColors.length]));
+        shirt.position.y = -0.38;
+        hanger.add(shirt);
+        var sl = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.28, 0.06), _closetMat(shirtColors[i % shirtColors.length]));
+        sl.position.set(-0.26, -0.28, 0);
+        hanger.add(sl);
+        var sr = sl.clone();
+        sr.position.x = 0.26;
+        hanger.add(sr);
+        hanger.userData.phase = i * 0.7;
+        hangers.add(hanger);
+    }
+    closet.add(hangers);
+
+    var noteColors = [0xfef08a, 0xfda4af, 0xa5f3fc, 0xd8b4fe];
+    for (var n = 0; n < 4; n++) {
+        var note = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.45, 0.02), _closetMat(noteColors[n % noteColors.length]));
+        note.position.set(-1.7 + (n % 2) * 1.1, 2.9 - Math.floor(n / 2) * 0.55, -1.76);
+        note.rotation.z = (n % 2 === 0 ? -0.08 : 0.1);
+        closet.add(note);
+    }
+
+    var sockA = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.12, 0.35), _closetMat(0xef4444));
+    sockA.position.set(-1.2, -0.42, -1.35);
+    sockA.rotation.y = 0.4;
+    closet.add(sockA);
+    var sockB = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.12, 0.35), _closetMat(0x22d3ee));
+    sockB.position.set(-0.9, -0.42, -1.4);
+    sockB.rotation.y = -0.25;
+    closet.add(sockB);
+
+    var pizza = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.06, 0.7), _closetMat(0xfef3c7));
+    pizza.position.set(1.4, 0.22, -1.35);
+    closet.add(pizza);
+    var pizzaLid = new THREE.Mesh(new THREE.BoxGeometry(0.68, 0.02, 0.5), _closetMat(0xfde68a));
+    pizzaLid.position.set(1.4, 0.28, -1.45);
+    pizzaLid.rotation.x = -0.35;
+    closet.add(pizzaLid);
+
+    var duck = new THREE.Mesh(new THREE.SphereGeometry(0.12, 10, 8), _closetMat(0xfacc15));
+    duck.position.set(0.5, 0.28, -1.35);
+    closet.add(duck);
+    var duckHead = new THREE.Mesh(new THREE.SphereGeometry(0.08, 8, 6), _closetMat(0xfacc15));
+    duckHead.position.set(0.5, 0.4, -1.28);
+    closet.add(duckHead);
+
+    var camBody = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.22, 0.22), _closetMat(0x292524));
+    camBody.position.set(1.9, 3.05, -1.7);
+    closet.add(camBody);
+    var camLens = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 0.08, 10), _closetMat(0x64748b));
+    camLens.rotation.x = Math.PI / 2;
+    camLens.position.set(1.9, 3.05, -1.55);
+    closet.add(camLens);
+    var camBlink = new THREE.Mesh(new THREE.SphereGeometry(0.03, 6, 6), new THREE.MeshBasicMaterial({ color: 0xef4444 }));
+    camBlink.name = "closetCamBlink";
+    camBlink.position.set(1.78, 3.12, -1.55);
+    closet.add(camBlink);
+
+    var cord = new THREE.Mesh(new THREE.CylinderGeometry(0.01, 0.01, 0.55, 6), _closetMat(0x44403c));
+    cord.position.set(0, 3.15, -0.4);
+    cord.name = "closetCord";
+    closet.add(cord);
+    var bulb = new THREE.Mesh(new THREE.SphereGeometry(0.12, 10, 8), new THREE.MeshBasicMaterial({ color: 0xfef9c3 }));
+    bulb.position.set(0, 2.82, -0.4);
+    bulb.name = "closetBulb";
+    closet.add(bulb);
+    try {
+        var bulbLight = new THREE.PointLight(theme.accent, 0.55, 8, 2);
+        bulbLight.position.set(0, 2.85, -0.2);
+        closet.add(bulbLight);
+    } catch (eL) {}
+
+    var poster = new THREE.Mesh(new THREE.BoxGeometry(0.02, 1.1, 0.8), _closetMat(theme.accent));
+    poster.position.set(-2.45, 1.6, -0.5);
+    closet.add(poster);
+
+    for (var c = 0; c < 8; c++) {
+        var tile = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.02, 0.55), _closetMat(c % 2 === 0 ? 0x292524 : 0x44403c));
+        tile.position.set(-1.8 + (c % 4) * 0.9, -0.88, -0.2 - Math.floor(c / 4) * 0.7);
+        closet.add(tile);
+    }
+
+    scene.add(closet);
+    scene.userData.avatarCloset = closet;
+    try { scene.background = new THREE.Color(theme.wall2); } catch (eB) {}
+    return closet;
+}
+window.buildAvatarClosetBackground = buildAvatarClosetBackground;
+
+function rebuildAvatarClosetBackground() {
+    try { buildAvatarClosetBackground(getClosetThemeId()); } catch (e) {}
+}
+window.rebuildAvatarClosetBackground = rebuildAvatarClosetBackground;
+
+function updateAvatarClosetAnimation() {
+    try {
+        if (!scene) return;
+        var closet = scene.userData && scene.userData.avatarCloset;
+        if (!closet) return;
+        var t = (typeof performance !== "undefined" ? performance.now() : Date.now()) * 0.001;
+        var hangers = closet.getObjectByName("closetHangers");
+        if (hangers) {
+            hangers.children.forEach(function (h, i) {
+                var phase = (h.userData && h.userData.phase) || i;
+                h.rotation.z = Math.sin(t * 1.1 + phase) * 0.06;
+            });
+        }
+        var cord = closet.getObjectByName("closetCord");
+        var bulb = closet.getObjectByName("closetBulb");
+        var swing = Math.sin(t * 0.9) * 0.08;
+        if (cord) cord.rotation.z = swing;
+        if (bulb) {
+            bulb.position.x = Math.sin(swing) * 0.28;
+            bulb.position.z = -0.4 + Math.cos(swing) * 0.02;
+        }
+        var blink = closet.getObjectByName("closetCamBlink");
+        if (blink) blink.visible = (Math.floor(t * 2) % 3) !== 0;
+    } catch (e) {}
+}
+window.updateAvatarClosetAnimation = updateAvatarClosetAnimation;
+
 function init3DAvatar() {
     const container = document.getElementById("avatar3d-canvas");
     if (!container) return;
@@ -4501,11 +4759,22 @@ function init3DAvatar() {
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
     container.appendChild(renderer.domElement);
 
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.75);
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.55);
     scene.add(ambientLight);
-    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.65);
-    directionalLight.position.set(5, 10, 7);
+    const directionalLight = new THREE.DirectionalLight(0xfff7ed, 0.7);
+    directionalLight.position.set(3, 8, 6);
     scene.add(directionalLight);
+    const fillLight = new THREE.DirectionalLight(0xc4b5fd, 0.25);
+    fillLight.position.set(-4, 3, 2);
+    scene.add(fillLight);
+
+    try { buildAvatarClosetBackground(getClosetThemeId()); } catch (eCloset) {}
+    try {
+        var _ct = getClosetThemeId();
+        document.querySelectorAll(".closet-theme-chip").forEach(function (el) {
+            el.classList.toggle("active", el.getAttribute("data-theme") === _ct);
+        });
+    } catch (eChip) {}
 
     avatarCharacterGroup = new THREE.Group();
     const characterGroup = avatarCharacterGroup;
@@ -4537,6 +4806,9 @@ function init3DAvatar() {
         try {
             if (typeof updateAvatarIdleAnimation === "function") updateAvatarIdleAnimation();
         } catch (eAnim) {}
+        try {
+            if (typeof updateAvatarClosetAnimation === "function") updateAvatarClosetAnimation();
+        } catch (eClosetAnim) {}
         if (renderer && scene && camera) renderer.render(scene, camera);
     }
     animate();
@@ -11796,7 +12068,7 @@ function makeNormAvatar(colors) {
     g.name = "normAvatar";
 
     function box(w, h, d, color) {
-        var radius = Math.min(w, h, d) * 0.24;
+        var radius = Math.min(w, h, d) * 0.08;
         var geo = (typeof azoraRoundedBoxGeometry === "function")
             ? azoraRoundedBoxGeometry(w, h, d, radius)
             : new THREE.BoxGeometry(w, h, d);
@@ -11897,7 +12169,7 @@ function makeNormCatAvatar(colors) {
     g.userData.isCat = true;
 
     function box(w, h, d, color) {
-        var radius = Math.min(w, h, d) * 0.24;
+        var radius = Math.min(w, h, d) * 0.08;
         var geo = (typeof azoraRoundedBoxGeometry === "function")
             ? azoraRoundedBoxGeometry(w, h, d, radius)
             : new THREE.BoxGeometry(w, h, d);
@@ -21539,7 +21811,7 @@ function _profile3dMat(color) {
 }
 
 function _profile3dBox(w, h, d, color) {
-    var radius = Math.min(w, h, d) * 0.24;
+    var radius = Math.min(w, h, d) * 0.08;
     var geo = (typeof azoraRoundedBoxGeometry === "function")
         ? azoraRoundedBoxGeometry(w, h, d, radius)
         : new THREE.BoxGeometry(w, h, d);
@@ -21880,7 +22152,7 @@ window.getAvatarDataForUsername = getAvatarDataForUsername;
 // ============================================================
 // Azora app update checker (PWA / service worker)
 // ============================================================
-var AZORA_APP_VERSION = "69.2";
+var AZORA_APP_VERSION = "69.3";
 var _azoraSwReg = null;
 var _azoraUpdateWaiting = false;
 var _azoraUpdateApplying = false;
