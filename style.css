@@ -2271,32 +2271,27 @@ html[data-azora-shell="app"] #installAppBtn {
     will-change: transform, opacity;
 }
 .azora-loading-flash.burst {
-    animation: azoraPurpleFlashExpand 3.2s cubic-bezier(0.2, 0.7, 0.2, 1) forwards;
+    animation: azoraPurpleFlashExpand 6s linear forwards;
 }
 @keyframes azoraPurpleFlashExpand {
+    /* Instant full-screen expand */
     0% {
         opacity: 1;
-        transform: translate(-50%, -50%) scale(0.04);
+        transform: translate(-50%, -50%) scale(0.05);
     }
-    25% {
+    1% {
         opacity: 1;
-        transform: translate(-50%, -50%) scale(6);
+        transform: translate(-50%, -50%) scale(80);
     }
+    /* Hold solid purple for ~3s (1% → 50% of 6s) */
     50% {
         opacity: 1;
-        transform: translate(-50%, -50%) scale(22);
+        transform: translate(-50%, -50%) scale(80);
     }
-    72% {
-        opacity: 1;
-        transform: translate(-50%, -50%) scale(48);
-    }
-    88% {
-        opacity: 0.85;
-        transform: translate(-50%, -50%) scale(62);
-    }
+    /* Fade out over the next ~3s (50% → 100%) */
     100% {
         opacity: 0;
-        transform: translate(-50%, -50%) scale(72);
+        transform: translate(-50%, -50%) scale(80);
     }
 }
 

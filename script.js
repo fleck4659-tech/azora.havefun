@@ -7049,7 +7049,7 @@ function _azoraLoadingTick(now) {
         }
     } else if (st.phase === "flash") {
         // Wait for flash animation (~1.35s) then finish
-        if (now - st.flashStart > 3400) {
+        if (now - st.flashStart > 6200) {
             st.phase = "done";
             hideAzoraLoadingScreen();
             setTimeout(function () {
@@ -22339,7 +22339,7 @@ window.getAvatarDataForUsername = getAvatarDataForUsername;
 // ============================================================
 // Azora app update checker (PWA / service worker)
 // ============================================================
-var AZORA_APP_VERSION = "69.8";
+var AZORA_APP_VERSION = "69.9";
 var _azoraSwReg = null;
 var _azoraUpdateWaiting = false;
 var _azoraUpdateApplying = false;
