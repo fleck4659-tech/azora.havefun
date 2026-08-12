@@ -9,7 +9,7 @@
         }
     } catch (e) {}
 })();
-console.log("%c[Azora] script.js v68.4 soft blend bloom · limb tool · clones · bg shift","color:#7c3aed;font-weight:bold;font-size:14px");
+console.log("%c[Azora] script.js v69.0 Horizon Sphere","color:#7c3aed;font-weight:bold;font-size:14px");
 try { console.log("[Azora] Cloud ready:", typeof AZORA_CLOUD !== "undefined" && AZORA_CLOUD.isReady && AZORA_CLOUD.isReady()); } catch (e) {}
 // Configuration - Adjust these to change speed and phrases
 const fallSpeed = 2; // Higher number = faster fall
@@ -11421,6 +11421,15 @@ var NORM_GAMES = {
         world: "house",
         avatarMode: "human",
         roomPath: "/azoraNormRooms/azora-house/players"
+    },
+    "horizon-sphere": {
+        id: "horizon-sphere",
+        title: "Horizon Sphere",
+        owner: "Azora",
+        dimensions: "3D",
+        world: "horizon",
+        avatarMode: "human",
+        roomPath: "/azoraNormRooms/horizon-sphere/players"
     }
 };
 
@@ -12430,10 +12439,234 @@ function applyNormSky(scene, tex) {
 window.applyNormSky = applyNormSky;
 
 /**
- * Shared materials with UV repeat set on the base texture once.
- * Avoids cloning a unique texture per wall (big lag fix).
+ * Horizon Sphere world — matches the purple / cyan split image:
+ * diagonal color fields, bright white circular light on the seam,
+ * purple sphere with blue rim edges, lighter blue where the light is cut off.
  */
-var _normMatPool = {};
+function buildHorizonWorld(scene, tex) {
+    if (!scene || typeof THREE === "undefined") return;
+    _normWallColliders = [];
+    _normFloorColliders = [];
+
+    // Deep space-ish clear so our custom sky shows
+    scene.background = new THREE.Color(0x1a0a2e);
+    scene.fog = new THREE.FogExp2(0x2a1550, 0.008);
+
+    // Soft ambient + purple fill + cyan fill
+    scene.add(new THREE.AmbientLight(0xffffff, 0.28));
+    var purpleFill = new THREE.DirectionalLight(0xd946ef, 0.45);
+    purpleFill.position.set(-40, 30, -20);
+    scene.add(purpleFill);
+    var blueFill = new THREE.DirectionalLight(0x22d3ee, 0.5);
+    blueFill.position.set(40, 25, 20);
+    scene.add(blueFill);
+
+    // --- Split sky shells (purple side / blue side) ---
+    // Large back-facing hemisphere-ish planes as color fields
+    function colorField(color, rotY, rotZ) {
+        var geo = new THREE.SphereGeometry(380, 32, 24, 0, Math.PI);
+        var mat = new THREE.MeshBasicMaterial({
+            color: color,
+            side: THREE.BackSide,
+            fog: false,
+            depthWrite: false,
+            transparent: true,
+            opacity: 0.92
+        });
+        var mesh = new THREE.Mesh(geo, mat);
+        mesh.rotation.y = rotY || 0;
+        mesh.rotation.z = rotZ || 0;
+        mesh.renderOrder = -50;
+        scene.add(mesh);
+        return mesh;
+    }
+    // Purple field (one side of the diagonal)
+    colorField(0xc026d3, -0.4, 0.15);
+    // Blue field (other side)
+    colorField(0x0ea5e9, Math.PI - 0.4, -0.1);
+    // Lighter blue where light "cuts off" — a softer band near the seam
+    (function () {
+        var geo = new THREE.SphereGeometry(375, 24, 16, 0, Math.PI * 0.55);
+        var mat = new THREE.MeshBasicMaterial({
+            color: 0x67e8f9,
+            side: THREE.BackSide,
+            fog: false,
+            depthWrite: false,
+            transparent: true,
+            opacity: 0.35
+        });
+        var mesh = new THREE.Mesh(geo, mat);
+        mesh.rotation.y = Math.PI * 0.55;
+        mesh.rotation.z = -0.05;
+        mesh.renderOrder = -49;
+        scene.add(mesh);
+    })();
+
+    // --- Ground: split purple / blue reflective floor ---
+    var groundGeo = new THREE.CircleGeometry(90, 64);
+    var groundMat = new THREE.MeshStandardMaterial({
+        color: 0x1e1b4b,
+        metalness: 0.35,
+        roughness: 0.45,
+        emissive: 0x2e1065,
+        emissiveIntensity: 0.15
+    });
+    var ground = new THREE.Mesh(groundGeo, groundMat);
+    ground.rotation.x = -Math.PI / 2;
+    ground.position.y = 0;
+    ground.receiveShadow = true;
+    scene.add(ground);
+    // Soft floor ring glow
+    var ring = new THREE.Mesh(
+        new THREE.RingGeometry(28, 32, 64),
+        new THREE.MeshBasicMaterial({ color: 0x67e8f9, transparent: true, opacity: 0.22, side: THREE.DoubleSide })
+    );
+    ring.rotation.x = -Math.PI / 2;
+    ring.position.y = 0.03;
+    scene.add(ring);
+
+    // --- Diagonal seam glow line across the world ---
+    (function () {
+        var seam = new THREE.Mesh(
+            new THREE.PlaneGeometry(200, 2.5),
+            new THREE.MeshBasicMaterial({
+                color: 0xa5f3fc,
+                transparent: true,
+                opacity: 0.35,
+                side: THREE.DoubleSide,
+                depthWrite: false
+            })
+        );
+        seam.position.set(0, 12, 0);
+        seam.rotation.y = Math.PI / 4;
+        seam.rotation.z = Math.PI / 2.2;
+        scene.add(seam);
+    })();
+
+    // --- White circular light on the horizon seam ---
+    var horizonLight = new THREE.PointLight(0xffffff, 2.8, 120, 1.6);
+    horizonLight.position.set(18, 14, -18);
+    scene.add(horizonLight);
+    // Bright core
+    var core = new THREE.Mesh(
+        new THREE.SphereGeometry(1.15, 24, 20),
+        new THREE.MeshBasicMaterial({ color: 0xffffff })
+    );
+    core.position.copy(horizonLight.position);
+    scene.add(core);
+    // Soft glow shells (lighter blue at outer cut-off)
+    function glowShell(radius, color, opacity) {
+        var g = new THREE.Mesh(
+            new THREE.SphereGeometry(radius, 20, 16),
+            new THREE.MeshBasicMaterial({
+                color: color,
+                transparent: true,
+                opacity: opacity,
+                depthWrite: false,
+                side: THREE.FrontSide
+            })
+        );
+        g.position.copy(horizonLight.position);
+        scene.add(g);
+        return g;
+    }
+    glowShell(2.4, 0xffffff, 0.45);
+    glowShell(4.2, 0x67e8f9, 0.22); // lighter blue cut-off
+    glowShell(7.0, 0x22d3ee, 0.10);
+
+    // Secondary rim light (cyan) opposite the purple side
+    var rimLight = new THREE.PointLight(0x22d3ee, 1.4, 80, 2);
+    rimLight.position.set(-12, 10, 22);
+    scene.add(rimLight);
+
+    // --- THE purple sphere with blue edges ---
+    var sphereGroup = new THREE.Group();
+    sphereGroup.name = "horizonSphere";
+    sphereGroup.position.set(-6, 3.2, 4);
+
+    // Main purple body
+    var bodyMat = new THREE.MeshStandardMaterial({
+        color: 0xa855f7,
+        metalness: 0.55,
+        roughness: 0.28,
+        emissive: 0x6b21a8,
+        emissiveIntensity: 0.35
+    });
+    var body = new THREE.Mesh(new THREE.SphereGeometry(2.6, 48, 36), bodyMat);
+    sphereGroup.add(body);
+
+    // Blue rim shell slightly larger — edges read as blue
+    var rimMat = new THREE.MeshBasicMaterial({
+        color: 0x38bdf8,
+        transparent: true,
+        opacity: 0.28,
+        depthWrite: false,
+        side: THREE.BackSide
+    });
+    var rimShell = new THREE.Mesh(new THREE.SphereGeometry(2.72, 32, 24), rimMat);
+    sphereGroup.add(rimShell);
+
+    // Outer soft blue edge fade
+    var rimOuter = new THREE.Mesh(
+        new THREE.SphereGeometry(2.95, 24, 18),
+        new THREE.MeshBasicMaterial({
+            color: 0x67e8f9,
+            transparent: true,
+            opacity: 0.12,
+            depthWrite: false,
+            side: THREE.BackSide
+        })
+    );
+    sphereGroup.add(rimOuter);
+    scene.add(sphereGroup);
+
+    // Floating accent orbs (smaller purple/blue)
+    function accentOrb(x, y, z, r, col, em) {
+        var m = new THREE.Mesh(
+            new THREE.SphereGeometry(r, 20, 16),
+            new THREE.MeshStandardMaterial({
+                color: col,
+                metalness: 0.4,
+                roughness: 0.35,
+                emissive: em || col,
+                emissiveIntensity: 0.4
+            })
+        );
+        m.position.set(x, y, z);
+        scene.add(m);
+        return m;
+    }
+    accentOrb(10, 2.0, 8, 0.7, 0x7c3aed, 0x5b21b6);
+    accentOrb(-14, 1.6, -6, 0.55, 0x22d3ee, 0x0891b2);
+    accentOrb(4, 5.5, -10, 0.4, 0xe879f9, 0xa21caf);
+
+    // Subtle reflective platforms toward the light
+    for (var i = 0; i < 5; i++) {
+        var t = (i + 1) / 6;
+        var px = -6 + t * 22;
+        var pz = 4 + t * -20;
+        var pad = new THREE.Mesh(
+            new THREE.CylinderGeometry(1.6 - i * 0.15, 1.8 - i * 0.15, 0.18, 24),
+            new THREE.MeshStandardMaterial({
+                color: i % 2 === 0 ? 0x4c1d95 : 0x0e7490,
+                metalness: 0.6,
+                roughness: 0.3,
+                emissive: i % 2 === 0 ? 0x3b0764 : 0x155e75,
+                emissiveIntensity: 0.25
+            })
+        );
+        pad.position.set(px, 0.1, pz);
+        scene.add(pad);
+    }
+
+    // Gentle idle animation data for the main sphere
+    sphereGroup.userData.horizonAnim = true;
+    scene.userData.horizonSphere = sphereGroup;
+    scene.userData.horizonCore = core;
+}
+
+window.buildHorizonWorld = buildHorizonWorld;
+
 function normTexForSize(baseTex, sizeX, sizeZ, tileSize) {
     // Tile the texture in world-space: every `tileSize` units = 1 full square of the image.
     // That way grass/road/concrete look like repeated tiles, not one stretched photo.
@@ -13350,6 +13583,7 @@ function getNormSpawnForWorld(worldType) {
     worldType = worldType || ((_normSession && _normSession.world) || "city");
     if (worldType === "house") return { x: 0, z: 16 };
     if (worldType === "empire") return { x: 0, z: 8 };
+    if (worldType === "horizon") return { x: 0, z: 12 };
     return { x: 0, z: 0 };
 }
 
@@ -13484,6 +13718,12 @@ function buildNormWorldByType(scene, tex, worldType) {
     // Azora House — House.obj
     if (worldType === "house") {
         buildHouseWorld(scene, tex);
+        return;
+    }
+
+    // Horizon Sphere — purple / blue split world with glowing white light
+    if (worldType === "horizon") {
+        buildHorizonWorld(scene, tex);
         return;
     }
 
@@ -14170,8 +14410,11 @@ function startNormGameWorld(def) {
         if (_cityBuilt) return;
         _cityBuilt = true;
         try {
-            if (typeof applyNormSky === "function") applyNormSky(_normScene, tex || {});
             var worldType = (def && def.world) ? def.world : "city";
+            // Horizon world paints its own sky — skip default skybox
+            if (worldType !== "horizon" && typeof applyNormSky === "function") {
+                applyNormSky(_normScene, tex || {});
+            }
             if (worldType === "city") {
                 buildNormCity(_normScene, tex || {});
             } else if (typeof buildNormWorldByType === "function") {
@@ -14367,6 +14610,23 @@ function startNormGameWorld(def) {
                 });
             }
         } catch (eAnimL) {}
+
+        // Horizon Sphere — gentle float + pulse on the main orb / light core
+        try {
+            if (_normScene && _normScene.userData) {
+                var hs = _normScene.userData.horizonSphere;
+                var hc = _normScene.userData.horizonCore;
+                var tNow = (typeof performance !== "undefined" ? performance.now() : Date.now()) * 0.001;
+                if (hs) {
+                    hs.position.y = 3.2 + Math.sin(tNow * 0.7) * 0.25;
+                    hs.rotation.y = tNow * 0.15;
+                }
+                if (hc) {
+                    var pulse = 1 + Math.sin(tNow * 2.2) * 0.08;
+                    hc.scale.set(pulse, pulse, pulse);
+                }
+            }
+        } catch (eHor) {}
 
         // --- Camera LOCKED behind character, slightly above (orbit off) ---
         var target = _normLocalMesh.position;
@@ -16908,7 +17168,7 @@ function refreshFunTopbar() {
 
 function surpriseNormGame() {
     try {
-        var ids = ["azora-roleplay", "become-a-cat", "parkour-plains", "cozy-cafe", "sky-islands", "planet-empire", "azora-house"];
+        var ids = ["azora-roleplay", "become-a-cat", "parkour-plains", "cozy-cafe", "sky-islands", "planet-empire", "azora-house", "horizon-sphere"];
         var pick = ids[Math.floor(Math.random() * ids.length)];
         showAzoraToast("Rolling a surprise game…");
         setTimeout(function () {
@@ -21548,7 +21808,7 @@ window.getAvatarDataForUsername = getAvatarDataForUsername;
 // ============================================================
 // Azora app update checker (PWA / service worker)
 // ============================================================
-var AZORA_APP_VERSION = "68.4";
+var AZORA_APP_VERSION = "69.0";
 var _azoraSwReg = null;
 var _azoraUpdateWaiting = false;
 var _azoraUpdateApplying = false;
