@@ -6906,60 +6906,59 @@ function showAzoraLoadingScreen() {
     el.style.display = "flex";
     el.setAttribute("aria-hidden", "false");
 
-    var letter = document.getElementById("azoraLoadingA");
+    var letterBtn = document.getElementById("azoraLoadingA");
+    var letterSpan = document.getElementById("azoraLoadingALetter");
     var hint = document.getElementById("azoraLoadingHint");
     var flash = document.getElementById("azoraLoadingFlash");
     if (flash) {
         flash.classList.remove("burst");
-        flash.style.opacity = "0";
+        flash.style.opacity = "";
     }
     if (hint) {
         hint.textContent = "";
         hint.classList.remove("show");
     }
-    if (letter) {
-        letter.classList.remove("centered", "boost");
-        letter.style.transform = "translate3d(0,0,0) rotate(0deg) scale(0.85)";
-        letter.style.opacity = "1";
+    if (letterBtn) {
+        letterBtn.classList.remove("centered", "boost");
+        letterBtn.style.opacity = "1";
+        letterBtn.style.transform = "translate3d(0px,0px,0) scale(0.85)";
+    }
+    if (letterSpan) {
+        letterSpan.style.animationDuration = "0.28s"; // fast spin at start
     }
 
-    // Start near top-left corner, fly to center while spinning fast → slow
     var vw = window.innerWidth || 800;
     var vh = window.innerHeight || 600;
     var size = 96;
-    var startX = vw * 0.04;           // near left
-    var startY = vh * 0.06;           // near top
-    var endX = (vw - size) / 2;       // center
+    var startX = vw * 0.04;
+    var startY = vh * 0.06;
+    var endX = (vw - size) / 2;
     var endY = (vh - size) / 2;
 
     _azoraLoadingState = {
-        phase: "fly",          // fly | idle | boost | flash | done
+        phase: "fly",
         startTime: performance.now(),
-        flyDuration: 2800,     // approach center
-        angle: 0,
-        spinSpeed: 22,         // rad/s at start (fast)
-        minSpinSpeed: 1.2,     // slow near center
-        boostSpeed: 1.2,
-        boostAccel: 0,
-        x: startX,
-        y: startY,
+        flyDuration: 2800,
+        // spin duration in seconds (CSS animation-duration) — higher = slower
+        spinDur: 0.28,
+        minSpinDur: 1.8,
+        boostSpinDur: 0.28,
         startX: startX,
         startY: startY,
         endX: endX,
         endY: endY,
-        clicked: false
+        clicked: false,
+        _last: performance.now()
     };
 
-    if (!_azoraLoadingClickBound && letter) {
+    if (!_azoraLoadingClickBound && letterBtn) {
         _azoraLoadingClickBound = true;
-        letter.addEventListener("click", function (ev) {
+        var onTap = function (ev) {
             try { ev.preventDefault(); } catch (e) {}
             onAzoraLoadingAClick();
-        });
-        letter.addEventListener("touchend", function (ev) {
-            try { ev.preventDefault(); } catch (e) {}
-            onAzoraLoadingAClick();
-        }, { passive: false });
+        };
+        letterBtn.addEventListener("click", onTap);
+        letterBtn.addEventListener("touchend", onTap, { passive: false });
     }
 
     if (_azoraLoadingRaf) cancelAnimationFrame(_azoraLoadingRaf);
@@ -6970,21 +6969,16 @@ function onAzoraLoadingAClick() {
     var st = _azoraLoadingState;
     if (!st) return;
     if (st.phase !== "idle" && st.phase !== "fly") return;
-    // Allow click once it's mostly arrived (or already idle)
     if (st.phase === "fly") {
         var t = Math.min(1, (performance.now() - st.startTime) / st.flyDuration);
-        if (t < 0.7) return; // still flying in — ignore early taps
-        // Snap to center
-        st.x = st.endX;
-        st.y = st.endY;
+        if (t < 0.7) return;
         st.phase = "idle";
     }
     st.phase = "boost";
-    st.boostSpeed = Math.max(st.spinSpeed, st.minSpinSpeed);
-    st.boostAccel = 18; // rad/s² — ramps up fast
+    st.boostSpinDur = st.spinDur;
     st.clicked = true;
-    var letter = document.getElementById("azoraLoadingA");
-    if (letter) letter.classList.add("boost");
+    var letterBtn = document.getElementById("azoraLoadingA");
+    if (letterBtn) letterBtn.classList.add("boost");
     var hint = document.getElementById("azoraLoadingHint");
     if (hint) {
         hint.textContent = "Spinning up…";
@@ -6994,8 +6988,9 @@ function onAzoraLoadingAClick() {
 
 function _azoraLoadingTick(now) {
     var st = _azoraLoadingState;
-    var letter = document.getElementById("azoraLoadingA");
-    if (!st || !letter) return;
+    var letterBtn = document.getElementById("azoraLoadingA");
+    var letterSpan = document.getElementById("azoraLoadingALetter");
+    if (!st || !letterBtn) return;
 
     var dt = Math.min(0.05, (now - (st._last || now)) / 1000);
     st._last = now;
@@ -7003,17 +6998,20 @@ function _azoraLoadingTick(now) {
     if (st.phase === "fly") {
         var u = Math.min(1, (now - st.startTime) / st.flyDuration);
         var e = _azoraLoadingEaseOutCubic(u);
-        st.x = st.startX + (st.endX - st.startX) * e;
-        st.y = st.startY + (st.endY - st.startY) * e;
-        // Spin fast → slow as it approaches center
-        st.spinSpeed = 22 * (1 - e) + st.minSpinSpeed * e;
-        st.angle += st.spinSpeed * dt;
-        letter.style.transform =
-            "translate3d(" + st.x + "px," + st.y + "px,0) rotate(" + st.angle + "rad) scale(" + (0.85 + 0.15 * e) + ")";
+        var x = st.startX + (st.endX - st.startX) * e;
+        var y = st.startY + (st.endY - st.startY) * e;
+        var sc = 0.85 + 0.15 * e;
+        // Only update translate/scale on the outer button (GPU)
+        letterBtn.style.transform = "translate3d(" + x.toFixed(1) + "px," + y.toFixed(1) + "px,0) scale(" + sc.toFixed(3) + ")";
+        // Slow the CSS spin as we approach center (duration up = slower)
+        st.spinDur = 0.28 + (st.minSpinDur - 0.28) * e;
+        if (letterSpan) letterSpan.style.animationDuration = st.spinDur.toFixed(3) + "s";
         if (u >= 1) {
             st.phase = "idle";
-            st.spinSpeed = st.minSpinSpeed;
-            letter.classList.add("centered");
+            st.spinDur = st.minSpinDur;
+            letterBtn.classList.add("centered");
+            letterBtn.style.transform = "translate3d(" + st.endX.toFixed(1) + "px," + st.endY.toFixed(1) + "px,0) scale(1)";
+            if (letterSpan) letterSpan.style.animationDuration = st.minSpinDur.toFixed(3) + "s";
             var hint = document.getElementById("azoraLoadingHint");
             if (hint) {
                 hint.textContent = "Click the A!";
@@ -7021,19 +7019,15 @@ function _azoraLoadingTick(now) {
             }
         }
     } else if (st.phase === "idle") {
-        st.angle += st.minSpinSpeed * dt;
-        letter.style.transform =
-            "translate3d(" + st.endX + "px," + st.endY + "px,0) rotate(" + st.angle + "rad) scale(1)";
+        // Spin is pure CSS — nothing heavy to do
+        letterBtn.style.transform = "translate3d(" + st.endX.toFixed(1) + "px," + st.endY.toFixed(1) + "px,0) scale(1)";
     } else if (st.phase === "boost") {
-        st.boostAccel += 12 * dt; // acceleration climbs
-        st.boostSpeed += st.boostAccel * dt;
-        if (st.boostSpeed > 80) st.boostSpeed = 80;
-        st.angle += st.boostSpeed * dt;
-        var scale = 1 + Math.min(0.35, st.boostSpeed / 200);
-        letter.style.transform =
-            "translate3d(" + st.endX + "px," + st.endY + "px,0) rotate(" + st.angle + "rad) scale(" + scale + ")";
-        // Trigger purple flash once spinning is intense enough
-        if (st.boostSpeed >= 48) {
+        // Shorten animation-duration → spins faster (smooth, compositor-friendly)
+        st.boostSpinDur = Math.max(0.04, st.boostSpinDur - dt * 0.55);
+        if (letterSpan) letterSpan.style.animationDuration = st.boostSpinDur.toFixed(3) + "s";
+        var sc2 = 1 + Math.min(0.25, (0.28 - st.boostSpinDur) * 0.8);
+        letterBtn.style.transform = "translate3d(" + st.endX.toFixed(1) + "px," + st.endY.toFixed(1) + "px,0) scale(" + sc2.toFixed(3) + ")";
+        if (st.boostSpinDur <= 0.055) {
             st.phase = "flash";
             st.flashStart = now;
             var flash = document.getElementById("azoraLoadingFlash");
@@ -7044,11 +7038,9 @@ function _azoraLoadingTick(now) {
             }
             var hint2 = document.getElementById("azoraLoadingHint");
             if (hint2) hint2.classList.remove("show");
-            // Hide the A under the flash
-            letter.style.opacity = "0";
+            letterBtn.style.opacity = "0";
         }
     } else if (st.phase === "flash") {
-        // Wait for flash animation (~1.35s) then finish
         if (now - st.flashStart > 6200) {
             st.phase = "done";
             hideAzoraLoadingScreen();
@@ -7064,7 +7056,7 @@ function _azoraLoadingTick(now) {
                     }
                 } catch (eDaily2) {}
             }, 180);
-            return; // stop RAF
+            return;
         }
     }
 
@@ -7085,10 +7077,10 @@ function hideAzoraLoadingScreen() {
     el.setAttribute("aria-hidden", "true");
     var flash = document.getElementById("azoraLoadingFlash");
     if (flash) flash.classList.remove("burst");
-    var letter = document.getElementById("azoraLoadingA");
-    if (letter) {
-        letter.classList.remove("centered", "boost");
-        letter.style.opacity = "1";
+    var letterBtn = document.getElementById("azoraLoadingA");
+    if (letterBtn) {
+        letterBtn.classList.remove("centered", "boost");
+        letterBtn.style.opacity = "1";
     }
 }
 
@@ -7100,15 +7092,11 @@ function hideAzoraLoadingScreen() {
 function runAzoraLoadingThen(onDone) {
     _azoraLoadingOnDone = onDone;
     showAzoraLoadingScreen();
-    // Safety auto-click if the player never taps
     if (_azoraLoadingTimer) clearTimeout(_azoraLoadingTimer);
     _azoraLoadingTimer = setTimeout(function () {
         var st = _azoraLoadingState;
         if (st && (st.phase === "idle" || st.phase === "fly") && !st.clicked) {
-            // Force to idle center then boost
             st.phase = "idle";
-            st.x = st.endX;
-            st.y = st.endY;
             onAzoraLoadingAClick();
         }
     }, 5500);
@@ -12184,6 +12172,23 @@ function animateGameAvatar(mesh, isMoving, dt, opts) {
         obj.rotation.z = z || 0;
     }
 
+    // —— /c hi WAVE (short hi/bye arm wave) ——
+    var waveUntil = mesh.userData.waveUntil || 0;
+    if (waveUntil && performance.now() < waveUntil) {
+        var wT = 1 - Math.max(0, (waveUntil - performance.now()) / (mesh.userData.waveDur || 1100));
+        var flap = Math.sin(performance.now() * 0.018) * 0.55;
+        // Right arm up and waving
+        setRot(L.rightArm, -0.25 + flap * 0.15, 0.15, 1.15 + flap * 0.35);
+        setRot(L.leftArm, 0.05, 0, -0.05);
+        setRot(L.leftLeg, 0, 0, 0);
+        setRot(L.rightLeg, 0, 0, 0);
+        if (L.torso) { L.torso.rotation.y = Math.sin(performance.now() * 0.008) * 0.04; L.torso.rotation.x = 0; }
+        if (L.head) { L.head.rotation.y = 0.08; L.head.rotation.x = 0.02; }
+        return;
+    } else if (waveUntil) {
+        mesh.userData.waveUntil = 0;
+    }
+
     // —— JUMP / AIR ——
     // Arms raised UP and OUT (never across the torso). Legs kick back slightly.
     if (inAir) {
@@ -15295,6 +15300,30 @@ function sendNormChat() {
         }
     }
     var name = getNormDisplayName();
+    // Chat commands — /c hi → short wave animation
+    var cmd = msg.trim().toLowerCase();
+    if (cmd === "/c hi" || cmd === "/chi" || cmd === "/hi") {
+        input.value = "";
+        appendNormChat(name, "👋 (waved hello)");
+        try {
+            if (typeof playAvatarWave === "function" && _normLocalMesh) {
+                playAvatarWave(_normLocalMesh, 1100);
+            }
+        } catch (eW) {}
+        // Still broadcast so others see the wave emote text
+        try {
+            if (_normSession && typeof AZORA_CLOUD !== "undefined" && AZORA_CLOUD.isReady && AZORA_CLOUD.isReady()) {
+                var baseW = (AZORA_CLOUD.firebaseUrl || "").replace(/\/$/, "");
+                var chatUrlW = baseW + "/azoraNormRooms/" + _normSession.id + "/chat.json";
+                fetch(chatUrlW, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ user: name, text: "👋 (waved hello)", at: Date.now(), cmd: "wave" })
+                }).catch(function () {});
+            }
+        } catch (eWB) {}
+        return;
+    }
     appendNormChat(name, msg);
     input.value = "";
     // Broadcast chat when cloud ready
@@ -15597,6 +15626,16 @@ var _normClones = [];
 var _normSessionParts = []; // parts attached this session (not yet saved)
 var _normInvOpen = false;
 
+
+/** Trigger a short hi/bye wave on a game avatar mesh. */
+function playAvatarWave(mesh, ms) {
+    if (!mesh) return;
+    ms = (typeof ms === "number" && ms > 200) ? ms : 1100;
+    mesh.userData.waveDur = ms;
+    mesh.userData.waveUntil = performance.now() + ms;
+}
+window.playAvatarWave = playAvatarWave;
+
 function getSavedExtraParts() {
     try {
         var acc = JSON.parse(localStorage.getItem("azoraAccount") || "{}");
@@ -15627,6 +15666,7 @@ function makeExtraPartMesh(spec) {
     mesh.userData.partSpec = {
         shape: shape,
         color: col,
+        attach: spec.attach || "root",
         ox: spec.ox || 0,
         oy: spec.oy || 0,
         oz: spec.oz || 0,
@@ -15641,14 +15681,109 @@ function makeExtraPartMesh(spec) {
     return mesh;
 }
 
+/** Find a limb mesh/group on an avatar root by logical name. */
+function findAvatarAttachTarget(root, attach) {
+    if (!root || !attach || attach === "root") return root;
+    var name = String(attach);
+    var direct = root.getObjectByName(name);
+    if (direct) return direct;
+    // Pivot wrappers used in games
+    var pivotMap = {
+        leftArm: "leftArmPivot",
+        rightArm: "rightArmPivot",
+        leftLeg: "leftLegPivot",
+        rightLeg: "rightLegPivot"
+    };
+    if (pivotMap[name]) {
+        var piv = root.getObjectByName(pivotMap[name]);
+        if (piv) {
+            var child = piv.getObjectByName(name);
+            return child || piv;
+        }
+    }
+    return root;
+}
+
+/**
+ * Convert a root-space offset into the nearest limb's local space so parts
+ * stick to the head/arms/etc. the same in-game and on the main Azora avatar.
+ */
+function resolveExtraPartAttach(root, ox, oy, oz) {
+    ox = +ox || 0; oy = +oy || 0; oz = +oz || 0;
+    if (!root || typeof THREE === "undefined") {
+        return { attach: "root", ox: ox, oy: oy, oz: oz };
+    }
+    var names = ["head", "torso", "leftArm", "rightArm", "leftLeg", "rightLeg"];
+    var best = "root";
+    var bestD = Infinity;
+    var bestLocal = { ox: ox, oy: oy, oz: oz };
+    for (var i = 0; i < names.length; i++) {
+        var n = names[i];
+        var obj = findAvatarAttachTarget(root, n);
+        if (!obj || obj === root) continue;
+        // World positions → local offset relative to limb
+        try {
+            root.updateMatrixWorld(true);
+            var rootPos = new THREE.Vector3(ox, oy, oz);
+            // Interpret ox/oy/oz as local to root (how the editor stores them)
+            var worldWant = root.localToWorld(rootPos.clone());
+            var inv = new THREE.Matrix4().copy(obj.matrixWorld).invert();
+            var local = worldWant.applyMatrix4(inv);
+            var d = local.lengthSq();
+            // Prefer limbs when the point is reasonably close to their origin
+            if (d < bestD) {
+                bestD = d;
+                best = n;
+                bestLocal = { ox: local.x, oy: local.y, oz: local.z };
+            }
+        } catch (e) {}
+    }
+    // If nothing is reasonably close, keep root-space placement
+    if (best === "root" || bestD > 2.8) {
+        return { attach: "root", ox: ox, oy: oy, oz: oz };
+    }
+    return { attach: best, ox: bestLocal.ox, oy: bestLocal.oy, oz: bestLocal.oz };
+}
+
 function applySavedExtraPartsToMesh(root, partsArr) {
     if (!root || typeof THREE === "undefined") return;
     var list = Array.isArray(partsArr) ? partsArr : getSavedExtraParts();
     if (!list.length) return;
+    // Drop previous generated extras so re-builds don't stack
+    try {
+        var toRemove = [];
+        root.traverse(function (ch) {
+            if (ch && ch.userData && ch.userData.isExtraPart) toRemove.push(ch);
+        });
+        toRemove.forEach(function (ch) {
+            if (ch.parent) ch.parent.remove(ch);
+        });
+    } catch (eClr) {}
     list.forEach(function (spec) {
         try {
-            var m = makeExtraPartMesh(spec);
-            if (m) root.add(m);
+            var s = spec || {};
+            // Legacy parts (no attach): convert root coords → nearest limb once
+            if (!s.attach || s.attach === "root") {
+                var resolved = resolveExtraPartAttach(root, s.ox || 0, s.oy || 0, s.oz || 0);
+                s = {
+                    shape: s.shape,
+                    color: s.color,
+                    scale: s.scale,
+                    rx: s.rx || 0,
+                    ry: s.ry || 0,
+                    rz: s.rz || 0,
+                    attach: resolved.attach,
+                    ox: resolved.ox,
+                    oy: resolved.oy,
+                    oz: resolved.oz
+                };
+            }
+            var m = makeExtraPartMesh(s);
+            if (!m) return;
+            var parent = findAvatarAttachTarget(root, s.attach || "root");
+            parent.add(m);
+            m.position.set(s.ox || 0, s.oy || 0, s.oz || 0);
+            m.rotation.set(s.rx || 0, s.ry || 0, s.rz || 0);
         } catch (e) {}
     });
 }
@@ -16095,14 +16230,27 @@ function updateNormPartEditorTransform() {
     var ry = val("peRotY", 0) * Math.PI / 180;
     var rz = val("peRotZ", 0) * Math.PI / 180;
     var sc = val("peScale", 1);
+    // Keep the live preview in root space (sliders = where you put it on the avatar)
     _partEditor.part.position.set(ox, oy, oz);
     _partEditor.part.rotation.set(rx, ry, rz);
     _partEditor.part.scale.set(sc, sc, sc);
+    // Resolve nearest limb so saving sticks the same on Azora + in games
+    var attachInfo = { attach: "root", ox: ox, oy: oy, oz: oz };
+    try {
+        if (_partEditor.avatar && typeof resolveExtraPartAttach === "function") {
+            attachInfo = resolveExtraPartAttach(_partEditor.avatar, ox, oy, oz);
+        }
+    } catch (eA) {}
     _partEditor.part.userData.partSpec = {
         shape: _partEditor.shape,
         color: _partEditor.color,
-        ox: ox, oy: oy, oz: oz, rx: rx, ry: ry, rz: rz, scale: sc
+        attach: attachInfo.attach || "root",
+        // Store BOTH root placement (for editor) and limb-local (for apply)
+        rootOx: ox, rootOy: oy, rootOz: oz,
+        ox: attachInfo.ox, oy: attachInfo.oy, oz: attachInfo.oz,
+        rx: rx, ry: ry, rz: rz, scale: sc
     };
+    _partEditor.part.userData._editorRootPos = { ox: ox, oy: oy, oz: oz };
 }
 
 function resetNormPartEditorTransform() {
@@ -16118,12 +16266,21 @@ function applyNormPartEditor() {
     updateNormPartEditorTransform();
     var spec = (_partEditor.part && _partEditor.part.userData.partSpec) || {
         shape: _partEditor.shape, color: _partEditor.color,
+        attach: "root",
         ox: 0.55, oy: 1.7, oz: 0, rx: 0, ry: 0, rz: 0, scale: 1
     };
     var mesh = makeExtraPartMesh(spec);
     if (mesh) {
         if (spec.scale && spec.scale !== 1) mesh.scale.set(spec.scale, spec.scale, spec.scale);
-        _normLocalMesh.add(mesh);
+        // Parent to the limb you aimed at (head, arm, …) so placement matches Azora
+        var parent = _normLocalMesh;
+        try {
+            if (typeof findAvatarAttachTarget === "function") {
+                parent = findAvatarAttachTarget(_normLocalMesh, spec.attach || "root") || _normLocalMesh;
+            }
+        } catch (eP) {}
+        parent.add(mesh);
+        mesh.position.set(spec.ox || 0, spec.oy || 0, spec.oz || 0);
         _normSessionParts.push(spec);
         updateNormInvBadges();
     }
@@ -16177,9 +16334,11 @@ function saveNormPartsToAzora() {
             return {
                 shape: p.shape,
                 color: p.color,
+                attach: p.attach || "root",
                 ox: p.ox, oy: p.oy, oz: p.oz,
                 rx: p.rx, ry: p.ry, rz: p.rz,
-                scale: p.scale || 1
+                scale: p.scale || 1,
+                rootOx: p.rootOx, rootOy: p.rootOy, rootOz: p.rootOz
             };
         }));
         localStorage.setItem("azoraAccount", JSON.stringify(acc));
@@ -22339,7 +22498,7 @@ window.getAvatarDataForUsername = getAvatarDataForUsername;
 // ============================================================
 // Azora app update checker (PWA / service worker)
 // ============================================================
-var AZORA_APP_VERSION = "69.9";
+var AZORA_APP_VERSION = "70.1";
 var _azoraSwReg = null;
 var _azoraUpdateWaiting = false;
 var _azoraUpdateApplying = false;
