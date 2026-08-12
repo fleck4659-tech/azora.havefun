@@ -3500,40 +3500,52 @@ function azoraGlossMaterial(color) {
 }
 
 /**
- * Slightly softened box — still mostly blocky (not pill-shaped).
- * Tiny corner radius only so edges aren't razor-sharp.
+ * True rounded BOX: all 6 faces stay FLAT.
+ * Only edges + corners are rounded (not a sphere, capsule, or extruded blob).
  */
 function azoraRoundedBoxGeometry(w, h, d, radius) {
     w = Math.max(0.04, Number(w) || 0.3);
     h = Math.max(0.04, Number(h) || 0.3);
     d = Math.max(0.04, Number(d) || 0.3);
-    // Keep radius SMALL — user wants less round bodies
-    var maxR = Math.min(w, h, d) * 0.14;
-    var r = Math.min(Math.max(0.012, radius != null ? radius : Math.min(w, h, d) * 0.08), maxR);
+
+    // Keep radius modest so the middle of every face stays a flat plane
+    var maxR = Math.min(w, h, d) * 0.18;
+    var r = Math.min(Math.max(0.01, radius != null ? radius : Math.min(w, h, d) * 0.1), maxR);
 
     try {
-        var shape = new THREE.Shape();
-        var hw = w / 2, hh = h / 2;
-        shape.moveTo(-hw + r, -hh);
-        shape.lineTo(hw - r, -hh);
-        shape.quadraticCurveTo(hw, -hh, hw, -hh + r);
-        shape.lineTo(hw, hh - r);
-        shape.quadraticCurveTo(hw, hh, hw - r, hh);
-        shape.lineTo(-hw + r, hh);
-        shape.quadraticCurveTo(-hw, hh, -hw, hh - r);
-        shape.lineTo(-hw, -hh + r);
-        shape.quadraticCurveTo(-hw, -hh, -hw + r, -hh);
+        var seg = 4; // enough samples for smooth edge arcs
+        var geo = new THREE.BoxGeometry(w, h, d, seg, seg, seg);
+        var pos = geo.attributes.position;
+        var hw = w / 2, hh = h / 2, hd = d / 2;
+        // Inner box = the flat region of each face
+        var ix = Math.max(0.001, hw - r);
+        var iy = Math.max(0.001, hh - r);
+        var iz = Math.max(0.001, hd - r);
 
-        var geo = new THREE.ExtrudeGeometry(shape, {
-            depth: d,
-            bevelEnabled: true,
-            bevelThickness: r * 0.35,
-            bevelSize: r * 0.3,
-            bevelOffset: 0,
-            bevelSegments: 1,
-            curveSegments: 2
-        });
-        geo.translate(0, 0, -d / 2);
+        var v = new THREE.Vector3();
+        for (var i = 0; i < pos.count; i++) {
+            v.fromBufferAttribute(pos, i);
+            var x = v.x, y = v.y, z = v.z;
+
+            // Project onto the inner flat box
+            var cx = Math.max(-ix, Math.min(ix, x));
+            var cy = Math.max(-iy, Math.min(iy, y));
+            var cz = Math.max(-iz, Math.min(iz, z));
+
+            var dx = x - cx, dy = y - cy, dz = z - cz;
+            var len = Math.sqrt(dx * dx + dy * dy + dz * dz);
+
+            if (len > 1e-8) {
+                // Edge / corner: push outward by exactly radius r
+                // → flat faces, cylindrical edges, spherical corners
+                var s = r / len;
+                pos.setXYZ(i, cx + dx * s, cy + dy * s, cz + dz * s);
+            } else {
+                // Vertex already on the flat face interior — leave it
+                pos.setXYZ(i, x, y, z);
+            }
+        }
+        pos.needsUpdate = true;
         try { geo.computeVertexNormals(); } catch (eN) {}
         return geo;
     } catch (eEx) {
@@ -3543,7 +3555,7 @@ function azoraRoundedBoxGeometry(w, h, d, radius) {
 window.azoraRoundedBoxGeometry = azoraRoundedBoxGeometry;
 
 function makeBox(w, h, d, color) {
-    var radius = Math.min(w, h, d) * 0.08;
+    var radius = Math.min(w, h, d) * 0.1;
     return new THREE.Mesh(
         azoraRoundedBoxGeometry(w, h, d, radius),
         azoraGlossMaterial(color)
@@ -22152,7 +22164,7 @@ window.getAvatarDataForUsername = getAvatarDataForUsername;
 // ============================================================
 // Azora app update checker (PWA / service worker)
 // ============================================================
-var AZORA_APP_VERSION = "69.3";
+var AZORA_APP_VERSION = "69.4";
 var _azoraSwReg = null;
 var _azoraUpdateWaiting = false;
 var _azoraUpdateApplying = false;
