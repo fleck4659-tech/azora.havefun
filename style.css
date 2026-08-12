@@ -2181,7 +2181,7 @@ html[data-azora-shell="app"] #installAppBtn {
 }
 
 
-/* === Azora loading screen (after Welcome, and on app open) === */
+/* === Azora loading screen — spinning A from top-left → center === */
 .azora-loading-screen {
     position: fixed;
     inset: 0;
@@ -2189,55 +2189,90 @@ html[data-azora-shell="app"] #installAppBtn {
     display: none;
     align-items: center;
     justify-content: center;
-    background: linear-gradient(160deg, #0b1220 0%, #1e3a8a 45%, #1e60ff 100%);
+    background: linear-gradient(160deg, #0b1220 0%, #1e1b4b 40%, #4c1d95 100%);
     color: #fff;
     pointer-events: all;
+    overflow: hidden;
 }
 .azora-loading-screen.show {
     display: flex !important;
 }
-.azora-loading-inner {
+.azora-loading-stage {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+}
+.azora-loading-a {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 96px;
+    height: 96px;
+    margin: 0;
+    padding: 0;
+    border: none;
+    border-radius: 22px;
+    background: linear-gradient(145deg, #e879f9 0%, #a855f7 45%, #7c3aed 100%);
+    color: #fff;
+    font-size: 64px;
+    font-weight: 900;
+    font-family: system-ui, "Segoe UI", Arial, sans-serif;
+    line-height: 96px;
     text-align: center;
-    padding: 24px;
-    max-width: 320px;
+    cursor: pointer;
+    pointer-events: auto;
+    box-shadow:
+        0 10px 40px rgba(168, 85, 247, 0.55),
+        0 0 0 3px rgba(255, 255, 255, 0.35);
+    transform: translate3d(0, 0, 0) rotate(0deg) scale(0.85);
+    will-change: transform;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
 }
-.azora-loading-logo {
-    width: 88px;
-    height: 88px;
-    border-radius: 50%;
-    border: 3px solid rgba(255,255,255,0.85);
-    box-shadow: 0 8px 28px rgba(0,0,0,0.35);
-    margin-bottom: 18px;
-    animation: azoraLoadPulse 1.4s ease-in-out infinite;
+.azora-loading-a:active {
+    filter: brightness(1.12);
 }
-@keyframes azoraLoadPulse {
-    0%, 100% { transform: scale(1); opacity: 1; }
-    50% { transform: scale(1.06); opacity: 0.9; }
+.azora-loading-a.centered {
+    cursor: pointer;
 }
-.azora-loading-title {
-    font-size: 1.35rem;
-    font-weight: bold;
-    margin-bottom: 16px;
-    letter-spacing: 0.02em;
-}
-.azora-loading-bar {
-    height: 10px;
-    border-radius: 999px;
-    background: rgba(255,255,255,0.2);
-    overflow: hidden;
-    border: 1px solid rgba(255,255,255,0.35);
-}
-.azora-loading-bar-fill {
-    height: 100%;
-    width: 0%;
-    border-radius: 999px;
-    background: linear-gradient(90deg, #00ebd4, #ffffff, #60a5fa);
-    transition: width 0.25s linear;
+.azora-loading-a.boost {
+    box-shadow:
+        0 0 30px 8px rgba(232, 121, 249, 0.75),
+        0 0 60px 16px rgba(124, 58, 237, 0.45),
+        0 0 0 3px rgba(255, 255, 255, 0.5);
 }
 .azora-loading-hint {
-    margin-top: 14px;
-    font-size: 13px;
-    color: rgba(255,255,255,0.85);
+    position: absolute;
+    left: 50%;
+    bottom: 12%;
+    transform: translateX(-50%);
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.8);
+    text-align: center;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.4s ease;
+    white-space: nowrap;
+}
+.azora-loading-hint.show {
+    opacity: 1;
+}
+.azora-loading-flash {
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at center, #f5d0fe 0%, #c026d3 35%, #7c3aed 70%, #4c1d95 100%);
+    opacity: 0;
+    pointer-events: none;
+    z-index: 5;
+}
+.azora-loading-flash.burst {
+    animation: azoraPurpleFlash 1.35s ease-out forwards;
+}
+@keyframes azoraPurpleFlash {
+    0%   { opacity: 0; }
+    12%  { opacity: 1; }
+    45%  { opacity: 1; }
+    100% { opacity: 0; }
 }
 
 

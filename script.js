@@ -6887,10 +6887,17 @@ window.loadBrowserAppearance = loadBrowserAppearance;
 
 
 // ============================================================
-// LOADING SCREEN (~3s average after Welcome / on app open)
+// LOADING SCREEN — spinning "A" from top-left → center, click to boost → purple flash
 // ============================================================
 var _azoraLoadingTimer = null;
-var _azoraLoadingProgressTimer = null;
+var _azoraLoadingRaf = null;
+var _azoraLoadingState = null;
+var _azoraLoadingOnDone = null;
+var _azoraLoadingClickBound = false;
+
+function _azoraLoadingEaseOutCubic(t) {
+    return 1 - Math.pow(1 - t, 3);
+}
 
 function showAzoraLoadingScreen() {
     var el = document.getElementById("azoraLoadingScreen");
@@ -6898,69 +6905,219 @@ function showAzoraLoadingScreen() {
     el.classList.add("show");
     el.style.display = "flex";
     el.setAttribute("aria-hidden", "false");
-    var fill = document.getElementById("azoraLoadingBarFill");
-    if (fill) fill.style.width = "0%";
+
+    var letter = document.getElementById("azoraLoadingA");
     var hint = document.getElementById("azoraLoadingHint");
-    var hints = [
-        "Getting things ready…",
-        "Loading avatars…",
-        "Checking your session…",
-        "Almost there…"
-    ];
-    var hi = 0;
-    if (hint) hint.textContent = hints[0];
-    var progress = 0;
-    if (_azoraLoadingProgressTimer) clearInterval(_azoraLoadingProgressTimer);
-    _azoraLoadingProgressTimer = setInterval(function () {
-        progress += 8 + Math.random() * 12;
-        if (progress > 96) progress = 96;
-        if (fill) fill.style.width = progress + "%";
-        hi++;
-        if (hint && hi < hints.length) hint.textContent = hints[hi];
-    }, 700);
+    var flash = document.getElementById("azoraLoadingFlash");
+    if (flash) {
+        flash.classList.remove("burst");
+        flash.style.opacity = "0";
+    }
+    if (hint) {
+        hint.textContent = "";
+        hint.classList.remove("show");
+    }
+    if (letter) {
+        letter.classList.remove("centered", "boost");
+        letter.style.transform = "translate3d(0,0,0) rotate(0deg) scale(0.85)";
+        letter.style.opacity = "1";
+    }
+
+    // Start near top-left corner, fly to center while spinning fast → slow
+    var vw = window.innerWidth || 800;
+    var vh = window.innerHeight || 600;
+    var size = 96;
+    var startX = vw * 0.04;           // near left
+    var startY = vh * 0.06;           // near top
+    var endX = (vw - size) / 2;       // center
+    var endY = (vh - size) / 2;
+
+    _azoraLoadingState = {
+        phase: "fly",          // fly | idle | boost | flash | done
+        startTime: performance.now(),
+        flyDuration: 2800,     // approach center
+        angle: 0,
+        spinSpeed: 22,         // rad/s at start (fast)
+        minSpinSpeed: 1.2,     // slow near center
+        boostSpeed: 1.2,
+        boostAccel: 0,
+        x: startX,
+        y: startY,
+        startX: startX,
+        startY: startY,
+        endX: endX,
+        endY: endY,
+        clicked: false
+    };
+
+    if (!_azoraLoadingClickBound && letter) {
+        _azoraLoadingClickBound = true;
+        letter.addEventListener("click", function (ev) {
+            try { ev.preventDefault(); } catch (e) {}
+            onAzoraLoadingAClick();
+        });
+        letter.addEventListener("touchend", function (ev) {
+            try { ev.preventDefault(); } catch (e) {}
+            onAzoraLoadingAClick();
+        }, { passive: false });
+    }
+
+    if (_azoraLoadingRaf) cancelAnimationFrame(_azoraLoadingRaf);
+    _azoraLoadingRaf = requestAnimationFrame(_azoraLoadingTick);
+}
+
+function onAzoraLoadingAClick() {
+    var st = _azoraLoadingState;
+    if (!st) return;
+    if (st.phase !== "idle" && st.phase !== "fly") return;
+    // Allow click once it's mostly arrived (or already idle)
+    if (st.phase === "fly") {
+        var t = Math.min(1, (performance.now() - st.startTime) / st.flyDuration);
+        if (t < 0.7) return; // still flying in — ignore early taps
+        // Snap to center
+        st.x = st.endX;
+        st.y = st.endY;
+        st.phase = "idle";
+    }
+    st.phase = "boost";
+    st.boostSpeed = Math.max(st.spinSpeed, st.minSpinSpeed);
+    st.boostAccel = 18; // rad/s² — ramps up fast
+    st.clicked = true;
+    var letter = document.getElementById("azoraLoadingA");
+    if (letter) letter.classList.add("boost");
+    var hint = document.getElementById("azoraLoadingHint");
+    if (hint) {
+        hint.textContent = "Spinning up…";
+        hint.classList.add("show");
+    }
+}
+
+function _azoraLoadingTick(now) {
+    var st = _azoraLoadingState;
+    var letter = document.getElementById("azoraLoadingA");
+    if (!st || !letter) return;
+
+    var dt = Math.min(0.05, (now - (st._last || now)) / 1000);
+    st._last = now;
+
+    if (st.phase === "fly") {
+        var u = Math.min(1, (now - st.startTime) / st.flyDuration);
+        var e = _azoraLoadingEaseOutCubic(u);
+        st.x = st.startX + (st.endX - st.startX) * e;
+        st.y = st.startY + (st.endY - st.startY) * e;
+        // Spin fast → slow as it approaches center
+        st.spinSpeed = 22 * (1 - e) + st.minSpinSpeed * e;
+        st.angle += st.spinSpeed * dt;
+        letter.style.transform =
+            "translate3d(" + st.x + "px," + st.y + "px,0) rotate(" + st.angle + "rad) scale(" + (0.85 + 0.15 * e) + ")";
+        if (u >= 1) {
+            st.phase = "idle";
+            st.spinSpeed = st.minSpinSpeed;
+            letter.classList.add("centered");
+            var hint = document.getElementById("azoraLoadingHint");
+            if (hint) {
+                hint.textContent = "Click the A!";
+                hint.classList.add("show");
+            }
+        }
+    } else if (st.phase === "idle") {
+        st.angle += st.minSpinSpeed * dt;
+        letter.style.transform =
+            "translate3d(" + st.endX + "px," + st.endY + "px,0) rotate(" + st.angle + "rad) scale(1)";
+    } else if (st.phase === "boost") {
+        st.boostAccel += 12 * dt; // acceleration climbs
+        st.boostSpeed += st.boostAccel * dt;
+        if (st.boostSpeed > 80) st.boostSpeed = 80;
+        st.angle += st.boostSpeed * dt;
+        var scale = 1 + Math.min(0.35, st.boostSpeed / 200);
+        letter.style.transform =
+            "translate3d(" + st.endX + "px," + st.endY + "px,0) rotate(" + st.angle + "rad) scale(" + scale + ")";
+        // Trigger purple flash once spinning is intense enough
+        if (st.boostSpeed >= 48) {
+            st.phase = "flash";
+            st.flashStart = now;
+            var flash = document.getElementById("azoraLoadingFlash");
+            if (flash) {
+                flash.classList.remove("burst");
+                void flash.offsetWidth;
+                flash.classList.add("burst");
+            }
+            var hint2 = document.getElementById("azoraLoadingHint");
+            if (hint2) hint2.classList.remove("show");
+            // Hide the A under the flash
+            letter.style.opacity = "0";
+        }
+    } else if (st.phase === "flash") {
+        // Wait for flash animation (~1.35s) then finish
+        if (now - st.flashStart > 1300) {
+            st.phase = "done";
+            hideAzoraLoadingScreen();
+            setTimeout(function () {
+                try {
+                    if (typeof _azoraLoadingOnDone === "function") _azoraLoadingOnDone();
+                } catch (e) {}
+                _azoraLoadingOnDone = null;
+                try {
+                    var li = localStorage.getItem("loggedIn");
+                    if ((li === "true" || li === "guest") && typeof checkDailyLoginReward === "function") {
+                        setTimeout(function () { checkDailyLoginReward(); }, 600);
+                    }
+                } catch (eDaily2) {}
+            }, 180);
+            return; // stop RAF
+        }
+    }
+
+    if (st.phase !== "done") {
+        _azoraLoadingRaf = requestAnimationFrame(_azoraLoadingTick);
+    }
 }
 
 function hideAzoraLoadingScreen() {
     var el = document.getElementById("azoraLoadingScreen");
     if (!el) return;
-    var fill = document.getElementById("azoraLoadingBarFill");
-    if (fill) fill.style.width = "100%";
-    if (_azoraLoadingProgressTimer) {
-        clearInterval(_azoraLoadingProgressTimer);
-        _azoraLoadingProgressTimer = null;
+    if (_azoraLoadingRaf) {
+        cancelAnimationFrame(_azoraLoadingRaf);
+        _azoraLoadingRaf = null;
     }
-    setTimeout(function () {
-        el.classList.remove("show");
-        el.style.display = "none";
-        el.setAttribute("aria-hidden", "true");
-        if (fill) fill.style.width = "0%";
-    }, 200);
+    el.classList.remove("show");
+    el.style.display = "none";
+    el.setAttribute("aria-hidden", "true");
+    var flash = document.getElementById("azoraLoadingFlash");
+    if (flash) flash.classList.remove("burst");
+    var letter = document.getElementById("azoraLoadingA");
+    if (letter) {
+        letter.classList.remove("centered", "boost");
+        letter.style.opacity = "1";
+    }
 }
 
 /**
- * Show loading for ~3 seconds (2.5–3.5s range), then run onDone.
+ * Show the spinning-A loading screen, then run onDone after the purple flash.
+ * User can click the A (once centered) to trigger the finish sequence.
+ * Auto-boosts after a few seconds if they don't click.
  */
 function runAzoraLoadingThen(onDone) {
+    _azoraLoadingOnDone = onDone;
     showAzoraLoadingScreen();
-    var ms = 2500 + Math.floor(Math.random() * 1000); // ~3s average
+    // Safety auto-click if the player never taps
     if (_azoraLoadingTimer) clearTimeout(_azoraLoadingTimer);
     _azoraLoadingTimer = setTimeout(function () {
-        hideAzoraLoadingScreen();
-        setTimeout(function () {
-            try { if (typeof onDone === "function") onDone(); } catch (e) {}
-            try {
-                var li = localStorage.getItem("loggedIn");
-                if ((li === "true" || li === "guest") && typeof checkDailyLoginReward === "function") {
-                    setTimeout(function () { checkDailyLoginReward(); }, 600);
-                }
-            } catch (eDaily2) {}
-        }, 220);
-    }, ms);
+        var st = _azoraLoadingState;
+        if (st && (st.phase === "idle" || st.phase === "fly") && !st.clicked) {
+            // Force to idle center then boost
+            st.phase = "idle";
+            st.x = st.endX;
+            st.y = st.endY;
+            onAzoraLoadingAClick();
+        }
+    }, 5500);
 }
 
 window.showAzoraLoadingScreen = showAzoraLoadingScreen;
 window.hideAzoraLoadingScreen = hideAzoraLoadingScreen;
 window.runAzoraLoadingThen = runAzoraLoadingThen;
+window.onAzoraLoadingAClick = onAzoraLoadingAClick;
 
 // ============================================================
 // APP START
@@ -22182,7 +22339,7 @@ window.getAvatarDataForUsername = getAvatarDataForUsername;
 // ============================================================
 // Azora app update checker (PWA / service worker)
 // ============================================================
-var AZORA_APP_VERSION = "69.5";
+var AZORA_APP_VERSION = "69.6";
 var _azoraSwReg = null;
 var _azoraUpdateWaiting = false;
 var _azoraUpdateApplying = false;
