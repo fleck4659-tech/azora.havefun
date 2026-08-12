@@ -5583,3 +5583,137 @@ html[data-theme="dark"] .azora-bg-wave { background: transparent; }
     background: rgba(96, 165, 250, 0.35) !important;
     border-color: #93c5fd !important;
 }
+
+/* === Horizon Sphere — featured (biggest) game card === */
+.norm-game-featured {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: stretch !important;
+    gap: 20px !important;
+    flex-wrap: wrap !important;
+    padding: 0 !important;
+    overflow: hidden;
+    border: 3px solid rgba(255, 255, 255, 0.55) !important;
+    background: linear-gradient(135deg, rgba(192, 38, 211, 0.35), rgba(14, 165, 233, 0.35)) !important;
+    box-shadow: 0 12px 40px rgba(76, 29, 149, 0.35), 0 0 0 1px rgba(103, 232, 249, 0.25) !important;
+    min-height: 220px;
+}
+.norm-featured-thumb {
+    flex: 0 0 min(42%, 340px);
+    min-width: min(100%, 220px);
+    min-height: 200px;
+    position: relative;
+    overflow: hidden;
+}
+.horizon-thumb-art {
+    position: absolute;
+    inset: 0;
+    background: #0ea5e9;
+}
+.horizon-thumb-purple {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(145deg, #e879f9 0%, #c026d3 40%, #7c3aed 75%, #4c1d95 100%);
+    clip-path: polygon(0 0, 100% 0, 42% 100%, 0 100%);
+}
+.horizon-thumb-blue {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(215deg, #67e8f9 0%, #22d3ee 30%, #0ea5e9 60%, #0284c7 100%);
+    clip-path: polygon(100% 0, 100% 100%, 0 100%, 42% 100%);
+}
+.horizon-thumb-seam {
+    position: absolute;
+    top: -10%;
+    bottom: -10%;
+    left: 38%;
+    width: 6px;
+    background: linear-gradient(180deg, transparent, #e0f2fe, #fff, #67e8f9, transparent);
+    transform: rotate(28deg);
+    transform-origin: center;
+    box-shadow: 0 0 18px 4px rgba(103, 232, 249, 0.65);
+    opacity: 0.9;
+}
+.horizon-thumb-glow {
+    position: absolute;
+    width: 90px;
+    height: 90px;
+    left: 48%;
+    top: 48%;
+    transform: translate(-50%, -50%);
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(255,255,255,0.95) 0%, rgba(103,232,249,0.55) 35%, rgba(14,165,233,0.2) 60%, transparent 72%);
+    filter: blur(2px);
+    pointer-events: none;
+}
+.horizon-thumb-core {
+    position: absolute;
+    width: 22px;
+    height: 22px;
+    left: 48%;
+    top: 48%;
+    transform: translate(-50%, -50%);
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 0 20px 8px rgba(255,255,255,0.9), 0 0 40px 16px rgba(103,232,249,0.55);
+}
+.norm-featured-info {
+    flex: 1 1 220px;
+    padding: 18px 20px 18px 4px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 6px;
+    min-width: 0;
+}
+.norm-featured-info h4 {
+    margin: 0 !important;
+    font-size: 1.55rem !important;
+    color: #fff !important;
+    text-shadow: 0 2px 10px rgba(0,0,0,0.35);
+}
+.norm-featured-info p {
+    margin: 0 !important;
+    font-size: 0.95rem !important;
+    line-height: 1.5 !important;
+    color: rgba(255,255,255,0.95) !important;
+}
+.norm-featured-badge {
+    display: inline-block;
+    align-self: flex-start;
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    background: linear-gradient(90deg, #fbbf24, #f59e0b);
+    color: #1e1b4b;
+    margin-bottom: 2px;
+}
+.norm-featured-join {
+    align-self: flex-start !important;
+    margin-top: 8px !important;
+    padding: 14px 28px !important;
+    font-size: 1.05rem !important;
+    background: linear-gradient(180deg, #67e8f9, #0284c7) !important;
+    border: 2px solid rgba(255,255,255,0.65) !important;
+    box-shadow: 0 6px 20px rgba(14, 165, 233, 0.45) !important;
+}
+.norm-featured-join:hover {
+    filter: brightness(1.08);
+    transform: translateY(-2px);
+}
+@media (max-width: 640px) {
+    .norm-game-featured {
+        flex-direction: column !important;
+    }
+    .norm-featured-thumb {
+        flex: 0 0 auto;
+        width: 100%;
+        min-height: 160px;
+    }
+    .norm-featured-info {
+        padding: 14px 16px 18px !important;
+    }
+}
