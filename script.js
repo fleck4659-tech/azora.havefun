@@ -3475,8 +3475,8 @@ let scene, camera, renderer;
 let headMesh, torsoMesh, leftArmMesh, rightArmMesh, leftLegMesh, rightLegMesh;
 let faceGroup, neckMesh, avatarCharacterGroup;
 
-/** Materials locked for now — solid glossy look (textures not used on live games). */
-var AZORA_MATERIALS_LOCKED = true;
+/** Materials unlocked — textures + distinct materials used in games, closet, and Creator. */
+var AZORA_MATERIALS_LOCKED = false;
 
 function azoraGlossMaterial(color) {
     try {
@@ -4564,6 +4564,10 @@ window.getClosetThemeId = getClosetThemeId;
 function _closetMat(color, opts) {
     opts = opts || {};
     try {
+        // Prefer textured materials when unlocked
+        if (typeof AZORA_MATERIALS_LOCKED !== "undefined" && !AZORA_MATERIALS_LOCKED && opts.mapKind && typeof makeNormMatShared === "function") {
+            return makeNormMatShared(opts.mapKind, color, opts.sizeX || 4, opts.sizeZ || 4, opts.tile || 2);
+        }
         if (typeof azoraGlossMaterial === "function" && !opts.flat) {
             return azoraGlossMaterial(color);
         }
@@ -4590,7 +4594,7 @@ function buildAvatarClosetBackground(themeId) {
     closet.name = "avatarCloset";
     closet.userData.themeId = theme.id;
 
-    var back = new THREE.Mesh(new THREE.BoxGeometry(5.2, 4.4, 0.12), _closetMat(theme.wall));
+    var back = new THREE.Mesh(new THREE.BoxGeometry(5.2, 4.4, 0.12), _closetMat(theme.wall, { mapKind: "concrete", sizeX: 5.2, sizeZ: 4.4, tile: 2 }));
     back.position.set(0, 1.3, -1.85);
     closet.add(back);
     var sideL = new THREE.Mesh(new THREE.BoxGeometry(0.12, 4.4, 2.4), _closetMat(theme.wall2));
@@ -4599,7 +4603,7 @@ function buildAvatarClosetBackground(themeId) {
     var sideR = new THREE.Mesh(new THREE.BoxGeometry(0.12, 4.4, 2.4), _closetMat(theme.wall2));
     sideR.position.set(2.55, 1.3, -0.7);
     closet.add(sideR);
-    var floor = new THREE.Mesh(new THREE.BoxGeometry(5.2, 0.1, 2.6), _closetMat(theme.floor));
+    var floor = new THREE.Mesh(new THREE.BoxGeometry(5.2, 0.1, 2.6), _closetMat(theme.floor, { mapKind: "wood2", sizeX: 5.2, sizeZ: 2.6, tile: 1.5 }));
     floor.position.set(0, -0.95, -0.55);
     closet.add(floor);
     var ceil = new THREE.Mesh(new THREE.BoxGeometry(5.2, 0.1, 2.6), _closetMat(theme.wall2));
@@ -4607,7 +4611,7 @@ function buildAvatarClosetBackground(themeId) {
     closet.add(ceil);
 
     function shelf(y) {
-        var s = new THREE.Mesh(new THREE.BoxGeometry(4.6, 0.08, 0.7), _closetMat(theme.shelf));
+        var s = new THREE.Mesh(new THREE.BoxGeometry(4.6, 0.08, 0.7), _closetMat(theme.shelf, { mapKind: "wood1", sizeX: 4.6, sizeZ: 0.7, tile: 1.2 }));
         s.position.set(0, y, -1.45);
         closet.add(s);
     }
@@ -4715,6 +4719,20 @@ function buildAvatarClosetBackground(themeId) {
 
     scene.add(closet);
     scene.userData.avatarCloset = closet;
+    // Load textures then rebuild once so closet shelves get real materials
+    try {
+        if (typeof loadNormTextures === "function" && typeof AZORA_MATERIALS_LOCKED !== "undefined" && !AZORA_MATERIALS_LOCKED) {
+            if (!_normTexCache || !_normTexCache.wood1) {
+                loadNormTextures(function () {
+                    try {
+                        if (scene && scene.userData && scene.userData.avatarCloset) {
+                            buildAvatarClosetBackground(getClosetThemeId());
+                        }
+                    } catch (eR) {}
+                });
+            }
+        }
+    } catch (eT) {}
     try { scene.background = new THREE.Color(theme.wall2); } catch (eB) {}
     return closet;
 }
@@ -22164,7 +22182,7 @@ window.getAvatarDataForUsername = getAvatarDataForUsername;
 // ============================================================
 // Azora app update checker (PWA / service worker)
 // ============================================================
-var AZORA_APP_VERSION = "69.4";
+var AZORA_APP_VERSION = "69.5";
 var _azoraSwReg = null;
 var _azoraUpdateWaiting = false;
 var _azoraUpdateApplying = false;

@@ -139,6 +139,92 @@
         }
         .mat-chip:hover { background: rgba(30,96,255,0.45); }
         .mat-chip.active { border-color: #93c5fd; box-shadow: 0 0 0 2px rgba(147,197,253,0.5); }
+
+        .materials-popup-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 5000;
+            background: rgba(8, 10, 24, 0.72);
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+        }
+        .materials-popup-overlay.open { display: flex; }
+        .materials-popup {
+            width: min(420px, 96vw);
+            max-height: min(80vh, 560px);
+            overflow: auto;
+            background: linear-gradient(160deg, #1e1b4b, #0f172a);
+            border: 2px solid rgba(147, 197, 253, 0.45);
+            border-radius: 16px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.55);
+            padding: 16px 16px 18px;
+            color: #fff;
+        }
+        .materials-popup h3 {
+            margin: 0 0 10px;
+            font-size: 1.15rem;
+        }
+        .materials-popup-top {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+        .materials-popup-top label { font-size: 12px; opacity: 0.9; white-space: nowrap; }
+        .materials-dropdown {
+            flex: 1;
+            padding: 8px 10px;
+            border-radius: 10px;
+            border: 1.5px solid rgba(255,255,255,0.35);
+            background: rgba(0,0,0,0.35);
+            color: #fff;
+            font-size: 13px;
+        }
+        .materials-popup .mat-grid {
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+        .materials-popup .mat-chip {
+            padding: 12px 10px;
+            font-size: 13px;
+            text-align: center;
+            border-radius: 12px;
+            background: rgba(255,255,255,0.08);
+            border: 1.5px solid rgba(255,255,255,0.28);
+            color: #fff;
+            cursor: pointer;
+        }
+        .materials-popup .mat-chip .mat-swatch {
+            display: block;
+            height: 28px;
+            border-radius: 8px;
+            margin-bottom: 6px;
+            border: 1px solid rgba(255,255,255,0.25);
+        }
+        .materials-popup-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 14px;
+        }
+        .materials-popup-actions button {
+            flex: 1;
+            padding: 10px;
+            border-radius: 10px;
+            border: 1.5px solid rgba(255,255,255,0.35);
+            cursor: pointer;
+            font-weight: 700;
+        }
+        .materials-popup-apply {
+            background: linear-gradient(180deg, #60a5fa, #2563eb);
+            color: #fff;
+        }
+        .materials-popup-close {
+            background: rgba(255,255,255,0.1);
+            color: #fff;
+        }
+
         .shape-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 8px; }
         .shape-chip {
             padding: 8px 6px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.3);
@@ -275,6 +361,7 @@
         <div class="viewport-toolbar">
             <button type="button" onclick="unselectAll()">Unselect</button>
             <button type="button" onclick="addNewPart()">+ Part</button>
+            <button type="button" onclick="openMaterialsPopup()" style="background:#7c3aed;border-color:#c084fc;">Materials</button>
             <button type="button" onclick="resetCamera()">Reset Camera</button>
             <span class="hint-mini" id="selectHint">Grid snap ON · W/S camera · A/D turn</span>
         </div>
@@ -290,8 +377,27 @@
         </div>
         <div style="margin-top:14px;border-top:1px solid rgba(255,255,255,0.2);padding-top:10px;">
             <div class="panel-title" style="border:none;margin:0 0 6px;padding:0;"><span>Materials</span></div>
-            <p class="hint-mini">Materials have strong visual differences (shininess, color bias, roughness).</p>
+            <p class="hint-mini">Pick from the dropdown or the 2-wide grid. Also open the full Materials popup from the toolbar.</p>
+            <label class="hint-mini" for="materialsDropdownSide">Materials</label>
+            <select id="materialsDropdownSide" class="materials-dropdown" onchange="pickMaterial(this.value)" style="width:100%;margin:4px 0 8px;"></select>
             <div class="mat-grid" id="materialsGrid"></div>
+            <button type="button" onclick="openMaterialsPopup()" style="width:100%;margin-top:8px;padding:8px;border-radius:10px;border:1.5px solid rgba(192,132,252,0.6);background:#7c3aed;color:#fff;font-weight:700;cursor:pointer;">Open Materials</button>
+        </div>
+    </div>
+</div>
+
+
+<div class="materials-popup-overlay" id="materialsPopupOverlay" onclick="if(event.target===this)closeMaterialsPopup()">
+    <div class="materials-popup" role="dialog" aria-label="Materials">
+        <h3>Materials</h3>
+        <div class="materials-popup-top">
+            <label for="materialsDropdownPopup">Materials</label>
+            <select id="materialsDropdownPopup" class="materials-dropdown" onchange="pickMaterial(this.value)"></select>
+        </div>
+        <div class="mat-grid" id="materialsPopupGrid"></div>
+        <div class="materials-popup-actions">
+            <button type="button" class="materials-popup-apply" onclick="applySelectedMaterialFromPopup()">Apply</button>
+            <button type="button" class="materials-popup-close" onclick="closeMaterialsPopup()">Close</button>
         </div>
     </div>
 </div>
@@ -341,12 +447,16 @@ var MATERIALS = {
     Glass:    { name: "Glass",    color: 0x88d4ff, opacity: 0.35, shininess: 160, transparent: true, specular: 0xffffff },
     Plastic:  { name: "Plastic",  color: 0x1e60ff, opacity: 1,    shininess: 45,  transparent: false, specular: 0x666666 },
     Metal:    { name: "Metal",    color: 0xc0c8d0, opacity: 1,    shininess: 200, transparent: false, specular: 0xffffff },
-    Wood:     { name: "Wood",     color: 0x8b5a2b, opacity: 1,    shininess: 8,   transparent: false, specular: 0x222222 },
-    Concrete: { name: "Concrete", color: 0x7a7f86, opacity: 1,    shininess: 2,   transparent: false, specular: 0x111111 },
+    Wood:     { name: "Wood",     color: 0xffffff, opacity: 1,    shininess: 8,   transparent: false, specular: 0x222222, map: "wood1.jpg" },
+    Wood2:    { name: "Wood 2",   color: 0xffffff, opacity: 1,    shininess: 10,  transparent: false, specular: 0x333333, map: "wood2.jpg" },
+    Wood3:    { name: "Wood 3",   color: 0xffffff, opacity: 1,    shininess: 6,   transparent: false, specular: 0x222222, map: "wood3.jpg" },
+    Concrete: { name: "Concrete", color: 0xffffff, opacity: 1,    shininess: 2,   transparent: false, specular: 0x111111, map: "concrete.jpg" },
+    Road:     { name: "Road",     color: 0xffffff, opacity: 1,    shininess: 4,   transparent: false, specular: 0x222222, map: "road.jpg" },
     Neon:     { name: "Neon",     color: 0x00ffcc, opacity: 1,    shininess: 120, transparent: false, specular: 0x00ffcc, emissive: 0x00aa88 },
-    Marble:   { name: "Marble",   color: 0xf2f0ea, opacity: 1,    shininess: 90,  transparent: false, specular: 0xaaaaaa },
+    Marble:   { name: "Marble",   color: 0xffffff, opacity: 1,    shininess: 90,  transparent: false, specular: 0xaaaaaa, map: "marble.png" },
     Rubber:   { name: "Rubber",   color: 0x1a1a1a, opacity: 1,    shininess: 1,   transparent: false, specular: 0x050505 },
-    Grass:    { name: "Grass",    color: 0x3d9e3d, opacity: 1,    shininess: 5,   transparent: false, specular: 0x113311 },
+    Grass:    { name: "Grass",    color: 0xffffff, opacity: 1,    shininess: 5,   transparent: false, specular: 0x113311, map: "grass.jpg" },
+    Leaf:     { name: "Leaf",     color: 0xffffff, opacity: 1,    shininess: 15,  transparent: false, specular: 0x224422, map: "leaf.jpg" },
     Brick:    { name: "Brick",    color: 0xb33a2b, opacity: 1,    shininess: 12,  transparent: false, specular: 0x331111 }
 };
 
@@ -425,14 +535,36 @@ function getLoggedInUsername() {
     return "Player";
 }
 
+
+var _creatorTexCache = {};
+function loadCreatorTexture(file, onDone) {
+    if (!file || typeof THREE === "undefined") { if (onDone) onDone(null); return; }
+    if (_creatorTexCache[file]) { if (onDone) onDone(_creatorTexCache[file]); return; }
+    try {
+        var loader = new THREE.TextureLoader();
+        loader.load(file, function (tex) {
+            try {
+                tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+                tex.repeat.set(2, 2);
+                tex.needsUpdate = true;
+            } catch (e) {}
+            _creatorTexCache[file] = tex;
+            if (onDone) onDone(tex);
+        }, undefined, function () { if (onDone) onDone(null); });
+    } catch (e2) { if (onDone) onDone(null); }
+}
+
 function makeMaterial(matId, colorHex, opacityOverride) {
     var def = MATERIALS[matId] || MATERIALS.Plastic;
     var col = (colorHex != null) ? colorHex : def.color;
     var opacity = (opacityOverride != null) ? opacityOverride : (def.opacity != null ? def.opacity : 1);
     var transparent = opacity < 0.999 || !!def.transparent;
+    var mapFile = def.map || null;
+    var cachedMap = (mapFile && _creatorTexCache[mapFile]) ? _creatorTexCache[mapFile] : null;
     try {
         var mat = new THREE.MeshPhongMaterial({
             color: col,
+            map: cachedMap || null,
             transparent: transparent,
             opacity: opacity,
             shininess: def.shininess != null ? def.shininess : 40,
@@ -440,15 +572,20 @@ function makeMaterial(matId, colorHex, opacityOverride) {
             emissive: def.emissive || 0x000000,
             side: THREE.DoubleSide,
             depthWrite: opacity > 0.85,
-            flatShading: (matId === "Concrete" || matId === "Brick" || matId === "Wood" || matId === "Grass")
+            flatShading: (matId === "Brick" || matId === "Rubber")
         });
-        mat.userData = { azoraMaterial: matId };
+        mat.userData = { azoraMaterial: matId, mapFile: mapFile };
+        if (mapFile && !cachedMap) {
+            loadCreatorTexture(mapFile, function (tex) {
+                if (!tex || !mat) return;
+                try { mat.map = tex; mat.needsUpdate = true; } catch (e) {}
+            });
+        }
         return mat;
     } catch (e) {
         return new THREE.MeshLambertMaterial({ color: col, transparent: transparent, opacity: opacity, side: THREE.DoubleSide });
     }
 }
-
 /* ---- Shape geometry builders (unit-ish size ~2) ---- */
 function makeShapeGeometry(shapeId) {
     switch (shapeId) {
@@ -518,26 +655,84 @@ function pickShape(id) {
     arrowBubbleSpeak("Shape set to <strong>" + (SHAPES[id] ? SHAPES[id].name : id) + "</strong>. Click + Add Part.");
 }
 
-function initMaterialsGrid() {
-    var grid = document.getElementById("materialsGrid");
-    if (!grid) return;
+function materialSwatchColor(id) {
+    var m = MATERIALS[id];
+    if (!m) return "#888";
+    var c = m.color != null ? m.color : 0x888888;
+    return "#" + ("000000" + (c >>> 0).toString(16)).slice(-6);
+}
+
+function fillMaterialsDropdown(selectEl) {
+    if (!selectEl) return;
     var html = "";
     Object.keys(MATERIALS).forEach(function (id) {
         var m = MATERIALS[id];
-        html += '<button type="button" class="mat-chip' + (id === selectedMaterialId ? " active" : "") +
-            '" onclick="pickMaterial(\'' + id + '\')">' + m.name + "</button>";
+        html += '<option value="' + id + '"' + (id === selectedMaterialId ? " selected" : "") + ">" +
+            (m.name || id) + (m.map ? " · textured" : "") + "</option>";
     });
-    grid.innerHTML = html;
+    selectEl.innerHTML = html;
+    try { selectEl.value = selectedMaterialId; } catch (e) {}
 }
+
+function initMaterialsGrid() {
+    var grid = document.getElementById("materialsGrid");
+    if (grid) {
+        var html = "";
+        Object.keys(MATERIALS).forEach(function (id) {
+            var m = MATERIALS[id];
+            html += '<button type="button" class="mat-chip' + (id === selectedMaterialId ? " active" : "") +
+                '" onclick="pickMaterial(\'' + id + '\')">' + m.name + "</button>";
+        });
+        grid.innerHTML = html;
+    }
+    var popupGrid = document.getElementById("materialsPopupGrid");
+    if (popupGrid) {
+        var html2 = "";
+        Object.keys(MATERIALS).forEach(function (id) {
+            var m = MATERIALS[id];
+            html2 += '<button type="button" class="mat-chip' + (id === selectedMaterialId ? " active" : "") +
+                '" onclick="pickMaterial(\'' + id + '\')">' +
+                '<span class="mat-swatch" style="background:' + materialSwatchColor(id) + '"></span>' +
+                (m.name || id) +
+                (m.map ? '<div class="hint-mini" style="margin:2px 0 0;opacity:.75">texture</div>' : '') +
+                "</button>";
+        });
+        popupGrid.innerHTML = html2;
+    }
+    fillMaterialsDropdown(document.getElementById("materialsDropdownSide"));
+    fillMaterialsDropdown(document.getElementById("materialsDropdownPopup"));
+}
+
+function openMaterialsPopup() {
+    var ov = document.getElementById("materialsPopupOverlay");
+    if (!ov) return;
+    initMaterialsGrid();
+    ov.classList.add("open");
+    try { arrowBubbleSpeak("Materials library open — pick one, then <strong>Apply</strong>."); } catch (e) {}
+}
+function closeMaterialsPopup() {
+    var ov = document.getElementById("materialsPopupOverlay");
+    if (ov) ov.classList.remove("open");
+}
+function applySelectedMaterialFromPopup() {
+    pickMaterial(selectedMaterialId);
+    closeMaterialsPopup();
+}
+window.openMaterialsPopup = openMaterialsPopup;
+window.closeMaterialsPopup = closeMaterialsPopup;
+window.applySelectedMaterialFromPopup = applySelectedMaterialFromPopup;
+
 function pickMaterial(id) {
+    if (!MATERIALS[id]) return;
     selectedMaterialId = id;
     initMaterialsGrid();
+    try { if (MATERIALS[id].map) loadCreatorTexture(MATERIALS[id].map); } catch (e) {}
     if (selectedPartId === "baseplate") {
         applyMaterialToBaseplate(id);
     } else if (selectedPartId) {
         applyMaterialToPart(selectedPartId, id);
     } else {
-        arrowBubbleSpeak("Material set to <strong>" + id + "</strong>. Select a part or baseplate to apply.");
+        arrowBubbleSpeak("Material set to <strong>" + (MATERIALS[id].name || id) + "</strong>. Select a part or baseplate to apply.");
     }
 }
 
@@ -1441,7 +1636,14 @@ function handleBlockDrop(ev) {
     area.value += (area.value ? "\n" : "") + code;
 }
 
+function preloadCreatorMaterialMaps() {
+    Object.keys(MATERIALS).forEach(function (id) {
+        if (MATERIALS[id] && MATERIALS[id].map) loadCreatorTexture(MATERIALS[id].map);
+    });
+}
 function bootStudio() {
+    try { preloadCreatorMaterialMaps(); } catch (ePre) {}
+
     enforceComputerOnly();
     initMaterialsGrid();
     initShapeGrid();
