@@ -185,7 +185,7 @@ function applyDefaultBodyShapeToMeshes(gender, avatar, meshes) {
                 var flareMat = (typeof azoraGlossMaterial === "function")
                     ? azoraGlossMaterial((avatar && avatar.torso) || "#db2777")
                     : new THREE.MeshLambertMaterial({ color: (avatar && avatar.torso) || "#db2777" });
-                var flare = new THREE.Mesh(new THREE.BoxGeometry(0.82, 0.24, 0.46), flareMat);
+                var flare = new THREE.Mesh(((typeof azoraRoundedBoxGeometry==="function")?azoraRoundedBoxGeometry(0.82,0.24,0.46,0.06):new THREE.BoxGeometry(0.82,0.24,0.46)), flareMat);
                 flare.name = "girlHipFlare";
                 flare.position.set(0, -0.02, 0);
                 group.add(flare);
@@ -3499,9 +3499,65 @@ function azoraGlossMaterial(color) {
     }
 }
 
+/**
+ * Soft rounded box geometry — still blocky, but corners are rounded
+ * so limbs look less sharp. Uses ExtrudeGeometry + bevel.
+ */
+function azoraRoundedBoxGeometry(w, h, d, radius) {
+    w = Math.max(0.04, Number(w) || 0.3);
+    h = Math.max(0.04, Number(h) || 0.3);
+    d = Math.max(0.04, Number(d) || 0.3);
+    var maxR = Math.min(w, h, d) * 0.42;
+    var r = Math.min(Math.max(0.02, radius != null ? radius : Math.min(w, h, d) * 0.22), maxR);
+
+    // Prefer Capsule for long thin limbs when available (very soft ends)
+    try {
+        if (typeof THREE.CapsuleGeometry === "function" && h >= w * 1.6 && Math.abs(w - d) < 0.05) {
+            var rad = Math.min(w, d) * 0.5;
+            var cylLen = Math.max(0.02, h - rad * 2);
+            var cap = new THREE.CapsuleGeometry(rad, cylLen, 4, 10);
+            return cap;
+        }
+    } catch (eCap) {}
+
+    try {
+        var shape = new THREE.Shape();
+        var hw = w / 2, hh = h / 2;
+        // Rounded rectangle in XY, extruded along Z
+        shape.moveTo(-hw + r, -hh);
+        shape.lineTo(hw - r, -hh);
+        shape.quadraticCurveTo(hw, -hh, hw, -hh + r);
+        shape.lineTo(hw, hh - r);
+        shape.quadraticCurveTo(hw, hh, hw - r, hh);
+        shape.lineTo(-hw + r, hh);
+        shape.quadraticCurveTo(-hw, hh, -hw, hh - r);
+        shape.lineTo(-hw, -hh + r);
+        shape.quadraticCurveTo(-hw, -hh, -hw + r, -hh);
+
+        var geo = new THREE.ExtrudeGeometry(shape, {
+            depth: d,
+            bevelEnabled: true,
+            bevelThickness: r * 0.55,
+            bevelSize: r * 0.45,
+            bevelOffset: 0,
+            bevelSegments: 2,
+            curveSegments: 4
+        });
+        // Center the extrusion on Z (ExtrudeGeometry goes 0 → depth)
+        geo.translate(0, 0, -d / 2);
+        // Soften any remaining sharp bevel normals
+        try { geo.computeVertexNormals(); } catch (eN) {}
+        return geo;
+    } catch (eEx) {
+        return new THREE.BoxGeometry(w, h, d);
+    }
+}
+window.azoraRoundedBoxGeometry = azoraRoundedBoxGeometry;
+
 function makeBox(w, h, d, color) {
+    var radius = Math.min(w, h, d) * 0.24;
     return new THREE.Mesh(
-        new THREE.BoxGeometry(w, h, d),
+        azoraRoundedBoxGeometry(w, h, d, radius),
         azoraGlossMaterial(color)
     );
 }
@@ -3626,7 +3682,11 @@ function makeAvatarHair(hairColor, headY, headSize, styleId) {
     var mat = (typeof azoraGlossMaterial === 'function') ? azoraGlossMaterial(hairColor) : ((typeof azoraGlossMaterial==="function")?azoraGlossMaterial(hairColor ):new THREE.MeshLambertMaterial({color:hairColor }));
 
     function addPart(name, x, y, z, w, h, d) {
-        var m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat.clone());
+        var radius = Math.min(w, h, d) * 0.22;
+        var geo = (typeof azoraRoundedBoxGeometry === "function")
+            ? azoraRoundedBoxGeometry(w, h, d, radius)
+            : new THREE.BoxGeometry(w, h, d);
+        var m = new THREE.Mesh(geo, mat.clone());
         m.position.set(x, y, z);
         m.name = name;
         group.add(m);
@@ -11736,8 +11796,12 @@ function makeNormAvatar(colors) {
     g.name = "normAvatar";
 
     function box(w, h, d, color) {
+        var radius = Math.min(w, h, d) * 0.24;
+        var geo = (typeof azoraRoundedBoxGeometry === "function")
+            ? azoraRoundedBoxGeometry(w, h, d, radius)
+            : new THREE.BoxGeometry(w, h, d);
         return new THREE.Mesh(
-            new THREE.BoxGeometry(w, h, d),
+            geo,
             ((typeof azoraGlossMaterial==="function")?azoraGlossMaterial(color ):new THREE.MeshLambertMaterial({color:color }))
         );
     }
@@ -11792,7 +11856,7 @@ function makeNormAvatar(colors) {
             var flareMat = (typeof azoraGlossMaterial === "function")
                 ? azoraGlossMaterial(colors.torso || "#db2777")
                 : new THREE.MeshLambertMaterial({ color: colors.torso || "#db2777" });
-            var flare = new THREE.Mesh(new THREE.BoxGeometry(0.82, 0.24, 0.46), flareMat);
+            var flare = new THREE.Mesh(((typeof azoraRoundedBoxGeometry==="function")?azoraRoundedBoxGeometry(0.82,0.24,0.46,0.06):new THREE.BoxGeometry(0.82,0.24,0.46)), flareMat);
             flare.name = "girlHipFlare";
             flare.position.set(0, legH + 0.10, 0);
             g.add(flare);
@@ -11833,8 +11897,12 @@ function makeNormCatAvatar(colors) {
     g.userData.isCat = true;
 
     function box(w, h, d, color) {
+        var radius = Math.min(w, h, d) * 0.24;
+        var geo = (typeof azoraRoundedBoxGeometry === "function")
+            ? azoraRoundedBoxGeometry(w, h, d, radius)
+            : new THREE.BoxGeometry(w, h, d);
         return new THREE.Mesh(
-            new THREE.BoxGeometry(w, h, d),
+            geo,
             ((typeof azoraGlossMaterial==="function")?azoraGlossMaterial(color ):new THREE.MeshLambertMaterial({color:color }))
         );
     }
@@ -21471,7 +21539,11 @@ function _profile3dMat(color) {
 }
 
 function _profile3dBox(w, h, d, color) {
-    return new THREE.Mesh(new THREE.BoxGeometry(w, h, d), _profile3dMat(color));
+    var radius = Math.min(w, h, d) * 0.24;
+    var geo = (typeof azoraRoundedBoxGeometry === "function")
+        ? azoraRoundedBoxGeometry(w, h, d, radius)
+        : new THREE.BoxGeometry(w, h, d);
+    return new THREE.Mesh(geo, _profile3dMat(color));
 }
 
 function buildProfile3DCharacter(avatar) {
@@ -21808,7 +21880,7 @@ window.getAvatarDataForUsername = getAvatarDataForUsername;
 // ============================================================
 // Azora app update checker (PWA / service worker)
 // ============================================================
-var AZORA_APP_VERSION = "69.1";
+var AZORA_APP_VERSION = "69.2";
 var _azoraSwReg = null;
 var _azoraUpdateWaiting = false;
 var _azoraUpdateApplying = false;
