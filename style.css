@@ -2235,10 +2235,9 @@ html[data-azora-shell="app"] #installAppBtn {
     cursor: pointer;
 }
 .azora-loading-a.boost {
-    text-shadow:
-        0 0 12px rgba(255, 255, 255, 0.9),
-        0 0 28px rgba(232, 121, 249, 0.65),
-        0 0 48px rgba(168, 85, 247, 0.45);
+    /* Keep pure white — no purple glow on the letter */
+    text-shadow: 0 2px 14px rgba(0, 0, 0, 0.35);
+    color: #ffffff;
 }
 .azora-loading-hint {
     position: absolute;
@@ -2272,28 +2271,32 @@ html[data-azora-shell="app"] #installAppBtn {
     will-change: transform, opacity;
 }
 .azora-loading-flash.burst {
-    animation: azoraPurpleFlashExpand 1.25s cubic-bezier(0.15, 0.85, 0.25, 1) forwards;
+    animation: azoraPurpleFlashExpand 3.2s cubic-bezier(0.2, 0.7, 0.2, 1) forwards;
 }
 @keyframes azoraPurpleFlashExpand {
     0% {
         opacity: 1;
-        transform: translate(-50%, -50%) scale(0.05);
+        transform: translate(-50%, -50%) scale(0.04);
     }
-    18% {
+    25% {
         opacity: 1;
-        transform: translate(-50%, -50%) scale(8);
+        transform: translate(-50%, -50%) scale(6);
     }
-    40% {
+    50% {
         opacity: 1;
-        transform: translate(-50%, -50%) scale(28);
+        transform: translate(-50%, -50%) scale(22);
     }
-    70% {
+    72% {
         opacity: 1;
-        transform: translate(-50%, -50%) scale(55);
+        transform: translate(-50%, -50%) scale(48);
+    }
+    88% {
+        opacity: 0.85;
+        transform: translate(-50%, -50%) scale(62);
     }
     100% {
         opacity: 0;
-        transform: translate(-50%, -50%) scale(70);
+        transform: translate(-50%, -50%) scale(72);
     }
 }
 
