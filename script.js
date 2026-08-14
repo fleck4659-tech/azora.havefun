@@ -9,7 +9,7 @@
         }
     } catch (e) {}
 })();
-console.log("%c[Azora] script.js v69.0 Horizon Sphere","color:#7c3aed;font-weight:bold;font-size:14px");
+console.log("%c[Azora] script.js v70.2 Horizon Sphere","color:#7c3aed;font-weight:bold;font-size:14px");
 try { console.log("[Azora] Cloud ready:", typeof AZORA_CLOUD !== "undefined" && AZORA_CLOUD.isReady && AZORA_CLOUD.isReady()); } catch (e) {}
 // Configuration - Adjust these to change speed and phrases
 const fallSpeed = 2; // Higher number = faster fall
@@ -6923,8 +6923,12 @@ function showAzoraLoadingScreen() {
         letterBtn.style.opacity = "1";
         letterBtn.style.transform = "translate3d(0px,0px,0) scale(0.85)";
     }
+    // JS-driven spin (CSS animation-duration changes every frame were killing the spin)
     if (letterSpan) {
-        letterSpan.style.animationDuration = "0.28s"; // fast spin at start
+        letterSpan.style.animation = "none";
+        letterSpan.style.webkitAnimation = "none";
+        letterSpan.style.transform = "rotate(0deg)";
+        letterSpan.style.willChange = "transform";
     }
 
     var vw = window.innerWidth || 800;
@@ -6939,10 +6943,11 @@ function showAzoraLoadingScreen() {
         phase: "fly",
         startTime: performance.now(),
         flyDuration: 2800,
-        // spin duration in seconds (CSS animation-duration) — higher = slower
-        spinDur: 0.28,
-        minSpinDur: 1.8,
-        boostSpinDur: 0.28,
+        // seconds per full rotation — lower = faster spin
+        spinPeriod: 0.28,
+        minSpinPeriod: 1.6,
+        boostSpinPeriod: 0.28,
+        angle: 0,
         startX: startX,
         startY: startY,
         endX: endX,
@@ -6955,6 +6960,7 @@ function showAzoraLoadingScreen() {
         _azoraLoadingClickBound = true;
         var onTap = function (ev) {
             try { ev.preventDefault(); } catch (e) {}
+            try { ev.stopPropagation(); } catch (e2) {}
             onAzoraLoadingAClick();
         };
         letterBtn.addEventListener("click", onTap);
@@ -6971,11 +6977,14 @@ function onAzoraLoadingAClick() {
     if (st.phase !== "idle" && st.phase !== "fly") return;
     if (st.phase === "fly") {
         var t = Math.min(1, (performance.now() - st.startTime) / st.flyDuration);
-        if (t < 0.7) return;
+        // Allow click a bit earlier so it feels responsive
+        if (t < 0.45) return;
         st.phase = "idle";
+        var letterBtnEarly = document.getElementById("azoraLoadingA");
+        if (letterBtnEarly) letterBtnEarly.classList.add("centered");
     }
     st.phase = "boost";
-    st.boostSpinDur = st.spinDur;
+    st.boostSpinPeriod = Math.max(0.12, st.spinPeriod);
     st.clicked = true;
     var letterBtn = document.getElementById("azoraLoadingA");
     if (letterBtn) letterBtn.classList.add("boost");
@@ -6993,7 +7002,18 @@ function _azoraLoadingTick(now) {
     if (!st || !letterBtn) return;
 
     var dt = Math.min(0.05, (now - (st._last || now)) / 1000);
+    if (!(dt > 0)) dt = 0.016;
     st._last = now;
+
+    // Always spin the letter with JS so it never freezes
+    var period = st.spinPeriod || 0.5;
+    if (st.phase === "boost") period = Math.max(0.04, st.boostSpinPeriod || 0.1);
+    else if (st.phase === "idle") period = st.minSpinPeriod || 1.6;
+    st.angle = (st.angle || 0) + (360 / period) * dt;
+    if (st.angle > 360000) st.angle = st.angle % 360;
+    if (letterSpan) {
+        letterSpan.style.transform = "rotate(" + st.angle.toFixed(1) + "deg)";
+    }
 
     if (st.phase === "fly") {
         var u = Math.min(1, (now - st.startTime) / st.flyDuration);
@@ -7001,17 +7021,14 @@ function _azoraLoadingTick(now) {
         var x = st.startX + (st.endX - st.startX) * e;
         var y = st.startY + (st.endY - st.startY) * e;
         var sc = 0.85 + 0.15 * e;
-        // Only update translate/scale on the outer button (GPU)
         letterBtn.style.transform = "translate3d(" + x.toFixed(1) + "px," + y.toFixed(1) + "px,0) scale(" + sc.toFixed(3) + ")";
-        // Slow the CSS spin as we approach center (duration up = slower)
-        st.spinDur = 0.28 + (st.minSpinDur - 0.28) * e;
-        if (letterSpan) letterSpan.style.animationDuration = st.spinDur.toFixed(3) + "s";
+        // Slow spin as we approach center
+        st.spinPeriod = 0.28 + ((st.minSpinPeriod || 1.6) - 0.28) * e;
         if (u >= 1) {
             st.phase = "idle";
-            st.spinDur = st.minSpinDur;
+            st.spinPeriod = st.minSpinPeriod || 1.6;
             letterBtn.classList.add("centered");
             letterBtn.style.transform = "translate3d(" + st.endX.toFixed(1) + "px," + st.endY.toFixed(1) + "px,0) scale(1)";
-            if (letterSpan) letterSpan.style.animationDuration = st.minSpinDur.toFixed(3) + "s";
             var hint = document.getElementById("azoraLoadingHint");
             if (hint) {
                 hint.textContent = "Click the A!";
@@ -7019,15 +7036,13 @@ function _azoraLoadingTick(now) {
             }
         }
     } else if (st.phase === "idle") {
-        // Spin is pure CSS — nothing heavy to do
         letterBtn.style.transform = "translate3d(" + st.endX.toFixed(1) + "px," + st.endY.toFixed(1) + "px,0) scale(1)";
     } else if (st.phase === "boost") {
-        // Shorten animation-duration → spins faster (smooth, compositor-friendly)
-        st.boostSpinDur = Math.max(0.04, st.boostSpinDur - dt * 0.55);
-        if (letterSpan) letterSpan.style.animationDuration = st.boostSpinDur.toFixed(3) + "s";
-        var sc2 = 1 + Math.min(0.25, (0.28 - st.boostSpinDur) * 0.8);
+        // Accelerate spin (shorter period = faster)
+        st.boostSpinPeriod = Math.max(0.04, (st.boostSpinPeriod || 0.2) - dt * 0.55);
+        var sc2 = 1 + Math.min(0.28, (0.28 - st.boostSpinPeriod) * 0.9);
         letterBtn.style.transform = "translate3d(" + st.endX.toFixed(1) + "px," + st.endY.toFixed(1) + "px,0) scale(" + sc2.toFixed(3) + ")";
-        if (st.boostSpinDur <= 0.055) {
+        if (st.boostSpinPeriod <= 0.055) {
             st.phase = "flash";
             st.flashStart = now;
             var flash = document.getElementById("azoraLoadingFlash");
@@ -22498,7 +22513,7 @@ window.getAvatarDataForUsername = getAvatarDataForUsername;
 // ============================================================
 // Azora app update checker (PWA / service worker)
 // ============================================================
-var AZORA_APP_VERSION = "70.1";
+var AZORA_APP_VERSION = "70.2";
 var _azoraSwReg = null;
 var _azoraUpdateWaiting = false;
 var _azoraUpdateApplying = false;

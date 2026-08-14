@@ -2202,6 +2202,7 @@ html[data-azora-shell="app"] #installAppBtn {
     inset: 0;
     pointer-events: none;
 }
+/* Outer button only MOVES (GPU translate) — no paint-heavy shadows */
 .azora-loading-a {
     position: absolute;
     left: 0;
@@ -2213,31 +2214,49 @@ html[data-azora-shell="app"] #installAppBtn {
     border: none;
     border-radius: 0;
     background: transparent;
-    color: #ffffff;
-    font-size: 72px;
-    font-weight: 900;
-    font-family: system-ui, "Segoe UI", Arial, sans-serif;
-    line-height: 96px;
-    text-align: center;
     cursor: pointer;
     pointer-events: auto;
     box-shadow: none;
-    text-shadow: 0 2px 18px rgba(0, 0, 0, 0.45);
-    transform: translate3d(0, 0, 0) rotate(0deg) scale(0.85);
+    transform: translate3d(0, 0, 0) scale(0.85);
     will-change: transform;
     user-select: none;
     -webkit-tap-highlight-color: transparent;
+    contain: layout style;
+    backface-visibility: hidden;
 }
 .azora-loading-a:active {
-    filter: brightness(1.15);
+    filter: brightness(1.1);
 }
 .azora-loading-a.centered {
     cursor: pointer;
 }
-.azora-loading-a.boost {
-    /* Keep pure white — no purple glow on the letter */
-    text-shadow: 0 2px 14px rgba(0, 0, 0, 0.35);
+/* Inner letter spins via JS transform (reliable). CSS keyframes kept as fallback. */
+.azora-loading-a-letter {
+    display: block;
+    width: 100%;
+    height: 100%;
+    line-height: 96px;
+    text-align: center;
+    font-size: 72px;
+    font-weight: 900;
+    font-family: system-ui, "Segoe UI", Arial, sans-serif;
     color: #ffffff;
+    background: transparent;
+    text-shadow: 0 0 24px rgba(192, 38, 211, 0.55), 0 2px 8px rgba(0,0,0,0.35);
+    box-shadow: none;
+    transform-origin: 50% 50%;
+    will-change: transform;
+    backface-visibility: hidden;
+    /* JS sets animation:none and drives rotate() every frame */
+    animation: azoraLoadASpin linear infinite;
+    animation-duration: 0.45s;
+}
+.azora-loading-a.boost .azora-loading-a-letter {
+    text-shadow: 0 0 36px rgba(255,255,255,0.75), 0 0 18px rgba(192, 38, 211, 0.9);
+}
+@keyframes azoraLoadASpin {
+    from { transform: rotate(0deg); }
+    to   { transform: rotate(360deg); }
 }
 .azora-loading-hint {
     position: absolute;
@@ -2255,45 +2274,48 @@ html[data-azora-shell="app"] #installAppBtn {
 .azora-loading-hint.show {
     opacity: 1;
 }
+/* Full-screen purple cover — expands via clip-path so it ALWAYS covers */
 .azora-loading-flash {
     position: absolute;
-    left: 50%;
-    top: 50%;
-    width: 12px;
-    height: 12px;
-    margin: 0;
-    border-radius: 50%;
-    background: radial-gradient(circle, #fce7ff 0%, #e879f9 25%, #c026d3 55%, #7c3aed 78%, #4c1d95 100%);
-    opacity: 0;
-    pointer-events: none;
+    inset: 0;
     z-index: 5;
-    transform: translate(-50%, -50%) scale(0.05);
-    will-change: transform, opacity;
+    pointer-events: none;
+    opacity: 0;
+    background: #c026d3;
+    background: radial-gradient(circle at center, #f5d0fe 0%, #e879f9 18%, #c026d3 45%, #7c3aed 75%, #4c1d95 100%);
+    clip-path: circle(0% at 50% 50%);
+    -webkit-clip-path: circle(0% at 50% 50%);
+    will-change: clip-path, opacity;
 }
 .azora-loading-flash.burst {
     animation: azoraPurpleFlashExpand 6s linear forwards;
 }
 @keyframes azoraPurpleFlashExpand {
-    /* Instant full-screen expand */
+    /* Instant full cover */
     0% {
         opacity: 1;
-        transform: translate(-50%, -50%) scale(0.05);
+        clip-path: circle(0% at 50% 50%);
+        -webkit-clip-path: circle(0% at 50% 50%);
     }
-    1% {
+    1.5% {
         opacity: 1;
-        transform: translate(-50%, -50%) scale(80);
+        clip-path: circle(150% at 50% 50%);
+        -webkit-clip-path: circle(150% at 50% 50%);
     }
-    /* Hold solid purple for ~3s (1% → 50% of 6s) */
+    /* Hold ~3s */
     50% {
         opacity: 1;
-        transform: translate(-50%, -50%) scale(80);
+        clip-path: circle(150% at 50% 50%);
+        -webkit-clip-path: circle(150% at 50% 50%);
     }
-    /* Fade out over the next ~3s (50% → 100%) */
+    /* Fade ~3s */
     100% {
         opacity: 0;
-        transform: translate(-50%, -50%) scale(80);
+        clip-path: circle(150% at 50% 50%);
+        -webkit-clip-path: circle(150% at 50% 50%);
     }
 }
+
 
 
 /* === Update Azora banner (black / grey only — stands out from colorful UI) === */
