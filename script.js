@@ -1565,17 +1565,8 @@ function setProfileUserIdDisplay(userId, isGuest, joinedAt) {
         return;
     }
     el.style.display = "block";
-    var line = userId;
-    if (joinedAt && typeof joinedAt === "number" && joinedAt > 0) {
-        try {
-            var d = new Date(joinedAt);
-            var mm = d.getMonth() + 1;
-            var dd = d.getDate();
-            var yyyy = d.getFullYear();
-            line = userId + " · Joined " + mm + "/" + dd + "/" + yyyy;
-        } catch (e) {}
-    }
-    el.textContent = line;
+    // User ID only here — Joined date lives in #profileMetaFooter and never changes
+    el.textContent = userId;
     el.className = "profile-user-id " + (isGuest ? "guest" : "normal");
 }
 
@@ -9210,12 +9201,47 @@ function openUserProfile(username) {
     } catch (e) {}
     setProfileUserIdDisplay(pubId, false, joinedAt);
 
-    // Status (below username)
-    var st = getUserStatus(username);
-    var statusEl = document.getElementById("profileStatus");
-    if (statusEl) {
-        statusEl.innerHTML = '<span class="status-dot ' + st + '"></span> ' + statusLabel(st);
+    // Live Online / Offline from presence (below username)
+    function applyProfilePresenceUI(pres) {
+        var st = "offline";
+        var lastSeen = 0;
+        if (pres && pres.lastSeen) {
+            lastSeen = Number(pres.lastSeen) || 0;
+            if (lastSeen && (Date.now() - lastSeen) <= PRESENCE_ONLINE_WINDOW_MS) st = "online";
+        } else if (isUserCurrentlyOnlineSync(username)) {
+            st = "online";
+            lastSeen = getPresenceLastSeenSync(username);
+        }
+        // Viewing yourself while logged in → always Online
+        try {
+            var meSelf = typeof getMyUsername === "function" ? getMyUsername() : null;
+            if (meSelf && meSelf === username && localStorage.getItem("loggedIn") === "true") {
+                st = "online";
+                lastSeen = Date.now();
+            }
+        } catch (eS) {}
+        var statusEl = document.getElementById("profileStatus");
+        if (statusEl) {
+            statusEl.innerHTML = '<span class="status-dot ' + st + '"></span> ' + statusLabel(st);
+        }
+        var lastEl = document.getElementById("profileLastOnline");
+        if (lastEl) {
+            lastEl.textContent = st === "online" ? "Online now" : formatLastOnline(lastSeen);
+        }
+        var joinedEl = document.getElementById("profileJoinedDate");
+        if (joinedEl) {
+            joinedEl.textContent = formatJoinedDate(joinedAt);
+        }
     }
+    applyProfilePresenceUI(null);
+    try {
+        if (typeof fetchFirebasePresence === "function") {
+            fetchFirebasePresence(username, function (pres) {
+                if (openUserProfile._activeUsername !== username) return;
+                applyProfilePresenceUI(pres);
+            });
+        }
+    } catch (ePres) {}
 
     // Bio (below status)
     var profiles = getProfileData();
@@ -9922,13 +9948,42 @@ function renderFriendsList() {
         item.className = "friend-item" + (currentChatFriend === friend ? " active" : "");
         var last = getFriendLastTalked(friend);
         var unread = getUnreadCountForFriend(friend);
+        var online = false;
+        try { online = isUserCurrentlyOnlineSync(friend); } catch (eO) {}
         item.innerHTML =
-            '<div class="friend-avatar">' + String(friend)[0].toUpperCase() + '</div>' +
-            '<div class="friend-meta"><span>' + escapeHtml(friend) + '</span><small>' +
+            '<div class="friend-avatar">' + String(friend)[0].toUpperCase() +
+            '<span class="friend-online-dot ' + (online ? "on" : "off") + '" title="' + (online ? "Online" : "Offline") + '"></span></div>' +
+            '<div class="friend-meta"><span>' + escapeHtml(friend) +
+            (online ? ' <em class="friend-online-tag">Online</em>' : '') +
+            '</span><small>' +
             escapeHtml(formatLastTalked(last)) + '</small></div>' +
             (unread > 0 ? '<span class="unread-badge">' + (unread > 99 ? "99+" : unread) + '</span>' : '');
         item.onclick = function () { selectChatFriend(friend); };
         list.appendChild(item);
+        // Refresh this friend's presence from cloud (almost live)
+        try {
+            if (typeof fetchFirebasePresence === "function") {
+                fetchFirebasePresence(friend, function (pres) {
+                    if (!pres) return;
+                    var lastSeen = Number(pres.lastSeen) || 0;
+                    var isOn = lastSeen && (Date.now() - lastSeen) <= PRESENCE_ONLINE_WINDOW_MS;
+                    var dot = item.querySelector(".friend-online-dot");
+                    var tag = item.querySelector(".friend-online-tag");
+                    if (dot) {
+                        dot.className = "friend-online-dot " + (isOn ? "on" : "off");
+                        dot.title = isOn ? "Online" : "Offline";
+                    }
+                    var nameSpan = item.querySelector(".friend-meta span");
+                    if (nameSpan) {
+                        if (isOn && !tag) {
+                            nameSpan.insertAdjacentHTML("beforeend", ' <em class="friend-online-tag">Online</em>');
+                        } else if (!isOn && tag) {
+                            tag.remove();
+                        }
+                    }
+                });
+            }
+        } catch (eF) {}
     });
 }
 
@@ -10792,21 +10847,17 @@ window.sendChatMessage = sendChatMessage;
 
 
 // ============================================================
-// Azora 3.9 — Profile Bio, Status, Notifications
+// Azora — Profile Bio + Live Online / Offline presence
+// (Manual AFK / Busy / Building / Playing statuses removed)
 // ============================================================
 
 var STATUS_LABELS = {
     online: "Online",
-    offline: "Offline",
-    afk: "AFK",
-    building: "Building",
-    playing: "Playing",
-    busy: "Busy"
+    offline: "Offline"
 };
 
-var lastActivity = Date.now();
-var manualStatusOverride = null; // if set, auto-idle won't override until user goes idle again after choosing online
-var statusIdleTimer = null;
+/** How long after last heartbeat a player still counts as online */
+var PRESENCE_ONLINE_WINDOW_MS = 90000; // 90 seconds
 
 function statusLabel(key) {
     return STATUS_LABELS[key] || "Offline";
@@ -10830,16 +10881,92 @@ function saveStatusData(data) {
     localStorage.setItem("azoraStatuses", JSON.stringify(data));
 }
 
+/** Read lastSeen from local presence cache (sync). */
+function getPresenceLastSeenSync(username) {
+    if (!username) return 0;
+    try {
+        var safe = presenceSafeUser(username);
+        var all = JSON.parse(localStorage.getItem("azoraPresenceCache") || "{}");
+        var row = all[safe];
+        if (row && row.lastSeen) return Number(row.lastSeen) || 0;
+    } catch (e) {}
+    // Self is always "online" while this tab is logged in
+    try {
+        var me = typeof getMyUsername === "function" ? getMyUsername() : null;
+        if (me && me === username && localStorage.getItem("loggedIn") === "true") {
+            return Date.now();
+        }
+    } catch (e2) {}
+    return 0;
+}
+
+function isUserCurrentlyOnlineSync(username) {
+    var last = getPresenceLastSeenSync(username);
+    if (!last) return false;
+    return (Date.now() - last) <= PRESENCE_ONLINE_WINDOW_MS;
+}
+
 function getUserStatus(username) {
-    var data = getStatusData();
-    if (data[username] && data[username].status) return data[username].status;
+    // Live presence only — no manual AFK/Busy/etc.
+    if (isUserCurrentlyOnlineSync(username)) return "online";
     return "offline";
 }
 
 function setUserStatus(username, status) {
+    // Kept for compatibility; presence heartbeat is the real source of truth
     var data = getStatusData();
-    data[username] = { status: status, updatedAt: Date.now() };
+    data[username] = { status: status === "online" ? "online" : "offline", updatedAt: Date.now() };
     saveStatusData(data);
+}
+
+function formatLastOnline(ts) {
+    if (!ts || typeof ts !== "number" || ts <= 0) return "Unknown";
+    var now = Date.now();
+    var diff = now - ts;
+    if (diff < 0) diff = 0;
+    if (diff <= PRESENCE_ONLINE_WINDOW_MS) return "Online now";
+    if (diff < 60 * 1000) return "Just now";
+    if (diff < 60 * 60 * 1000) {
+        var mins = Math.floor(diff / 60000);
+        return mins + (mins === 1 ? " minute ago" : " minutes ago");
+    }
+    if (diff < 24 * 60 * 60 * 1000) {
+        var hrs = Math.floor(diff / 3600000);
+        return hrs + (hrs === 1 ? " hour ago" : " hours ago");
+    }
+    try {
+        var d = new Date(ts);
+        var mm = d.getMonth() + 1;
+        var dd = d.getDate();
+        var yyyy = d.getFullYear();
+        var hh = d.getHours();
+        var mi = d.getMinutes();
+        var ampm = hh >= 12 ? "PM" : "AM";
+        hh = hh % 12; if (hh === 0) hh = 12;
+        var mis = mi < 10 ? "0" + mi : String(mi);
+        // Same calendar day vs older
+        var today = new Date();
+        if (d.getFullYear() === today.getFullYear() && d.getMonth() === today.getMonth() && d.getDate() === today.getDate()) {
+            return "Today at " + hh + ":" + mis + " " + ampm;
+        }
+        var yest = new Date(today.getTime() - 86400000);
+        if (d.getFullYear() === yest.getFullYear() && d.getMonth() === yest.getMonth() && d.getDate() === yest.getDate()) {
+            return "Yesterday at " + hh + ":" + mis + " " + ampm;
+        }
+        return mm + "/" + dd + "/" + yyyy + " at " + hh + ":" + mis + " " + ampm;
+    } catch (e) {
+        return "Unknown";
+    }
+}
+
+function formatJoinedDate(ts) {
+    if (!ts || typeof ts !== "number" || ts <= 0) return "—";
+    try {
+        var d = new Date(ts);
+        return (d.getMonth() + 1) + "/" + d.getDate() + "/" + d.getFullYear();
+    } catch (e) {
+        return "—";
+    }
 }
 
 function updateBioCount() {
@@ -10875,78 +11002,56 @@ function saveProfileBio() {
     openUserProfile(me);
 }
 
+/** No-op kept for any leftover callers */
 function setManualStatus(value) {
-    var me = getMyUsername();
-    if (!me) return;
-    setUserStatus(me, value);
-    manualStatusOverride = value;
-    lastActivity = Date.now();
-    // If they pick online/building/playing/busy, treat as active
-    if (value !== "offline" && value !== "afk") {
-        lastActivity = Date.now();
-    }
+    // Status is now automatic from live presence only
 }
 
 function touchActivity() {
-    lastActivity = Date.now();
-    var me = getMyUsername();
-    if (!me) return;
-    var current = getUserStatus(me);
-    // Only auto-bump to online if currently offline/afk and no busy/building/playing override
-    if (current === "offline" || current === "afk") {
-        if (!manualStatusOverride || manualStatusOverride === "online" || manualStatusOverride === "offline" || manualStatusOverride === "afk") {
-            setUserStatus(me, "online");
-            manualStatusOverride = "online";
-            var sel = document.getElementById("statusSelect");
-            if (sel) sel.value = "online";
+    // Light activity bump — still writes presence via heartbeat
+    try {
+        var me = typeof getMyUsername === "function" ? getMyUsername() : null;
+        if (me && localStorage.getItem("loggedIn") === "true") {
+            // Throttled local mirror so other tabs on same device see you quickly
+            var safe = presenceSafeUser(me);
+            var all = JSON.parse(localStorage.getItem("azoraPresenceCache") || "{}");
+            var now = Date.now();
+            var prev = all[safe] && all[safe].lastSeen ? all[safe].lastSeen : 0;
+            if (now - prev > 8000) {
+                all[safe] = {
+                    username: me,
+                    online: true,
+                    status: "online",
+                    lastSeen: now,
+                    updatedAt: now
+                };
+                localStorage.setItem("azoraPresenceCache", JSON.stringify(all));
+            }
         }
-    }
+    } catch (e) {}
 }
 
 function checkIdleStatus() {
-    var me = getMyUsername();
-    if (!me || localStorage.getItem("loggedIn") !== "true") return;
-
-    var idleMs = Date.now() - lastActivity;
-    var current = getUserStatus(me);
-
-    // Don't auto-change busy / building / playing unless idle long enough for AFK/offline
-    // After 5 min → AFK (unless already offline)
-    // After 10 min → Offline
-    if (idleMs >= 10 * 60 * 1000) {
-        if (current !== "offline") {
-            setUserStatus(me, "offline");
-            manualStatusOverride = "offline";
-            var sel = document.getElementById("statusSelect");
-            if (sel) sel.value = "offline";
-        }
-    } else if (idleMs >= 5 * 60 * 1000) {
-        if (current !== "afk" && current !== "offline") {
-            setUserStatus(me, "afk");
-            var sel2 = document.getElementById("statusSelect");
-            if (sel2) sel2.value = "afk";
-        }
-    }
+    // Manual AFK/offline removed — presence heartbeat + lastSeen window decide online/offline
 }
 
 function initStatusSystem() {
     ["mousemove", "keydown", "click", "scroll", "touchstart"].forEach(function (evt) {
         document.addEventListener(evt, touchActivity, { passive: true });
     });
-    setInterval(checkIdleStatus, 15000);
 
     var me = getMyUsername();
     if (me && localStorage.getItem("loggedIn") === "true") {
-        var cur = getUserStatus(me);
-        if (cur === "offline" || cur === "afk" || !cur) {
-            setUserStatus(me, "online");
-        }
-        var sel = document.getElementById("statusSelect");
-        if (sel) sel.value = getUserStatus(me);
+        setUserStatus(me, "online");
         try { if (typeof startPresenceHeartbeat === "function") startPresenceHeartbeat(); } catch (eP) {}
         try { if (typeof writeFirebasePresence === "function") writeFirebasePresence("online"); } catch (eW) {}
     }
 }
+
+window.formatLastOnline = formatLastOnline;
+window.formatJoinedDate = formatJoinedDate;
+window.isUserCurrentlyOnlineSync = isUserCurrentlyOnlineSync;
+window.getPresenceLastSeenSync = getPresenceLastSeenSync;
 
 
 // ============================================================
@@ -10964,33 +11069,35 @@ function writeFirebasePresence(status) {
         var acc = typeof getActiveAccount === "function" ? getActiveAccount() : null;
         var logged = localStorage.getItem("loggedIn");
         if (!acc || !acc.username || acc.isGuest || logged !== "true") return;
-        if (typeof AZORA_CLOUD === "undefined" || !AZORA_CLOUD.firebaseUrl) return;
-        var base = String(AZORA_CLOUD.firebaseUrl || "").replace(/\/$/, "");
-        if (!base) return;
         var now = Date.now();
-        if (now - _presenceLastWrite < 4000 && status === "online") return; // throttle
-        _presenceLastWrite = now;
+        // Always keep a fresh local mirror so same-device tabs / offline viewers see you
         var uname = acc.username;
         var safe = presenceSafeUser(uname);
+        var isOff = status === "offline";
         var payload = {
             username: uname,
             userId: acc.userId || "",
-            status: status || (typeof getUserStatus === "function" ? getUserStatus(uname) : "online"),
-            online: status !== "offline",
+            status: isOff ? "offline" : "online",
+            online: !isOff,
             lastSeen: now,
             updatedAt: now
         };
-        fetch(base + "/azoraPresence/" + encodeURIComponent(safe) + ".json", {
-            method: "PUT",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(payload)
-        }).catch(function () {});
-        // Local mirror
         try {
             var all = JSON.parse(localStorage.getItem("azoraPresenceCache") || "{}");
             all[safe] = payload;
             localStorage.setItem("azoraPresenceCache", JSON.stringify(all));
         } catch (eL) {}
+        // Cloud write (throttled while online)
+        if (typeof AZORA_CLOUD === "undefined" || !AZORA_CLOUD.firebaseUrl) return;
+        var base = String(AZORA_CLOUD.firebaseUrl || "").replace(/\/$/, "");
+        if (!base) return;
+        if (!isOff && now - _presenceLastWrite < 4000) return;
+        _presenceLastWrite = now;
+        fetch(base + "/azoraPresence/" + encodeURIComponent(safe) + ".json", {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload)
+        }).catch(function () {});
     } catch (e) {}
 }
 
@@ -11027,17 +11134,22 @@ function fetchFirebasePresence(username, cb) {
 function startPresenceHeartbeat() {
     try { if (_presenceHeartbeat) clearInterval(_presenceHeartbeat); } catch (e) {}
     writeFirebasePresence("online");
+    // Faster heartbeat so "live" online is nearly real-time (~20s window)
     _presenceHeartbeat = setInterval(function () {
         var logged = localStorage.getItem("loggedIn");
         if (logged !== "true") return;
         var me = typeof getMyUsername === "function" ? getMyUsername() : null;
         if (!me) return;
-        var st = typeof getUserStatus === "function" ? getUserStatus(me) : "online";
-        writeFirebasePresence(st || "online");
-    }, 25000);
+        writeFirebasePresence("online");
+    }, 20000);
     try {
         window.addEventListener("beforeunload", function () {
             writeFirebasePresence("offline");
+        });
+        document.addEventListener("visibilitychange", function () {
+            if (document.visibilityState === "visible") {
+                writeFirebasePresence("online");
+            }
         });
     } catch (e2) {}
 }

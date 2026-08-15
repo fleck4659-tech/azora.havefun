@@ -285,18 +285,7 @@
                     <button type="button" class="bdur-btn" data-ms="600000" onclick="setBroadcastDuration(600000)">10 minutes<span class="bdur-sub"></span></button>
                 </div>
             </div>
-            <div class="settings-section">
-                <label class="settings-label">Status</label>
-                <select id="statusSelect" onchange="setManualStatus(this.value)" class="settings-input">
-                    <option value="online">🟢 Online</option>
-                    <option value="afk">🟡 AFK</option>
-                    <option value="building">🔵 Building</option>
-                    <option value="playing">🟣 Playing</option>
-                    <option value="busy">🔴 Busy</option>
-                    <option value="offline">⚫ Offline</option>
-                </select>
-                <small class="settings-hint">Auto: AFK after 5 min idle, Offline after 10 min</small>
-            </div>
+            <!-- Manual status selector removed — Online / Offline is live from presence -->
         </div>
 
         <!-- SECURITY -->
@@ -813,6 +802,10 @@
         </div>
         <div id="profileGames" class="profile-games-section" style="display:none;text-align:left;margin-top:14px;"></div>
         <div id="profileActions" style="display:flex;flex-direction:column;gap:10px;margin-top:15px;"></div>
+        <div id="profileMetaFooter" class="profile-meta-footer">
+            <div class="profile-meta-row"><span class="profile-meta-label">Last online</span><span id="profileLastOnline">—</span></div>
+            <div class="profile-meta-row"><span class="profile-meta-label">Joined</span><span id="profileJoinedDate">—</span></div>
+        </div>
         <button type="button" onclick="closeProfile()" style="margin-top:15px;">Close</button>
     </div>
 </div>
