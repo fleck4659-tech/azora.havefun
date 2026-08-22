@@ -10387,6 +10387,14 @@ function generateAIReply(userText, attachment) {
         };
     }
 
+    // ===== MAKE ME A STORY (random each time) =====
+    if ((/\b(make|tell|write|create|generate)\b/.test(t) && /\b(story|tale|fable)\b/.test(t)) ||
+        /\bmake me a story\b/.test(t) ||
+        /\bstory\s+please\b/.test(t) ||
+        /^story[\s!.?]*$/.test(t)) {
+        return aturiusGenerateRandomStory(who);
+    }
+
     // Mood-aware tone (eyes already match feeling)
     if (feeling === "upset") {
         if (/\b(sorry|apologize|i didn't mean)\b/.test(t)) {
@@ -11320,6 +11328,34 @@ function setAturiusTab(tab) {
     }
 }
 
+/** Turn *like this* into bold+tiny action/story spans (no visible asterisks) */
+function aturiusFillStyledText(container, text) {
+    if (!container) return;
+    container.innerHTML = "";
+    var str = String(text || "");
+    // *content* — non-greedy, allow multiline-ish short actions
+    var re = /\*([^*\n]+)\*/g;
+    var last = 0;
+    var m;
+    while ((m = re.exec(str)) !== null) {
+        if (m.index > last) {
+            container.appendChild(document.createTextNode(str.slice(last, m.index)));
+        }
+        var span = document.createElement("span");
+        span.className = "aturius-action-text";
+        span.textContent = m[1];
+        container.appendChild(span);
+        last = m.index + m[0].length;
+    }
+    if (last < str.length) {
+        container.appendChild(document.createTextNode(str.slice(last)));
+    }
+    // Preserve line breaks
+    if (str.indexOf("\n") >= 0) {
+        container.style.whiteSpace = "pre-wrap";
+    }
+}
+
 function formatAturiusChatTime(ts) {
     if (!ts) return "not modified yet";
     var d = new Date(ts);
@@ -11524,6 +11560,69 @@ function aturiusRecognizeAttachment(att) {
     return { summary: summary, tags: tags };
 }
 
+function aturiusGenerateRandomStory(who) {
+    var heroes = ["a curious fox", "a tiny robot", "a brave kid named " + (who || "Alex"), "a glowing jellyfish", "a sleepy dragon", "a clever raccoon", "an explorer in yellow boots", "a cloud that learned to walk"];
+    var places = ["a floating island", "a neon forest", "Azora's quietest street", "a library under the sea", "a mountain made of candy glass", "a train that only runs at midnight", "a garden of clockwork flowers", "a desert of soft blue sand"];
+    var finds = ["a key that opens feelings", "a map drawn in starlight", "a radio that plays tomorrow", "a door with no walls", "a coin that always lands on hope", "a notebook that writes back", "a lantern that shows kind memories", "a bridge built from laughter"];
+    var twists = [
+        "But the treasure was never the object — it was the friend they made on the way.",
+        "When they shared it, the whole place grew brighter.",
+        "They almost gave up, then heard a tiny voice say *keep going*.",
+        "The real prize was learning they were braver than they thought.",
+        "A storm tried to stop them, but kindness was louder.",
+        "They returned home different — softer, braver, and smiling."
+    ];
+    var openings = [
+        "*once upon a time*",
+        "*in a quiet corner of Azora*",
+        "*long after the stars woke up*",
+        "*on a morning that smelled like rain*",
+        "*far beyond the usual map*"
+    ];
+    var middles = [
+        " wandered into ",
+        " discovered ",
+        " was chasing a rumor about ",
+        " followed a trail of soft lights toward "
+    ];
+    var actions = [
+        " *looks around carefully* ",
+        " *takes a deep breath* ",
+        " *runs toward the glow* ",
+        " *whispers a promise* ",
+        " *holds the discovery close* "
+    ];
+    // Shuffle with time + random so repeats feel different
+    function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+    var seedBits = [
+        pick(openings),
+        " there was ",
+        pick(heroes),
+        " who ",
+        pick(middles).trim(),
+        " ",
+        pick(places),
+        ". ",
+        "There they found ",
+        pick(finds),
+        ".",
+        pick(actions),
+        pick(twists),
+        " *the end*"
+    ];
+    var body = seedBits.join("");
+    // Light unique stamp so two stories rarely match
+    var spice = [
+        " A bird clapped once in the distance.",
+        " Somewhere, a bell rang twice.",
+        " The wind carried a half-finished song.",
+        " A footprint glowed, then faded.",
+        " Someone far away smiled without knowing why."
+    ];
+    body += pick(spice);
+    return "Here's a story just for you:\n\n" + body;
+}
+
 function aturiusGenerateGameFromPrompt(promptText) {
     var p = String(promptText || "").toLowerCase();
     var theme = "adventure";
@@ -11693,7 +11792,9 @@ function renderAturiusMessages() {
         div.className = isAI ? "aturius-msg-ai" : "aturius-msg-me";
         if (m.text) {
             var textNode = document.createElement("div");
-            textNode.textContent = String(m.text || "");
+            textNode.className = "aturius-msg-text";
+            // Render *action / story* segments as smaller bold text (asterisks hidden)
+            aturiusFillStyledText(textNode, String(m.text || ""));
             div.appendChild(textNode);
         }
         if (m.attachment) {
