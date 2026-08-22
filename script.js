@@ -10482,20 +10482,20 @@ function generateAIReply(userText) {
     if (/\b(what is azora|what's azora|about azora|this (site|app|platform|game))\b/.test(t)) {
         return "Azora is a fun social platform where you customize avatars, build games in Creator Studio, discover games, chat with friends, and hang out with me — your robot friend!";
     }
-    if (/\b(aza\s*fn|azafn|build a game|create a game|make a game)\b/.test(t)) {
+    if (/\b(build a game|create a game|make a game|creator studio|studio)\b/.test(t)) {
         return pickRandom([
-            opener + " Open AzaFn from the top area, describe your idea, and choose 2D or 3D. After it builds, you can preview and publish to Feed!",
-            "AzaFn helps you generate games. Say whether you want 2D or 3D, then use Build. Publish when you're ready so others can play."
+            opener + " Use Creator Studio to build 3D places with parts, materials, and sky settings. Publish to Norm Games when you're ready — not Feed.",
+            "Creator tip: place a baseplate, add parts on the grid, set materials/colors, then publish. Your games show under Norm Games for others to Join."
         ]);
     }
-    if (/\b(feed|discover games|public games)\b/.test(t)) {
-        return "The Feed is where published games appear. Tap Feed at the top to scroll, play, and (if you have an account) like, save, or comment!";
+    if (/\b(feed|discover games|public games|quick games)\b/.test(t)) {
+        return "Feed is for Quick Games (short solo scroll experiences). Norm Games are separate multiplayer joins. Accounts can like/comment where those features are enabled!";
     }
     if (/\b(friend|add friend|follow|message someone)\b/.test(t)) {
         if (isGuest) {
             return "Guests can chat with me and play games! Create an account to add friends, follow people, and message other players.";
         }
-        return "Search for a username, open their profile, then Follow or Add Friend. Once you're friends, you can message them in Chat.";
+        return "Search for a username, open their profile, then Follow or Add Friend. Once you're friends, you can message them in Chat. Ask me for friend suggestions anytime!";
     }
     if (/\b(avatar|customize|character colors)\b/.test(t)) {
         return pickRandom([
@@ -10566,19 +10566,122 @@ function generateAIReply(userText) {
         ]);
     }
 
-    // ===== FEELINGS =====
-    if (/\b(i('m| am) (sad|lonely|upset|mad|angry|bored|tired|scared|anxious|nervous))\b/.test(t) ||
-        /\b(feeling (sad|down|bad|low))\b/.test(t)) {
+    // ===== USER FEELINGS (flexible phrasing) =====
+    var feelsBad = /\b(i\s*(feel|am|'m|been)\s*(sad|bad|down|upset|mad|angry|lonely|tired|scared|anxious|nervous|worried|hurt|awful|terrible|horrible|not\s*good|not\s*okay|not\s*ok)|feeling\s*(sad|bad|down|low|mad|angry|lonely)|don'?t\s*feel\s*(good|great|okay|ok|well)|having\s*a\s*(bad|rough|hard)\s*day|not\s*having\s*a\s*good\s*day)\b/.test(t) ||
+        /\b(i\s*feel\s*like\s*(crying|giving\s*up)|everything\s*(sucks|is\s*bad)|i\s*hate\s*(today|this\s*day))\b/.test(t);
+    var feelsGood = /\b(i\s*(feel|am|'m)\s*(happy|good|great|awesome|excited|amazing|wonderful|fantastic|cheerful|glad|proud|pumped)|feeling\s*(happy|good|great|awesome|excited)|having\s*a\s*(good|great|awesome)\s*day|today\s*(is|was)\s*(good|great|awesome))\b/.test(t);
+    var feelsMad = /\b(i\s*(feel|am|'m)\s*(mad|angry|furious|annoyed|frustrated)|feeling\s*(mad|angry)|so\s*mad|makes\s*me\s*mad)\b/.test(t);
+    var feelsMeh = /\b(i\s*(feel|am|'m)\s*(meh|okay|ok|fine|alright|bored|whatever)|feeling\s*(meh|bored|okay|ok)|idk\s*how\s*i\s*feel|not\s*sure\s*how\s*i\s*feel)\b/.test(t);
+
+    if (feelsMad) {
         return pickRandom([
-            "Sorry you're feeling that way, " + who + ". I'm here to chat. Want to talk about it, hear a joke, or look at something fun on Azora?",
-            "That sounds hard. You matter. If you want a distraction, we can talk games — or just keep chatting here.",
-            "I'm glad you told me. Take it one step at a time. Want a silly joke or an Azora tip?"
+            "Sounds like something really got under your skin, " + who + ". Want to vent about it here? I'm listening — no judgment.",
+            "Being mad is normal. Take a breath if you can. Want a quick distraction (joke or game tip) or just want to talk it out?",
+            "I hear you. Anger usually means something mattered. You can tell me what happened, or we can switch to something calmer on Azora."
         ]);
     }
-    if (/\b(i('m| am) (happy|excited|great|good|awesome))\b/.test(t)) {
+    if (feelsBad) {
         return pickRandom([
-            "Love that energy, " + who + "! What's the best part of your day?",
-            "Awesome! Celebrate those wins. Did you build or play something cool on Azora?"
+            "I'm sorry you're feeling that way, " + who + ". You don't have to go through it alone — I'm here to listen.",
+            "That sounds really tough. Thanks for telling me. Want to talk about it, or would a gentle distraction help (a joke, a cozy game tip)?",
+            "It's okay to not feel okay. Your feelings are valid. If it ever feels too heavy, please talk to a trusted adult too. Meanwhile, I'm right here.",
+            "Rough days happen. One step at a time. Want me to suggest something small and fun on Azora, or just chat quietly?"
+        ]);
+    }
+    if (feelsGood) {
+        return pickRandom([
+            "Love that energy, " + who + "! What's the best part of your day so far?",
+            "That's awesome — hold onto that feeling! Did something cool happen on Azora or IRL?",
+            "Yay! Happy looks good on you. Want a game suggestion to keep the good vibes going?"
+        ]);
+    }
+    if (feelsMeh) {
+        return pickRandom([
+            "Meh days are real. Want a tiny mission — like try a Norm Game, tweak your avatar, or hear a silly joke?",
+            "Totally fine to feel 'just okay.' I'm here either way. Want friend tips, a game idea, or random chat?",
+            "We can keep it low-key. Ask me anything Azora-related, or just say whatever's on your mind."
+        ]);
+    }
+
+    // ===== TIPS (specific, expandable) =====
+    if (/\b(tip|tips|advice|how do i|how to|help me with|guide|tutorial|what should i)\b/.test(t)) {
+        if (/\b(coin|currency|money|shop|buy)\b/.test(t)) {
+            return pickRandom([
+                "AzoraCoins tip: claim your daily reward when you log in, play games for fun, and check Pending if someone sent you coins. Don't spend more than you have!",
+                "Shop tip: start with cheaper cosmetics. T-shirts can be free to upload; hair and faces are Azora catalog items. Check prices before you buy."
+            ]);
+        }
+        if (/\b(avatar|customize|character|look)\b/.test(t)) {
+            return "Avatar tip: open the main page customizer, change limb colors, equip hair/faces from Inventory, then Save. Guests can look but saving needs an account.";
+        }
+        if (/\b(friend|social|chat|message)\b/.test(t)) {
+            return isGuest
+                ? "Social tip: Guests can chat with me, but friend requests and player DMs need an account. Create one, then Search → profile → Add Friend."
+                : "Friend tip: Search a username, open their profile, tap Add Friend. Accept requests in Chat. Be kind — good friends make Azora more fun!";
+        }
+        if (/\b(game|play|norm|feed)\b/.test(t)) {
+            return "Game tip: Norm Games are multiplayer (Join from the Games section). Quick Games are short solo ones on Feed. In Norm Games, try /c hi to wave, and if I join you: /c follow or /c unfollow.";
+        }
+        if (/\b(safe|password|account|login)\b/.test(t)) {
+            return "Safety tip: never share your password. Use a strong one if you set email recovery. Report anything weird. Staff tools exist for bans when rules are broken.";
+        }
+        return pickRandom([
+            "General tip: explore Games, Shop, Chat, and me (Aturius). Claim daily coins, customize your avatar, and try a Norm Game with friends.",
+            "Starter path: 1) Claim daily reward 2) Fix your avatar 3) Join a Norm Game 4) Add a friend 5) Ask me anytime for more tips!",
+            "Pro tip: check Notifications (bell) for friend requests and updates. Profile shows Online status and when someone last joined."
+        ]);
+    }
+
+    // ===== FRIEND SUGGESTIONS =====
+    if (/\b(friend suggest|suggest.*(friend|people)|who should i (add|friend|follow)|find friends|make friends|people to (add|friend))\b/.test(t) ||
+        (/\bfriends?\b/.test(t) && /\b(suggest|recommend|find|meet|new)\b/.test(t))) {
+        if (isGuest) {
+            return "To get friend suggestions that stick, create an account first. Meanwhile you can still play and talk to me!";
+        }
+        var suggestions = [];
+        try {
+            var friendsMap = typeof getFriendsData === "function" ? getFriendsData() : {};
+            var myF = friendsMap[userName] || { friends: [], following: [] };
+            var already = {};
+            (myF.friends || []).forEach(function (x) { already[String(x).toLowerCase()] = true; });
+            (myF.following || []).forEach(function (x) { already[String(x).toLowerCase()] = true; });
+            already[String(userName).toLowerCase()] = true;
+            already["azora"] = true;
+            already["system"] = true;
+            var reg = [];
+            try { reg = JSON.parse(localStorage.getItem("azoraUserRegistry") || "[]"); } catch (eR) {}
+            if (!reg.length) {
+                try {
+                    var sav = typeof getSavedAccounts === "function" ? getSavedAccounts() : {};
+                    Object.keys(sav || {}).forEach(function (u) { reg.push({ username: u }); });
+                } catch (eS) {}
+            }
+            for (var ri = 0; ri < reg.length && suggestions.length < 5; ri++) {
+                var un = reg[ri] && reg[ri].username;
+                if (!un || already[String(un).toLowerCase()]) continue;
+                if (reg[ri].isGuest) continue;
+                suggestions.push(un);
+            }
+        } catch (eSug) {}
+        if (suggestions.length) {
+            return "Here are some players you could check out: " + suggestions.join(", ") +
+                ". Search their username, open the profile, then Follow or Add Friend — only if their vibe feels right!";
+        }
+        return pickRandom([
+            "I don't see many other accounts on this device yet. Try Search for usernames you know, or meet people in a Norm Game chat!",
+            "Friend idea: join a Norm Game, say hi in chat, then Add Friend from profiles. Official account Azora is also there if you want news.",
+            "Search is your friend-finder. Look up names you recognize, or play together first so adding them feels natural."
+        ]);
+    }
+
+    // ===== GAMES (richer) =====
+    if (/\b(what games|which game|recommend a game|game suggest|something to play|bored|what should i play)\b/.test(t) ||
+        (/\bgames?\b/.test(t) && /\b(recommend|suggest|best|play|try|list)\b/.test(t))) {
+        return pickRandom([
+            "Try a Norm Game from the Games section for multiplayer hangouts — Roleplay-style maps are great for chatting and exploring.",
+            "If you want something short, open Feed for Quick Games. For friends and chat in-world, Norm Games are the move.",
+            "Mix it up: one Norm Game with /c hi waves, then customize your avatar, then peek at Shop. Want multiplayer or solo?",
+            "When I join your Norm Game, type /c follow so I stick with you, or /c unfollow if you want me to wander nearby."
         ]);
     }
 
@@ -10620,7 +10723,18 @@ function generateAIReply(userText) {
 
     // ===== HELP / CAPABILITIES =====
     if (/\b(help|what can you do|commands|what do you know)\b/.test(t)) {
-        return "I'm " + name + "! I can chat about Azora (Feed, AzaFn, friends, avatars, settings), tell jokes, talk simple science, answer who you are on Azora, and just keep you company. Ask me anything in those areas!";
+        return "I'm Aturius! I can: give Azora tips (coins, avatar, safety), suggest games, suggest friends, join Norm Games (/c follow, /c unfollow), talk about how you feel, tell jokes, simple science, and more. Say it in your own words — I'll try to understand!";
+    }
+
+    // ===== COINS / SHOP extras =====
+    if (/\b(daily|reward|streak|gift)\b/.test(t)) {
+        return "Daily rewards show when you log in — claim them for AzoraCoins. Streaks celebrate coming back often. Check the top bar for gift/daily chips!";
+    }
+    if (/\b(inventory|equip|bag)\b/.test(t)) {
+        return "Open Bag/Inventory to equip hair, faces, or T-shirts you own. Equip, then save your avatar so it sticks.";
+    }
+    if (/\b(online|last online|presence|status)\b/.test(t)) {
+        return "Profiles show live Online/Offline from presence, plus Last online and Joined date. Manual busy/AFK statuses were removed so it stays simple.";
     }
 
     // ===== BYE =====
@@ -10651,15 +10765,15 @@ function generateAIReply(userText) {
         ]);
     }
 
-    // ===== DEFAULT — acknowledge + steer =====
+    // ===== DEFAULT — acknowledge + steer (smarter) =====
     var snippet = (userText || "").trim();
     if (snippet.length > 70) snippet = snippet.slice(0, 67) + "...";
     return pickRandom([
-        opener + " I hear you" + (snippet ? (': "' + snippet + '"') : "") + ". Tell me more, or ask about Azora, a joke, or a fun fact!",
-        "Interesting, " + who + ". Want tips on building games, finding Feed posts, or just a random joke?",
-        opener + " I'm with you. You can ask me what your username is, how AzaFn works, or something like 'tell me about space'!",
-        "Thanks for chatting. I know Azora stuff, simple science, jokes, and more — what should we talk about next?",
-        opener + " Say the word: games, friends, avatars, jokes, volcanoes, space… I've got a long list of things I can talk about!"
+        opener + " I hear you" + (snippet ? (': "' + snippet + '"') : "") + ". Want tips, a game idea, friend suggestions, or just to talk about how you feel?",
+        "Interesting, " + who + ". I can help with Azora tips, Norm Games, Shop, friends, or a joke — what sounds good?",
+        opener + " I'm with you. Try: 'give me a tip', 'suggest a game', 'who should I friend', or tell me how your day's going.",
+        "Thanks for chatting. I understand feelings, games, coins, avatars, and more — ask in any wording you like!",
+        opener + " Say anything natural — 'I'm bored', 'how do coins work', 'find me friends' — I'll match the best answer I can."
     ]);
 }
 
