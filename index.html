@@ -871,7 +871,7 @@
         </div>
         <div class="aturius-settings-pane" id="aturiusSettingsPane" style="display:none;">
             <h3>Aturius Settings</h3>
-            <p class="aturius-settings-hint">More options will appear here later. For now you can control game joins.</p>
+            <p class="aturius-settings-hint">Voice, pitch, and game joins. Aturius remembers how you treat it.</p>
             <label class="aturius-toggle-row">
                 <span>
                     <strong>Allow Aturius to join my games</strong>
@@ -880,6 +880,24 @@
                 <input type="checkbox" id="aturiusJoinToggle" checked onchange="saveAturiusJoinSetting(this.checked)">
             </label>
             <p class="aturius-settings-note" id="aturiusJoinNote">Joins are <strong>ON</strong> by default.</p>
+
+            <div class="aturius-voice-block">
+                <label class="aturius-field-label" for="aturiusVoiceSelect"><strong>Voice</strong></label>
+                <select id="aturiusVoiceSelect" class="aturius-voice-select"></select>
+
+                <label class="aturius-field-label" for="aturiusPitchSlider">
+                    <strong>Pitch</strong>
+                    <span id="aturiusPitchValue">1.00</span>
+                </label>
+                <input type="range" id="aturiusPitchSlider" class="aturius-pitch-slider" min="0.10" max="5.00" step="0.01" value="1.00" oninput="updateAturiusPitchLabel(this.value)">
+
+                <div class="aturius-voice-actions">
+                    <button type="button" class="aturius-test-btn" onclick="testAturiusVoice()">Test</button>
+                    <button type="button" class="aturius-ok-btn" onclick="applyAturiusVoiceSettings()">OK</button>
+                </div>
+                <p class="aturius-settings-note" id="aturiusVoiceNote">Drag the slider, tap Test to preview, then OK to save.</p>
+            </div>
+
             <button type="button" class="secondary" onclick="setAturiusTab('chat')" style="margin-top:14px;">Back to chat</button>
         </div>
     </div>

@@ -10901,22 +10901,200 @@ function setAturiusFeeling(f) {
     try { paintAturiusFace(); } catch (e2) {}
 }
 function adjustAturiusFeelingFromMessage(userText) {
-    var t = String(userText || "").toLowerCase();
+    var raw = String(userText || "");
+    var t = raw.toLowerCase();
     var cur = getAturiusFeeling();
-    // Mean / rude → sad or upset
-    if (/\b(hate you|stupid|dumb|shut up|idiot|useless|worst|go away|leave me alone|you suck|ugly)\b/.test(t)) {
+    // Mean / rude → sad or upset (remembered)
+    if (/\b(hate you|stupid|dumb|shut up|idiot|useless|worst|go away|leave me alone|you suck|ugly|dumb ai)\b/.test(t)) {
         setAturiusFeeling(cur === "sad" || cur === "upset" ? "upset" : "sad");
         return;
     }
-    // Kind / positive → happier
-    if (/\b(thank|thanks|love|awesome|great|cool|nice|you're the best|good job|miss you|hello|hi aturius)\b/.test(t)) {
-        setAturiusFeeling(cur === "sad" || cur === "upset" ? "neutral" : "happy");
+    // Smileys always cheer Aturius up
+    var hasSmile = /:\)|:D|:>|：\)|：D|=\)|=D|😊|😄|🙂|😃/.test(raw);
+    // Hi / hello (even short) improves mood
+    var isHi = /^(hi|hello|hey|hiya|yo|sup)\b/.test(t.trim()) || /\b(hi|hello|hey)\b/.test(t);
+    if (hasSmile || isHi) {
+        if (cur === "upset") setAturiusFeeling("sad");
+        else if (cur === "sad") setAturiusFeeling("neutral");
+        else setAturiusFeeling("happy");
         return;
     }
-    // Soft drift toward neutral over ordinary chat
-    if (cur === "upset" && Math.random() < 0.15) setAturiusFeeling("sad");
-    else if (cur === "sad" && Math.random() < 0.12) setAturiusFeeling("neutral");
+    // Kind / positive → happier
+    if (/\b(thank|thanks|love|awesome|great|cool|nice|you're the best|good job|miss you)\b/.test(t)) {
+        if (cur === "upset") setAturiusFeeling("sad");
+        else if (cur === "sad") setAturiusFeeling("neutral");
+        else setAturiusFeeling("happy");
+        return;
+    }
+    // Soft drift toward neutral over ordinary chat (keeps memory of past hurt)
+    if (cur === "upset" && Math.random() < 0.1) setAturiusFeeling("sad");
+    else if (cur === "sad" && Math.random() < 0.08) setAturiusFeeling("neutral");
 }
+
+/** Voice settings: pitch 0.10–5.00 + chosen system voice */
+function getAturiusVoiceSettings() {
+    var def = { pitch: 1.0, voiceURI: "", voiceName: "" };
+    try {
+        var s = JSON.parse(localStorage.getItem("azoraAturiusVoice") || "null");
+        if (s && typeof s === "object") {
+            var p = Number(s.pitch);
+            if (isNaN(p)) p = 1;
+            p = Math.max(0.1, Math.min(5, p));
+            return {
+                pitch: Math.round(p * 100) / 100,
+                voiceURI: s.voiceURI || "",
+                voiceName: s.voiceName || ""
+            };
+        }
+    } catch (e) {}
+    return def;
+}
+function saveAturiusVoiceSettings(data) {
+    localStorage.setItem("azoraAturiusVoice", JSON.stringify(data));
+}
+function updateAturiusPitchLabel(val) {
+    var el = document.getElementById("aturiusPitchValue");
+    if (el) el.textContent = Number(val).toFixed(2);
+}
+function populateAturiusVoiceSelect() {
+    var sel = document.getElementById("aturiusVoiceSelect");
+    if (!sel || !window.speechSynthesis) return;
+    function fill() {
+        var voices = window.speechSynthesis.getVoices() || [];
+        var saved = getAturiusVoiceSettings();
+        sel.innerHTML = "";
+        if (!voices.length) {
+            var opt0 = document.createElement("option");
+            opt0.value = "";
+            opt0.textContent = "Default system voice";
+            sel.appendChild(opt0);
+            return;
+        }
+        voices.forEach(function (v, i) {
+            var opt = document.createElement("option");
+            opt.value = v.voiceURI || String(i);
+            opt.textContent = (v.name || "Voice") + (v.lang ? " (" + v.lang + ")" : "");
+            if (saved.voiceURI && v.voiceURI === saved.voiceURI) opt.selected = true;
+            else if (saved.voiceName && v.name === saved.voiceName) opt.selected = true;
+            sel.appendChild(opt);
+        });
+    }
+    fill();
+    try {
+        window.speechSynthesis.onvoiceschanged = fill;
+    } catch (e) {}
+}
+function loadAturiusVoiceUI() {
+    var saved = getAturiusVoiceSettings();
+    var slider = document.getElementById("aturiusPitchSlider");
+    if (slider) {
+        slider.value = String(saved.pitch);
+        updateAturiusPitchLabel(saved.pitch);
+    }
+    populateAturiusVoiceSelect();
+}
+function applyAturiusVoiceToUtterance(u) {
+    if (!u || !window.speechSynthesis) return;
+    var saved = getAturiusVoiceSettings();
+    u.pitch = saved.pitch;
+    u.rate = 1;
+    try {
+        var voices = window.speechSynthesis.getVoices() || [];
+        var match = null;
+        for (var i = 0; i < voices.length; i++) {
+            if (saved.voiceURI && voices[i].voiceURI === saved.voiceURI) { match = voices[i]; break; }
+            if (saved.voiceName && voices[i].name === saved.voiceName) { match = voices[i]; break; }
+        }
+        if (match) u.voice = match;
+    } catch (e) {}
+}
+function testAturiusVoice() {
+    if (!window.speechSynthesis) {
+        alert("Voice is not supported on this device.");
+        return;
+    }
+    // Preview uses current slider/select WITHOUT saving yet
+    var slider = document.getElementById("aturiusPitchSlider");
+    var sel = document.getElementById("aturiusVoiceSelect");
+    var pitch = slider ? Number(slider.value) : 1;
+    if (isNaN(pitch)) pitch = 1;
+    pitch = Math.max(0.1, Math.min(5, pitch));
+    window.speechSynthesis.cancel();
+    var u = new SpeechSynthesisUtterance("Hello! Love to work with you.");
+    u.pitch = pitch;
+    u.rate = 1;
+    try {
+        var voices = window.speechSynthesis.getVoices() || [];
+        if (sel && sel.value) {
+            for (var i = 0; i < voices.length; i++) {
+                if (voices[i].voiceURI === sel.value || String(i) === sel.value) {
+                    u.voice = voices[i];
+                    break;
+                }
+            }
+        }
+    } catch (e) {}
+    setAturiusMood("talking");
+    var shapeIdx = 0;
+    var mouthTimer = setInterval(function () {
+        shapeIdx = (shapeIdx + 1) % _aturiusTalkShapes.length;
+        _aturiusMouthShape = _aturiusTalkShapes[shapeIdx];
+        try { paintAturiusFace(); } catch (e2) {}
+    }, 120);
+    u.onend = function () {
+        clearInterval(mouthTimer);
+        _aturiusMouthShape = "smile";
+        setAturiusMood("idle");
+        try { paintAturiusFace(); } catch (e3) {}
+    };
+    u.onerror = function () {
+        clearInterval(mouthTimer);
+        _aturiusMouthShape = "smile";
+        setAturiusMood("idle");
+    };
+    window.speechSynthesis.speak(u);
+}
+function applyAturiusVoiceSettings() {
+    var slider = document.getElementById("aturiusPitchSlider");
+    var sel = document.getElementById("aturiusVoiceSelect");
+    var pitch = slider ? Number(slider.value) : 1;
+    if (isNaN(pitch)) pitch = 1;
+    pitch = Math.max(0.1, Math.min(5, pitch));
+    pitch = Math.round(pitch * 100) / 100;
+    var voiceURI = sel ? sel.value : "";
+    var voiceName = "";
+    try {
+        var voices = window.speechSynthesis ? window.speechSynthesis.getVoices() || [] : [];
+        for (var i = 0; i < voices.length; i++) {
+            if (voices[i].voiceURI === voiceURI) {
+                voiceName = voices[i].name || "";
+                break;
+            }
+        }
+        if (sel && sel.selectedOptions && sel.selectedOptions[0]) {
+            if (!voiceName) voiceName = sel.selectedOptions[0].textContent || "";
+        }
+    } catch (e) {}
+    saveAturiusVoiceSettings({ pitch: pitch, voiceURI: voiceURI, voiceName: voiceName });
+    updateAturiusPitchLabel(pitch);
+    var note = document.getElementById("aturiusVoiceNote");
+    if (note) {
+        note.innerHTML = "Saved! Pitch <strong>" + pitch.toFixed(2) + "</strong>" + (voiceName ? " · " + voiceName : "") + ".";
+    }
+    // Apply immediately with a short confirm line
+    try {
+        if (window.speechSynthesis) {
+            window.speechSynthesis.cancel();
+            var u = new SpeechSynthesisUtterance("Settings applied.");
+            applyAturiusVoiceToUtterance(u);
+            window.speechSynthesis.speak(u);
+        }
+    } catch (e2) {}
+}
+window.updateAturiusPitchLabel = updateAturiusPitchLabel;
+window.testAturiusVoice = testAturiusVoice;
+window.applyAturiusVoiceSettings = applyAturiusVoiceSettings;
+window.getAturiusVoiceSettings = getAturiusVoiceSettings;
 window.getAturiusFeeling = getAturiusFeeling;
 window.setAturiusFeeling = setAturiusFeeling;
 
@@ -10954,7 +11132,14 @@ function openAturiusPanel() {
     var label = document.getElementById("aturiusWithLabel");
     if (label) label.textContent = "Chat with Aturius";
     initAturius3D();
+    // Restore remembered feeling so face matches even after switching tabs
+    try {
+        _aturiusFeeling = getAturiusFeeling();
+        setAturiusFeeling(_aturiusFeeling);
+    } catch (eFeel) {}
+    try { loadAturiusVoiceUI(); } catch (eV) {}
     setAturiusMood("idle");
+    try { paintAturiusFace(); } catch (eP) {}
 }
 
 function closeAturiusPanel() {
@@ -10977,11 +11162,18 @@ function setAturiusTab(tab) {
         if (setPane) setPane.style.display = "block";
         if (tChat) tChat.classList.remove("active");
         if (tSet) tSet.classList.add("active");
+        try { loadAturiusVoiceUI(); } catch (e) {}
     } else {
         if (chatPane) chatPane.style.display = "flex";
         if (setPane) setPane.style.display = "none";
         if (tChat) tChat.classList.add("active");
         if (tSet) tSet.classList.remove("active");
+        // Refresh face from saved mood when returning to chat
+        try {
+            _aturiusFeeling = getAturiusFeeling();
+            setAturiusFeeling(_aturiusFeeling);
+            paintAturiusFace();
+        } catch (e2) {}
     }
 }
 
@@ -11064,6 +11256,7 @@ function sendAturiusMessage() {
     } catch (eS) {}
     saveAIChatStore(store);
     try { adjustAturiusFeelingFromMessage(text); } catch (eFeel) {}
+    try { paintAturiusFace(); } catch (eFace) {}
     renderAturiusMessages();
     scheduleAIReply(text, store.activeId);
 }
@@ -11086,8 +11279,7 @@ function aturiusReadLastMessage() {
         }
         window.speechSynthesis.cancel();
         var u = new SpeechSynthesisUtterance(String(last.text));
-        u.rate = 1;
-        u.pitch = 1.05;
+        applyAturiusVoiceToUtterance(u);
         setAturiusMood("talking");
         var shapeIdx = 0;
         var mouthTimer = setInterval(function () {
