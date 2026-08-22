@@ -10338,7 +10338,7 @@ function getChatUserContext() {
     return { userName: userName, isGuest: isGuest, userId: userId };
 }
 
-function generateAIReply(userText) {
+function generateAIReply(userText, attachment) {
     var ai = getAICompanion();
     var t = (userText || "").toLowerCase().trim();
     var name = "Aturius";
@@ -10359,9 +10359,32 @@ function generateAIReply(userText) {
     var feeling = "neutral";
     try { feeling = getAturiusFeeling(); } catch (eFeel) {}
 
+    // ===== FILE / PICTURE recognition (test feature) =====
+    if (attachment) {
+        var rec = aturiusRecognizeAttachment(attachment);
+        var fileLine = rec.summary;
+        if (t) {
+            return fileLine + " You also said: \"" + String(userText).slice(0, 80) + "\". Want me to turn this into a game idea, or talk more about the file?";
+        }
+        return fileLine + " You can also ask me to generate a game inspired by this!";
+    }
+
     // Empty / first contact style
     if (!t) {
         return ATURIUS_INTRO;
+    }
+
+    // ===== GENERATE A GAME FROM PROMPT =====
+    if (/\b(generate|create|make|build)\b/.test(t) && /\b(game|mini\s*game|level)\b/.test(t) ||
+        /^generate\s+a?\s*game\b/.test(t) ||
+        /\bmake me a game\b/.test(t) ||
+        /\bgame about\b/.test(t) ||
+        /\b(can you|could you)\s+(make|generate|create)\s+(a\s+)?game\b/.test(t)) {
+        var game = aturiusGenerateGameFromPrompt(userText);
+        return {
+            text: "Ok — I built a " + game.dim + " mini-game for you called \"" + game.title + "\" (theme: " + game.theme + "). Tap ▶ Play generated game below to try it! Prompt was: \"" + String(userText).slice(0, 100) + "\".",
+            gameId: game.id
+        };
     }
 
     // Mood-aware tone (eyes already match feeling)
@@ -10723,7 +10746,7 @@ function generateAIReply(userText) {
 
     // ===== HELP / CAPABILITIES =====
     if (/\b(help|what can you do|commands|what do you know)\b/.test(t)) {
-        return "I'm Aturius! I can: give Azora tips (coins, avatar, safety), suggest games, suggest friends, join Norm Games (/c follow, /c unfollow), talk about how you feel, tell jokes, simple science, and more. Say it in your own words — I'll try to understand!";
+        return "I'm Aturius! I can: give Azora tips, suggest games/friends, join Norm Games (/c follow), talk about feelings, look at files/pictures you attach (test feature), and generate a mini-game from a prompt like \"make a game about a city\". Ask any way you like!";
     }
 
     // ===== COINS / SHOP extras =====
@@ -10943,7 +10966,7 @@ function fetchFreeOpenEndedReply(userText, storageKey) {
     });
 }
 
-function scheduleAIReply(userText, aiChatId) {
+function scheduleAIReply(userText, aiChatId, attachment) {
     if (chatAiReplyTimer) {
         clearTimeout(chatAiReplyTimer);
         chatAiReplyTimer = null;
@@ -10952,23 +10975,29 @@ function scheduleAIReply(userText, aiChatId) {
     try { setAturiusMood("thinking"); } catch (eM) {}
     try { showChatTyping(); } catch (eC) {}
 
-    var delay = aiReplyDelayMs(userText);
+    var delay = aiReplyDelayMs(userText || (attachment && attachment.name) || "");
+    if (attachment) delay = Math.min(5000, delay + 800);
     chatAiReplyTimer = setTimeout(function () {
         chatAiReplyTimer = null;
         try { showAturiusTyping(false); } catch (eT2) {}
         try { clearChatTyping(); } catch (eC2) {}
         try { setAturiusMood("idle"); } catch (eM2) {}
-        var reply = generateAIReply(userText);
+        var extra = generateAIReply(userText, attachment);
+        var reply = typeof extra === "string" ? extra : (extra && extra.text) || String(extra || "");
+        var gameId = (extra && typeof extra === "object") ? extra.gameId : null;
         var store = getAIChatStore();
         var chat = null;
         for (var i = 0; i < store.chats.length; i++) {
             if (store.chats[i].id === (aiChatId || store.activeId)) { chat = store.chats[i]; break; }
         }
         if (!chat) chat = getActiveAIChat();
-        chat.messages.push({ from: AZORA_AI_ID, text: reply, at: Date.now(), isAI: true });
+        var aiMsg = { from: AZORA_AI_ID, text: reply, at: Date.now(), isAI: true };
+        if (gameId) aiMsg.gameId = gameId;
+        chat.messages.push(aiMsg);
         chat.updatedAt = Date.now();
         saveAIChatStore(store);
         try { renderAturiusMessages(); } catch (eR) {}
+        try { renderAturiusHistoryList(); } catch (eH2) {}
         try { if (typeof renderChatMessages === "function" && currentChatFriend === AZORA_AI_ID) renderChatMessages(); } catch (eR2) {}
         try { if (typeof renderAIChatHistoryList === "function") renderAIChatHistoryList(); } catch (eH) {}
     }, delay);
@@ -11246,12 +11275,12 @@ function openAturiusPanel() {
     var label = document.getElementById("aturiusWithLabel");
     if (label) label.textContent = "Chat with Aturius";
     initAturius3D();
-    // Restore remembered feeling so face matches even after switching tabs
     try {
         _aturiusFeeling = getAturiusFeeling();
         setAturiusFeeling(_aturiusFeeling);
     } catch (eFeel) {}
     try { loadAturiusVoiceUI(); } catch (eV) {}
+    try { renderAturiusHistoryList(); } catch (eH) {}
     setAturiusMood("idle");
     try { paintAturiusFace(); } catch (eP) {}
 }
@@ -11291,13 +11320,359 @@ function setAturiusTab(tab) {
     }
 }
 
+function formatAturiusChatTime(ts) {
+    if (!ts) return "not modified yet";
+    var d = new Date(ts);
+    if (isNaN(d.getTime())) return "not modified yet";
+    var month = d.getMonth() + 1;
+    var day = pad2(d.getDate());
+    var year = d.getFullYear();
+    return month + "/" + day + "/" + year + " · " + pad2(d.getHours()) + ":" + pad2(d.getMinutes());
+}
+
+function renderAturiusHistoryList() {
+    var box = document.getElementById("aturiusHistoryList");
+    if (!box) return;
+    var store = ensureActiveAIChat();
+    var chats = store.chats.slice().sort(function (a, b) {
+        return (b.updatedAt || 0) - (a.updatedAt || 0);
+    });
+    box.innerHTML = "";
+    if (!chats.length) {
+        box.innerHTML = "<p class=\"aturius-hist-empty\">No chats yet</p>";
+        return;
+    }
+    chats.forEach(function (c) {
+        var item = document.createElement("button");
+        item.type = "button";
+        item.className = "aturius-hist-item" + (c.id === store.activeId ? " active" : "");
+        var title = c.title || "Chat";
+        if (c.messages && c.messages.length) {
+            var last = c.messages[c.messages.length - 1];
+            if (last && last.text) title = String(last.text).replace(/\s+/g, " ").slice(0, 32);
+            else if (last && last.attachment) title = "📎 " + (last.attachment.name || "file");
+        }
+        var titleEl = document.createElement("span");
+        titleEl.className = "aturius-hist-title";
+        titleEl.textContent = title;
+        var timeEl = document.createElement("small");
+        timeEl.className = "aturius-hist-time";
+        timeEl.textContent = "Last modified " + formatAturiusChatTime(c.updatedAt);
+        item.appendChild(titleEl);
+        item.appendChild(timeEl);
+        item.onclick = function () {
+            setActiveAIChat(c.id);
+            currentChatFriend = AZORA_AI_ID;
+            renderAturiusMessages();
+            renderAturiusHistoryList();
+            var lab = document.getElementById("aturiusWithLabel");
+            if (lab) lab.textContent = (c.title || "Chat") + " · last modified " + formatAturiusChatTime(c.updatedAt);
+        };
+        box.appendChild(item);
+    });
+}
+
+/** Pending file/image attachment for next Aturius message (test feature) */
+var _aturiusPendingAttach = null;
+
+function aturiusClearPendingAttach() {
+    _aturiusPendingAttach = null;
+    var prev = document.getElementById("aturiusAttachPreview");
+    if (prev) {
+        prev.style.display = "none";
+        prev.innerHTML = "";
+    }
+    var inp = document.getElementById("aturiusFileInput");
+    if (inp) inp.value = "";
+}
+
+function aturiusHandleFilePick(ev) {
+    var file = ev && ev.target && ev.target.files && ev.target.files[0];
+    if (!file) return;
+    // Cap size ~2.5MB for localStorage safety
+    if (file.size > 2.5 * 1024 * 1024) {
+        alert("That file is too large for this test feature (max about 2.5 MB).");
+        ev.target.value = "";
+        return;
+    }
+    var reader = new FileReader();
+    reader.onload = function () {
+        var dataUrl = reader.result;
+        var att = {
+            name: file.name || "file",
+            type: file.type || "application/octet-stream",
+            size: file.size || 0,
+            isImage: !!(file.type && file.type.indexOf("image/") === 0),
+            dataUrl: dataUrl
+        };
+        // Optional dimension read for images
+        if (att.isImage) {
+            var img = new Image();
+            img.onload = function () {
+                att.width = img.naturalWidth || 0;
+                att.height = img.naturalHeight || 0;
+                _aturiusPendingAttach = att;
+                aturiusShowAttachPreview(att);
+            };
+            img.onerror = function () {
+                _aturiusPendingAttach = att;
+                aturiusShowAttachPreview(att);
+            };
+            img.src = dataUrl;
+        } else {
+            // Try text peek for text-like files
+            if (/text\/|json|csv|markdown|\.txt|\.md|\.csv|\.json|\.log/i.test(file.type + file.name)) {
+                try {
+                    var raw = atob(String(dataUrl).split(",")[1] || "");
+                    att.textPreview = raw.slice(0, 400);
+                } catch (e) {
+                    att.textPreview = "";
+                }
+            }
+            _aturiusPendingAttach = att;
+            aturiusShowAttachPreview(att);
+        }
+    };
+    reader.onerror = function () {
+        alert("Could not read that file.");
+    };
+    reader.readAsDataURL(file);
+}
+
+function aturiusShowAttachPreview(att) {
+    var prev = document.getElementById("aturiusAttachPreview");
+    if (!prev || !att) return;
+    prev.style.display = "flex";
+    prev.innerHTML = "";
+    if (att.isImage && att.dataUrl) {
+        var im = document.createElement("img");
+        im.src = att.dataUrl;
+        im.alt = att.name;
+        prev.appendChild(im);
+    } else {
+        var icon = document.createElement("div");
+        icon.className = "aturius-file-chip";
+        icon.textContent = "📄 " + att.name;
+        prev.appendChild(icon);
+    }
+    var meta = document.createElement("div");
+    meta.className = "aturius-attach-meta";
+    meta.textContent = att.name + (att.isImage && att.width ? " · " + att.width + "×" + att.height : "");
+    prev.appendChild(meta);
+    var clr = document.createElement("button");
+    clr.type = "button";
+    clr.className = "aturius-attach-clear";
+    clr.textContent = "✕";
+    clr.onclick = aturiusClearPendingAttach;
+    prev.appendChild(clr);
+}
+
+/** Keyword "vision" from filename + type (test — no external vision API) */
+function aturiusRecognizeAttachment(att) {
+    if (!att) return { summary: "an unknown file", tags: [] };
+    var name = String(att.name || "").toLowerCase();
+    var type = String(att.type || "").toLowerCase();
+    var tags = [];
+    var summary = "";
+    if (att.isImage || type.indexOf("image/") === 0) {
+        tags.push("image");
+        var guesses = [];
+        if (/cat|kitten|meow/.test(name)) guesses.push("a cat");
+        if (/dog|puppy/.test(name)) guesses.push("a dog");
+        if (/sky|cloud|sunset|sunrise/.test(name)) guesses.push("a sky or outdoor scene");
+        if (/city|town|building|street/.test(name)) guesses.push("a city or buildings");
+        if (/car|truck|vehicle/.test(name)) guesses.push("a vehicle");
+        if (/tree|forest|park|nature|leaf|grass/.test(name)) guesses.push("nature");
+        if (/house|home|room|interior/.test(name)) guesses.push("a house or interior");
+        if (/logo|icon|avatar|face|smile/.test(name)) guesses.push("a logo, icon, or face art");
+        if (/screenshot|screen|capture/.test(name)) guesses.push("a screenshot");
+        if (/map|level|game/.test(name)) guesses.push("a map or game-related image");
+        if (/food|pizza|cake|burger/.test(name)) guesses.push("food");
+        if (/person|people|human|selfie/.test(name)) guesses.push("a person");
+        if (/rainbow|color/.test(name)) guesses.push("colorful art");
+        if (!guesses.length) {
+            if (/\.png/.test(name)) guesses.push("a PNG picture (possibly art or a transparent graphic)");
+            else if (/\.jpe?g/.test(name)) guesses.push("a photo-style JPEG image");
+            else if (/\.gif/.test(name)) guesses.push("a GIF image");
+            else if (/\.webp/.test(name)) guesses.push("a WebP image");
+            else guesses.push("a picture");
+        }
+        summary = "I looked at your picture file named \"" + att.name + "\". It looks like " + guesses.join(" / ");
+        if (att.width && att.height) summary += " (about " + att.width + "×" + att.height + " pixels)";
+        summary += ". This is a test recognizer based on the file name and type — not a full vision AI.";
+        tags = tags.concat(guesses);
+    } else {
+        tags.push("file");
+        if (/\.json|json/.test(name + type)) {
+            summary = "This looks like a JSON data file (\"" + att.name + "\"). Often used for settings or game data.";
+            tags.push("json", "data");
+        } else if (/\.csv|csv/.test(name + type)) {
+            summary = "This looks like a CSV spreadsheet-style file (\"" + att.name + "\").";
+            tags.push("csv", "table");
+        } else if (/\.txt|\.md|text\//.test(name + type)) {
+            summary = "This looks like a text document (\"" + att.name + "\").";
+            if (att.textPreview) summary += " Peek: " + att.textPreview.slice(0, 120).replace(/\s+/g, " ") + (att.textPreview.length > 120 ? "…" : "");
+            tags.push("text");
+        } else if (/\.pdf/.test(name + type)) {
+            summary = "This looks like a PDF document (\"" + att.name + "\"). I can note the name, but I can't fully read PDF pages in this test mode.";
+            tags.push("pdf");
+        } else {
+            summary = "You shared a file named \"" + att.name + "\" (type: " + (att.type || "unknown") + ").";
+        }
+        summary += " Size about " + Math.max(1, Math.round((att.size || 0) / 1024)) + " KB.";
+    }
+    return { summary: summary, tags: tags };
+}
+
+function aturiusGenerateGameFromPrompt(promptText) {
+    var p = String(promptText || "").toLowerCase();
+    var theme = "adventure";
+    var title = "Aturius Game";
+    var dim = /\b3d\b/.test(p) ? "3D" : (/\b2d\b/.test(p) ? "2D" : (Math.random() > 0.5 ? "3D" : "2D"));
+    if (/\bcity|town|building/.test(p)) { theme = "city"; title = "City Explorer"; }
+    else if (/\bboat|ship|ocean|sea|sink/.test(p)) { theme = "boat"; title = "Boat Voyage"; }
+    else if (/\bparkour|jump|run|race/.test(p)) { theme = "parkour"; title = "Parkour Dash"; }
+    else if (/\bcat|kitten/.test(p)) { theme = "cat"; title = "Cat Adventure"; }
+    else if (/\bspace|planet|star/.test(p)) { theme = "space"; title = "Space Trek"; }
+    else if (/\bcollect|coin|gem/.test(p)) { theme = "collect"; title = "Collect Quest"; }
+    else if (/\bhouse|home|room/.test(p)) { theme = "house"; title = "House Visit"; }
+    else if (/\bempir|expand|build/.test(p)) { theme = "empire"; title = "Empire Grow"; }
+    else {
+        var words = String(promptText || "").trim().split(/\s+/).filter(Boolean).slice(0, 4);
+        if (words.length) title = words.map(function (w) { return w.charAt(0).toUpperCase() + w.slice(1); }).join(" ");
+        theme = "custom";
+    }
+    var id = "aturius_" + Date.now();
+    var game = {
+        id: id,
+        title: title,
+        theme: theme,
+        dim: dim,
+        prompt: String(promptText || "").slice(0, 200),
+        createdAt: Date.now(),
+        by: "Aturius"
+    };
+    try {
+        var list = JSON.parse(localStorage.getItem("azoraAturiusGames") || "[]");
+        if (!Array.isArray(list)) list = [];
+        list.unshift(game);
+        if (list.length > 30) list = list.slice(0, 30);
+        localStorage.setItem("azoraAturiusGames", JSON.stringify(list));
+    } catch (e) {}
+    return game;
+}
+
+function openAturiusGeneratedGame(gameId) {
+    var list = [];
+    try { list = JSON.parse(localStorage.getItem("azoraAturiusGames") || "[]"); } catch (e) {}
+    var g = null;
+    for (var i = 0; i < list.length; i++) if (list[i].id === gameId) { g = list[i]; break; }
+    if (!g) { alert("That generated game was not found."); return; }
+    var overlay = document.getElementById("aturiusGameOverlay");
+    if (!overlay) {
+        overlay = document.createElement("div");
+        overlay.id = "aturiusGameOverlay";
+        overlay.className = "aturius-game-overlay";
+        document.body.appendChild(overlay);
+    }
+    overlay.style.display = "flex";
+    var goal = "Explore and have fun!";
+    if (g.theme === "collect") goal = "Collect glowing orbs before time runs out!";
+    if (g.theme === "parkour") goal = "Jump across platforms — don't fall!";
+    if (g.theme === "boat") goal = "Steer clear of hazards on the water!";
+    if (g.theme === "city") goal = "Wander the blocky city streets!";
+    if (g.theme === "cat") goal = "You're a cat — explore and pounce!";
+    if (g.theme === "space") goal = "Fly between stars and stay on course!";
+    overlay.innerHTML =
+        "<div class=\"aturius-game-card\">" +
+        "<h2>" + String(g.title).replace(/</g, "") + "</h2>" +
+        "<p class=\"aturius-game-meta\">" + g.dim + " · theme: " + g.theme + " · by Aturius</p>" +
+        "<p>" + goal + "</p>" +
+        "<p class=\"aturius-game-prompt\">From prompt: \"" + String(g.prompt || "").replace(/</g, "").slice(0, 120) + "\"</p>" +
+        "<canvas id=\"aturiusMiniGameCanvas\" width=\"480\" height=\"280\"></canvas>" +
+        "<p class=\"aturius-game-hint\">Arrow keys / WASD move · Esc or Leave to exit</p>" +
+        "<button type=\"button\" class=\"aturius-game-leave\" onclick=\"closeAturiusGeneratedGame()\">Leave</button>" +
+        "</div>";
+    startAturiusMiniGame(g);
+}
+function closeAturiusGeneratedGame() {
+    try { if (window._aturiusMiniRAF) cancelAnimationFrame(window._aturiusMiniRAF); } catch (e) {}
+    window._aturiusMiniKeys = null;
+    var overlay = document.getElementById("aturiusGameOverlay");
+    if (overlay) overlay.style.display = "none";
+}
+function startAturiusMiniGame(g) {
+    var canvas = document.getElementById("aturiusMiniGameCanvas");
+    if (!canvas) return;
+    var ctx = canvas.getContext("2d");
+    var keys = {};
+    window._aturiusMiniKeys = keys;
+    function onKey(e, down) {
+        var k = (e.key || "").toLowerCase();
+        if (["arrowup","arrowdown","arrowleft","arrowright","w","a","s","d","escape"].indexOf(k) >= 0) e.preventDefault();
+        keys[k] = down;
+        if (k === "escape" && down) closeAturiusGeneratedGame();
+    }
+    window.onkeydown = function (e) { onKey(e, true); };
+    window.onkeyup = function (e) { onKey(e, false); };
+    var px = 240, py = 140, pr = 14;
+    var orbs = [];
+    for (var i = 0; i < 8; i++) orbs.push({ x: 40 + Math.random() * 400, y: 30 + Math.random() * 220, r: 8 + Math.random() * 6, got: false });
+    var score = 0;
+    var t0 = performance.now();
+    function col() {
+        if (g.theme === "space") return ["#0b1026", "#7c3aed", "#22d3ee"];
+        if (g.theme === "boat") return ["#0c4a6e", "#38bdf8", "#fbbf24"];
+        if (g.theme === "city") return ["#1e293b", "#94a3b8", "#f59e0b"];
+        if (g.theme === "cat") return ["#422006", "#f97316", "#fde68a"];
+        if (g.theme === "parkour") return ["#14532d", "#4ade80", "#fff"];
+        return ["#312e81", "#a78bfa", "#fbbf24"];
+    }
+    function tick(now) {
+        var c = col();
+        ctx.fillStyle = c[0];
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        var sp = 3.2;
+        if (keys["arrowleft"] || keys["a"]) px -= sp;
+        if (keys["arrowright"] || keys["d"]) px += sp;
+        if (keys["arrowup"] || keys["w"]) py -= sp;
+        if (keys["arrowdown"] || keys["s"]) py += sp;
+        px = Math.max(pr, Math.min(canvas.width - pr, px));
+        py = Math.max(pr, Math.min(canvas.height - pr, py));
+        orbs.forEach(function (o) {
+            if (o.got) return;
+            ctx.beginPath();
+            ctx.fillStyle = c[1];
+            ctx.arc(o.x, o.y, o.r, 0, Math.PI * 2);
+            ctx.fill();
+            var dx = o.x - px, dy = o.y - py;
+            if (dx * dx + dy * dy < (o.r + pr) * (o.r + pr)) { o.got = true; score++; }
+        });
+        ctx.beginPath();
+        ctx.fillStyle = c[2];
+        ctx.arc(px, py, pr, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = "#fff";
+        ctx.font = "14px sans-serif";
+        ctx.fillText(g.title + " · score " + score + "/" + orbs.length + " · " + g.dim, 10, 20);
+        if (score >= orbs.length) {
+            ctx.fillText("You collected them all! Nice work.", 10, 40);
+        }
+        window._aturiusMiniRAF = requestAnimationFrame(tick);
+    }
+    window._aturiusMiniRAF = requestAnimationFrame(tick);
+}
+window.openAturiusGeneratedGame = openAturiusGeneratedGame;
+window.closeAturiusGeneratedGame = closeAturiusGeneratedGame;
+window.aturiusHandleFilePick = aturiusHandleFilePick;
+window.renderAturiusHistoryList = renderAturiusHistoryList;
+
 function renderAturiusMessages() {
     var box = document.getElementById("aturiusMessages");
     if (!box) return;
     var chat = null;
     try { chat = getActiveAIChat(); } catch (e) {}
     var msgs = (chat && Array.isArray(chat.messages)) ? chat.messages : [];
-    // If still empty, show the default welcome so the panel is never blank
     if (!msgs.length) {
         msgs = [{ from: AZORA_AI_ID, text: ATURIUS_INTRO, at: Date.now(), isAI: true }];
         try {
@@ -11316,7 +11691,38 @@ function renderAturiusMessages() {
         var isAI = !!(m.isAI || m.from === AZORA_AI_ID || m.from === "__azora_ai__");
         var div = document.createElement("div");
         div.className = isAI ? "aturius-msg-ai" : "aturius-msg-me";
-        div.textContent = String(m.text || "");
+        if (m.text) {
+            var textNode = document.createElement("div");
+            textNode.textContent = String(m.text || "");
+            div.appendChild(textNode);
+        }
+        if (m.attachment) {
+            var attWrap = document.createElement("div");
+            attWrap.className = "aturius-msg-attach";
+            if (m.attachment.isImage && m.attachment.dataUrl) {
+                var im = document.createElement("img");
+                im.src = m.attachment.dataUrl;
+                im.alt = m.attachment.name || "image";
+                im.className = "aturius-msg-img";
+                attWrap.appendChild(im);
+            } else {
+                var chip = document.createElement("div");
+                chip.className = "aturius-file-chip";
+                chip.textContent = "📄 " + (m.attachment.name || "file");
+                attWrap.appendChild(chip);
+            }
+            div.appendChild(attWrap);
+        }
+        if (m.gameId) {
+            var playBtn = document.createElement("button");
+            playBtn.type = "button";
+            playBtn.className = "aturius-play-gen-btn";
+            playBtn.textContent = "▶ Play generated game";
+            playBtn.onclick = (function (gid) {
+                return function () { openAturiusGeneratedGame(gid); };
+            })(m.gameId);
+            div.appendChild(playBtn);
+        }
         box.appendChild(div);
     }
     box.scrollTop = box.scrollHeight;
@@ -11339,8 +11745,9 @@ function sendAturiusMessage() {
     var input = document.getElementById("aturiusInput");
     if (!input) return;
     var text = (input.value || "").trim();
-    if (!text) return;
-    if (typeof azoraAutoModerate === "function") {
+    var att = _aturiusPendingAttach;
+    if (!text && !att) return;
+    if (text && typeof azoraAutoModerate === "function") {
         var mod = azoraAutoModerate(text);
         if (!mod.ok) {
             alert(mod.reason || "Message blocked by moderation.");
@@ -11356,10 +11763,25 @@ function sendAturiusMessage() {
     var store = ensureActiveAIChat();
     var chat = getActiveAIChat();
     if (!chat.messages) chat.messages = [];
-    chat.messages.push({ from: me, text: text, at: Date.now(), isAI: false });
+    var msgObj = { from: me, text: text || (att ? ("Shared: " + att.name) : ""), at: Date.now(), isAI: false };
+    if (att) {
+        // Store lighter attachment copy (dataUrl included for preview test)
+        msgObj.attachment = {
+            name: att.name,
+            type: att.type,
+            size: att.size,
+            isImage: !!att.isImage,
+            width: att.width || 0,
+            height: att.height || 0,
+            dataUrl: att.dataUrl,
+            textPreview: att.textPreview || ""
+        };
+    }
+    chat.messages.push(msgObj);
     chat.updatedAt = Date.now();
-    if (!chat.title || /^Chat \d+$/.test(chat.title)) chat.title = text.slice(0, 24) || chat.title;
-    // Keep store in sync (getActiveAIChat returns reference into store)
+    if (!chat.title || /^Chat \d+$/.test(chat.title)) {
+        chat.title = (text || (att && att.name) || "Chat").slice(0, 24);
+    }
     try {
         for (var i = 0; i < store.chats.length; i++) {
             if (store.chats[i].id === store.activeId) {
@@ -11369,10 +11791,12 @@ function sendAturiusMessage() {
         }
     } catch (eS) {}
     saveAIChatStore(store);
+    aturiusClearPendingAttach();
     try { adjustAturiusFeelingFromMessage(text); } catch (eFeel) {}
     try { paintAturiusFace(); } catch (eFace) {}
     renderAturiusMessages();
-    scheduleAIReply(text, store.activeId);
+    renderAturiusHistoryList();
+    scheduleAIReply(text, store.activeId, msgObj.attachment || null);
 }
 
 function aturiusReadLastMessage() {

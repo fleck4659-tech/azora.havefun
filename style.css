@@ -6153,3 +6153,178 @@ html[data-theme="dark"] .azora-bg-wave { background: transparent; }
     background: linear-gradient(180deg, #34d399, #059669);
     color: #fff;
 }
+
+/* Aturius history sidebar + attachments + mini-game */
+.aturius-history-side {
+    width: min(200px, 34vw);
+    min-width: 140px;
+    max-height: min(70vh, 520px);
+    display: flex;
+    flex-direction: column;
+    background: rgba(0,0,0,0.35);
+    border-radius: 14px;
+    overflow: hidden;
+}
+.aturius-history-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 12px;
+    color: #fff;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+    font-size: 13px;
+}
+.aturius-hist-new {
+    border: none;
+    background: rgba(255,255,255,0.12);
+    color: #fff;
+    border-radius: 8px;
+    width: 28px;
+    height: 28px;
+    cursor: pointer;
+    font-size: 16px;
+}
+.aturius-history-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 6px;
+}
+.aturius-hist-item {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    width: 100%;
+    text-align: left;
+    gap: 2px;
+    border: none;
+    background: transparent;
+    color: #e2e8f0;
+    padding: 8px 10px;
+    border-radius: 10px;
+    cursor: pointer;
+    margin-bottom: 4px;
+}
+.aturius-hist-item:hover { background: rgba(255,255,255,0.08); }
+.aturius-hist-item.active {
+    background: rgba(251, 191, 36, 0.2);
+    outline: 1px solid rgba(251, 191, 36, 0.45);
+}
+.aturius-hist-title {
+    font-size: 12px;
+    font-weight: 700;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.aturius-hist-time {
+    font-size: 10px;
+    color: rgba(255,255,255,0.55);
+}
+.aturius-hist-empty {
+    color: rgba(255,255,255,0.5);
+    font-size: 11px;
+    padding: 8px;
+}
+.aturius-attach-btn {
+    border: none;
+    border-radius: 10px;
+    padding: 8px 12px;
+    font-weight: 700;
+    cursor: pointer;
+    background: linear-gradient(180deg, #a78bfa, #7c3aed);
+    color: #fff;
+}
+.aturius-attach-preview {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 6px 0;
+    padding: 8px;
+    background: rgba(255,255,255,0.08);
+    border-radius: 10px;
+    color: #fff;
+    font-size: 12px;
+}
+.aturius-attach-preview img {
+    width: 48px;
+    height: 48px;
+    object-fit: cover;
+    border-radius: 8px;
+}
+.aturius-attach-clear {
+    margin-left: auto;
+    border: none;
+    background: rgba(255,255,255,0.15);
+    color: #fff;
+    border-radius: 8px;
+    width: 28px;
+    height: 28px;
+    cursor: pointer;
+}
+.aturius-msg-attach { margin-top: 6px; }
+.aturius-msg-img {
+    max-width: min(220px, 70vw);
+    max-height: 160px;
+    border-radius: 10px;
+    display: block;
+}
+.aturius-file-chip {
+    display: inline-block;
+    padding: 6px 10px;
+    background: rgba(255,255,255,0.12);
+    border-radius: 8px;
+    font-size: 12px;
+}
+.aturius-play-gen-btn {
+    margin-top: 8px;
+    border: none;
+    border-radius: 10px;
+    padding: 8px 12px;
+    font-weight: 800;
+    cursor: pointer;
+    background: linear-gradient(180deg, #34d399, #059669);
+    color: #fff;
+}
+.aturius-game-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 99999;
+    background: rgba(0,0,0,0.72);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+}
+.aturius-game-card {
+    background: #0f172a;
+    color: #fff;
+    border-radius: 16px;
+    padding: 16px;
+    max-width: 520px;
+    width: 100%;
+    text-align: center;
+}
+.aturius-game-meta { color: #94a3b8; font-size: 12px; }
+.aturius-game-prompt { font-size: 12px; color: #cbd5e1; }
+.aturius-game-hint { font-size: 11px; color: #94a3b8; }
+#aturiusMiniGameCanvas {
+    width: 100%;
+    max-width: 480px;
+    height: auto;
+    border-radius: 12px;
+    margin: 8px 0;
+    background: #000;
+}
+.aturius-game-leave {
+    border: none;
+    border-radius: 10px;
+    padding: 10px 16px;
+    font-weight: 800;
+    cursor: pointer;
+    background: #ef4444;
+    color: #fff;
+}
+@media (max-width: 800px) {
+    .aturius-history-side { width: 100%; max-height: 140px; }
+}

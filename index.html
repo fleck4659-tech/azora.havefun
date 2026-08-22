@@ -853,6 +853,14 @@
         </div>
     </div>
     <div class="aturius-layout">
+        <!-- Left: conversation tabs by last modified -->
+        <aside class="aturius-history-side" id="aturiusHistorySide">
+            <div class="aturius-history-head">
+                <strong>Chats</strong>
+                <button type="button" class="aturius-hist-new" onclick="startNewAIChat(); renderAturiusMessages(); renderAturiusHistoryList();" title="New chat">＋</button>
+            </div>
+            <div class="aturius-history-list" id="aturiusHistoryList"></div>
+        </aside>
         <div class="aturius-stage">
             <canvas id="aturiusCanvas" width="280" height="280" aria-label="Aturius 3D sphere"></canvas>
             <p class="aturius-stage-hint" id="aturiusMoodLabel">Looking at you</p>
@@ -862,10 +870,13 @@
             <div class="chat-messages aturius-messages" id="aturiusMessages"></div>
             <div class="aturius-actions">
                 <button type="button" class="aturius-read-btn" id="aturiusReadBtn" onclick="aturiusReadLastMessage()">🔊 Read to me</button>
-                <button type="button" class="aturius-new-btn" onclick="startNewAIChat(); renderAturiusMessages();">＋ New chat</button>
+                <button type="button" class="aturius-new-btn" onclick="startNewAIChat(); renderAturiusMessages(); renderAturiusHistoryList();">＋ New chat</button>
+                <button type="button" class="aturius-attach-btn" onclick="document.getElementById('aturiusFileInput').click()">📎 Add file / picture</button>
+                <input type="file" id="aturiusFileInput" accept="image/*,.txt,.json,.csv,.md,.log,.pdf" style="display:none;" onchange="aturiusHandleFilePick(event)">
             </div>
+            <div id="aturiusAttachPreview" class="aturius-attach-preview" style="display:none;"></div>
             <div class="chat-input-row aturius-input-row">
-                <input type="text" id="aturiusInput" placeholder="Talk to Aturius..." onkeydown="if(event.key==='Enter')sendAturiusMessage()">
+                <input type="text" id="aturiusInput" placeholder="Talk to Aturius… or ask it to generate a game!" onkeydown="if(event.key==='Enter')sendAturiusMessage()">
                 <button type="button" onclick="sendAturiusMessage()">Send</button>
             </div>
         </div>
