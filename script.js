@@ -10962,52 +10962,47 @@ function paintAturiusFace() {
     var c = _aturiusFaceTex.image;
     var ctx = c.getContext("2d");
     var w = c.width, h = c.height;
+    // Clear PNG-style: transparent background, only eyes + mouth
     ctx.clearRect(0, 0, w, h);
 
     var thinking = _aturiusMood === "thinking";
     var talking = _aturiusMood === "talking";
 
-    // Soft yellow disc so face reads clearly ABOVE the sphere
-    ctx.fillStyle = "#ffcc00";
-    ctx.beginPath();
-    ctx.arc(w / 2, h / 2, w * 0.46, 0, Math.PI * 2);
-    ctx.fill();
-
-    // Oval eyes (black)
+    // Simple black oval eyes
     ctx.fillStyle = "#111111";
     var eyeY = thinking ? h * 0.40 : h * 0.38;
-    var eyeH = thinking ? h * 0.05 : h * 0.09;
+    var eyeRx = w * 0.085;
+    var eyeRy = thinking ? h * 0.04 : h * 0.095;
     ctx.beginPath();
-    ctx.ellipse(w * 0.35, eyeY, w * 0.09, eyeH, 0, 0, Math.PI * 2);
-    ctx.ellipse(w * 0.65, eyeY, w * 0.09, eyeH, 0, 0, Math.PI * 2);
+    ctx.ellipse(w * 0.34, eyeY, eyeRx, eyeRy, 0, 0, Math.PI * 2);
+    ctx.ellipse(w * 0.66, eyeY, eyeRx, eyeRy, 0, 0, Math.PI * 2);
     ctx.fill();
 
-    // Smile with oval ends; mouth opens while talking
+    // Simple smile only — curved line + small oval ends (no open mouth hole)
     ctx.strokeStyle = "#111111";
     ctx.fillStyle = "#111111";
-    ctx.lineWidth = Math.max(6, w * 0.04);
+    ctx.lineWidth = Math.max(7, w * 0.045);
     ctx.lineCap = "round";
-    var mouthY = h * 0.60;
-    var open = talking ? (0.06 + _aturiusMouthOpen * 0.14) : 0.02;
+    ctx.lineJoin = "round";
+    var mouthY = h * 0.58;
+    // Slightly deeper curve while "talking" but still a smile, not a hole
+    var drop = talking ? h * (0.11 + Math.min(0.08, _aturiusMouthOpen * 0.08)) : h * 0.12;
+
     if (thinking) {
         ctx.beginPath();
-        ctx.arc(w * 0.5, mouthY - h * 0.01, w * 0.14, 0.2 * Math.PI, 0.8 * Math.PI);
+        ctx.moveTo(w * 0.38, mouthY + h * 0.02);
+        ctx.quadraticCurveTo(w * 0.5, mouthY + h * 0.06, w * 0.62, mouthY + h * 0.02);
         ctx.stroke();
     } else {
         ctx.beginPath();
         ctx.moveTo(w * 0.30, mouthY);
-        ctx.quadraticCurveTo(w * 0.5, mouthY + h * (0.16 + open), w * 0.70, mouthY);
+        ctx.quadraticCurveTo(w * 0.5, mouthY + drop, w * 0.70, mouthY);
         ctx.stroke();
-        // oval smile ends
+        // Oval ends of the smile
         ctx.beginPath();
-        ctx.ellipse(w * 0.30, mouthY, w * 0.035, h * 0.03, 0, 0, Math.PI * 2);
-        ctx.ellipse(w * 0.70, mouthY, w * 0.035, h * 0.03, 0, 0, Math.PI * 2);
+        ctx.ellipse(w * 0.30, mouthY, w * 0.028, h * 0.022, 0, 0, Math.PI * 2);
+        ctx.ellipse(w * 0.70, mouthY, w * 0.028, h * 0.022, 0, 0, Math.PI * 2);
         ctx.fill();
-        if (talking && open > 0.05) {
-            ctx.beginPath();
-            ctx.ellipse(w * 0.5, mouthY + h * 0.05, w * 0.11, h * open, 0, 0, Math.PI * 2);
-            ctx.fill();
-        }
     }
     _aturiusFaceTex.needsUpdate = true;
 }
