@@ -10755,7 +10755,11 @@ var _aturiusAnimId = null;
 var _aturiusMood = "idle"; // idle | thinking | talking
 var _aturiusLookT = 0;
 var _aturiusMouthOpen = 0;
+/** Mouth shapes while talking (smile itself never moves — we switch shapes) */
+var _aturiusMouthShape = "smile"; // smile | line | o | oval | openTop | openBottom
+var _aturiusEyeStyle = "normal"; // normal | happy | lookUp | sad | mad
 var ATURIUS_INTRO = "Hello Azora Player! I'm Aturius! I can do things like join you, help you with things, and so much more! Explore around!";
+var _aturiusTalkShapes = ["o", "line", "oval", "openBottom", "o", "line", "openTop", "oval"];
 
 function openAturiusPanel() {
     var el = document.getElementById("aturiusOverlay");
@@ -10925,19 +10929,28 @@ function aturiusReadLastMessage() {
         u.rate = 1;
         u.pitch = 1.05;
         setAturiusMood("talking");
+        var shapeIdx = 0;
         var mouthTimer = setInterval(function () {
-            _aturiusMouthOpen = 0.35 + Math.random() * 0.55;
+            // Cycle mouth shapes by "sound" — smile default is never stretched
+            shapeIdx = (shapeIdx + 1) % _aturiusTalkShapes.length;
+            _aturiusMouthShape = _aturiusTalkShapes[shapeIdx];
+            // Occasional eye change while talking
+            if (shapeIdx % 5 === 0) _aturiusEyeStyle = "happy";
+            else if (shapeIdx % 7 === 0) _aturiusEyeStyle = "lookUp";
+            else _aturiusEyeStyle = "normal";
             try { paintAturiusFace(); } catch (e) {}
-        }, 90);
+        }, 120);
         u.onend = function () {
             clearInterval(mouthTimer);
-            _aturiusMouthOpen = 0;
+            _aturiusMouthShape = "smile";
+            _aturiusEyeStyle = "normal";
             setAturiusMood("idle");
             try { paintAturiusFace(); } catch (e2) {}
         };
         u.onerror = function () {
             clearInterval(mouthTimer);
-            _aturiusMouthOpen = 0;
+            _aturiusMouthShape = "smile";
+            _aturiusEyeStyle = "normal";
             setAturiusMood("idle");
         };
         window.speechSynthesis.speak(u);
@@ -10962,43 +10975,96 @@ function paintAturiusFace() {
     var c = _aturiusFaceTex.image;
     var ctx = c.getContext("2d");
     var w = c.width, h = c.height;
-    // Clear PNG-style: transparent background, only eyes + mouth
+    // Transparent PNG-style face: only eyes + mouth
     ctx.clearRect(0, 0, w, h);
 
     var thinking = _aturiusMood === "thinking";
     var talking = _aturiusMood === "talking";
+    var eyeStyle = talking ? (_aturiusEyeStyle || "normal") : (thinking ? "happy" : "normal");
+    var mouthShape = talking ? (_aturiusMouthShape || "o") : (thinking ? "line" : "smile");
 
-    // Simple black oval eyes
     ctx.fillStyle = "#111111";
-    var eyeY = thinking ? h * 0.40 : h * 0.38;
-    var eyeRx = w * 0.085;
-    var eyeRy = thinking ? h * 0.04 : h * 0.095;
-    ctx.beginPath();
-    ctx.ellipse(w * 0.34, eyeY, eyeRx, eyeRy, 0, 0, Math.PI * 2);
-    ctx.ellipse(w * 0.66, eyeY, eyeRx, eyeRy, 0, 0, Math.PI * 2);
-    ctx.fill();
-
-    // Simple smile only — curved line + small oval ends (no open mouth hole)
     ctx.strokeStyle = "#111111";
-    ctx.fillStyle = "#111111";
-    ctx.lineWidth = Math.max(7, w * 0.045);
     ctx.lineCap = "round";
     ctx.lineJoin = "round";
-    var mouthY = h * 0.58;
-    // Slightly deeper curve while "talking" but still a smile, not a hole
-    var drop = talking ? h * (0.11 + Math.min(0.08, _aturiusMouthOpen * 0.08)) : h * 0.12;
 
-    if (thinking) {
+    // ---- EYES (similar to your examples, drawn in code) ----
+    var lx = w * 0.34, rx = w * 0.66, eyeY = h * 0.38;
+    var eyeRx = w * 0.085, eyeRy = h * 0.095;
+    if (eyeStyle === "happy") {
+        // Closed happy curves (like )( sideways arcs)
+        ctx.lineWidth = Math.max(6, w * 0.04);
         ctx.beginPath();
-        ctx.moveTo(w * 0.38, mouthY + h * 0.02);
-        ctx.quadraticCurveTo(w * 0.5, mouthY + h * 0.06, w * 0.62, mouthY + h * 0.02);
+        ctx.moveTo(lx - eyeRx, eyeY);
+        ctx.quadraticCurveTo(lx, eyeY - eyeRy * 1.1, lx + eyeRx, eyeY);
+        ctx.moveTo(rx - eyeRx, eyeY);
+        ctx.quadraticCurveTo(rx, eyeY - eyeRy * 1.1, rx + eyeRx, eyeY);
         ctx.stroke();
+    } else if (eyeStyle === "lookUp") {
+        // Tall ovals pointing slightly up
+        ctx.beginPath();
+        ctx.ellipse(lx, eyeY - h * 0.02, eyeRx * 0.7, eyeRy * 1.15, -0.25, 0, Math.PI * 2);
+        ctx.ellipse(rx, eyeY - h * 0.02, eyeRx * 0.7, eyeRy * 1.15, 0.25, 0, Math.PI * 2);
+        ctx.fill();
+    } else if (eyeStyle === "sad") {
+        ctx.beginPath();
+        ctx.ellipse(lx, eyeY + h * 0.01, eyeRx * 0.75, eyeRy * 1.05, 0.35, 0, Math.PI * 2);
+        ctx.ellipse(rx, eyeY + h * 0.01, eyeRx * 0.75, eyeRy * 1.05, -0.35, 0, Math.PI * 2);
+        ctx.fill();
+    } else if (eyeStyle === "mad") {
+        ctx.beginPath();
+        ctx.ellipse(lx, eyeY, eyeRx * 0.75, eyeRy * 1.05, 0.4, 0, Math.PI * 2);
+        ctx.ellipse(rx, eyeY, eyeRx * 0.75, eyeRy * 1.05, -0.4, 0, Math.PI * 2);
+        ctx.fill();
     } else {
+        // Normal oval eyes
+        ctx.beginPath();
+        ctx.ellipse(lx, eyeY, eyeRx, eyeRy, 0, 0, Math.PI * 2);
+        ctx.ellipse(rx, eyeY, eyeRx, eyeRy, 0, 0, Math.PI * 2);
+        ctx.fill();
+    }
+
+    // ---- MOUTH (idle = fixed smile; talking = switch shapes, smile never morphs) ----
+    var mouthY = h * 0.60;
+    ctx.lineWidth = Math.max(7, w * 0.045);
+
+    if (mouthShape === "line") {
+        // Straight line
+        ctx.beginPath();
+        ctx.moveTo(w * 0.36, mouthY);
+        ctx.lineTo(w * 0.64, mouthY);
+        ctx.stroke();
+    } else if (mouthShape === "o") {
+        // Small circle
+        ctx.beginPath();
+        ctx.arc(w * 0.5, mouthY, w * 0.055, 0, Math.PI * 2);
+        ctx.fill();
+    } else if (mouthShape === "oval") {
+        // Wide oval
+        ctx.beginPath();
+        ctx.ellipse(w * 0.5, mouthY, w * 0.12, h * 0.07, 0, 0, Math.PI * 2);
+        ctx.fill();
+    } else if (mouthShape === "openTop") {
+        // Upper arc (open toward bottom) — filled semi shape
+        ctx.beginPath();
+        ctx.moveTo(w * 0.32, mouthY + h * 0.02);
+        ctx.quadraticCurveTo(w * 0.5, mouthY - h * 0.12, w * 0.68, mouthY + h * 0.02);
+        ctx.closePath();
+        ctx.fill();
+    } else if (mouthShape === "openBottom") {
+        // Lower smile-filled arc
+        ctx.beginPath();
+        ctx.moveTo(w * 0.30, mouthY - h * 0.02);
+        ctx.quadraticCurveTo(w * 0.5, mouthY + h * 0.14, w * 0.70, mouthY - h * 0.02);
+        ctx.closePath();
+        ctx.fill();
+    } else {
+        // Default idle smile — fixed curve + oval ends (never moves while talking)
+        var drop = h * 0.12;
         ctx.beginPath();
         ctx.moveTo(w * 0.30, mouthY);
         ctx.quadraticCurveTo(w * 0.5, mouthY + drop, w * 0.70, mouthY);
         ctx.stroke();
-        // Oval ends of the smile
         ctx.beginPath();
         ctx.ellipse(w * 0.30, mouthY, w * 0.028, h * 0.022, 0, 0, Math.PI * 2);
         ctx.ellipse(w * 0.70, mouthY, w * 0.028, h * 0.022, 0, 0, Math.PI * 2);
