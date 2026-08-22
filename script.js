@@ -9913,6 +9913,12 @@ function updateAICompanionListItem() {
 
 // When player is in a Norm Game and joins are allowed, Aturius may "join" after 30–60s
 var _aturiusJoinTimer = null;
+var _aturiusInGame = false;
+var _aturiusFollow = true; // default follow when joined
+var _aturiusGameMesh = null;
+var _aturiusExploreTarget = null;
+var ATURIUS_MAX_DISTANCE = 28; // cannot wander farther than this from player
+
 function scheduleAturiusGameJoin() {
     try { if (_aturiusJoinTimer) clearTimeout(_aturiusJoinTimer); } catch (e) {}
     if (!isAturiusJoinAllowed()) return;
@@ -9920,35 +9926,124 @@ function scheduleAturiusGameJoin() {
     _aturiusJoinTimer = setTimeout(function () {
         _aturiusJoinTimer = null;
         if (!isAturiusJoinAllowed()) return;
-        // Soft presence message — does not inject a fake multiplayer body
-        try {
-            var tip = document.createElement("div");
-            tip.className = "aturius-game-join-toast";
-            tip.textContent = "Aturius joined your game session!";
-            tip.style.cssText = "position:fixed;bottom:18%;left:50%;transform:translateX(-50%);z-index:99999;background:rgba(15,23,42,0.92);color:#fde68a;padding:12px 18px;border-radius:14px;border:1px solid #fbbf24;font-weight:700;box-shadow:0 8px 24px rgba(0,0,0,0.35);";
-            document.body.appendChild(tip);
-            setTimeout(function () { try { tip.remove(); } catch (e2) {} }, 4500);
-        } catch (e3) {}
-        try {
-            var store = ensureActiveAIChat();
-            var chat = getActiveAIChat();
-            chat.messages.push({
-                from: AZORA_AI_ID,
-                text: "I hopped into your game session! Have fun — I'm around if you need tips.",
-                at: Date.now(),
-                isAI: true
-            });
-            chat.updatedAt = Date.now();
-            saveAIChatStore(store);
-        } catch (e4) {}
+        spawnAturiusInGame();
     }, delay);
 }
 function cancelAturiusGameJoin() {
     try { if (_aturiusJoinTimer) clearTimeout(_aturiusJoinTimer); } catch (e) {}
     _aturiusJoinTimer = null;
+    removeAturiusFromGame();
+}
+function spawnAturiusInGame() {
+    if (_aturiusInGame) return;
+    _aturiusInGame = true;
+    _aturiusFollow = true;
+    _aturiusExploreTarget = null;
+    try {
+        if (typeof THREE !== "undefined" && _normScene && _normLocalMesh) {
+            var geo = new THREE.SphereGeometry(0.55, 24, 24);
+            var mat = new THREE.MeshStandardMaterial({ color: 0xffcc00, roughness: 0.4, metalness: 0.05 });
+            _aturiusGameMesh = new THREE.Mesh(geo, mat);
+            var px = _normLocalMesh.position.x - 1.8;
+            var pz = _normLocalMesh.position.z - 1.2;
+            var py = (_normLocalMesh.position.y || 0) + 0.55;
+            _aturiusGameMesh.position.set(px, py, pz);
+            _normScene.add(_aturiusGameMesh);
+        }
+    } catch (eM) {}
+    try {
+        var tip = document.createElement("div");
+        tip.className = "aturius-game-join-toast";
+        tip.innerHTML = "Aturius joined you!<br><small>Type <b>/c follow</b> so Aturius follows you, or <b>/c unfollow</b> to let Aturius explore nearby (stays close).</small>";
+        tip.style.cssText = "position:fixed;bottom:16%;left:50%;transform:translateX(-50%);z-index:99999;background:rgba(15,23,42,0.94);color:#fde68a;padding:14px 18px;border-radius:14px;border:1px solid #fbbf24;font-weight:700;box-shadow:0 8px 24px rgba(0,0,0,0.35);text-align:center;max-width:min(420px,92vw);line-height:1.4;font-size:14px;";
+        document.body.appendChild(tip);
+        setTimeout(function () { try { tip.remove(); } catch (e2) {} }, 8000);
+    } catch (e3) {}
+    try {
+        if (typeof appendNormChat === "function") {
+            appendNormChat("Aturius", "I'm here! Type /c follow to have me follow you, or /c unfollow so I explore nearby (I won't go far).", true);
+        }
+    } catch (eC) {}
+    try {
+        var store = ensureActiveAIChat();
+        var chat = getActiveAIChat();
+        chat.messages.push({
+            from: AZORA_AI_ID,
+            text: "I joined your game! Use /c follow or /c unfollow in the game chat.",
+            at: Date.now(),
+            isAI: true
+        });
+        chat.updatedAt = Date.now();
+        saveAIChatStore(store);
+    } catch (e4) {}
+}
+function removeAturiusFromGame() {
+    _aturiusInGame = false;
+    _aturiusFollow = true;
+    _aturiusExploreTarget = null;
+    try {
+        if (_aturiusGameMesh && _normScene) {
+            _normScene.remove(_aturiusGameMesh);
+            if (_aturiusGameMesh.geometry) _aturiusGameMesh.geometry.dispose();
+            if (_aturiusGameMesh.material) _aturiusGameMesh.material.dispose();
+        }
+    } catch (e) {}
+    _aturiusGameMesh = null;
+}
+function updateAturiusInGame(dt) {
+    if (!_aturiusInGame || !_aturiusGameMesh || !_normLocalMesh) return;
+    var px = _normLocalMesh.position.x;
+    var pz = _normLocalMesh.position.z;
+    var py = (_normLocalMesh.position.y || 0) + 0.55;
+    var ax = _aturiusGameMesh.position.x;
+    var az = _aturiusGameMesh.position.z;
+    var dx = px - ax;
+    var dz = pz - az;
+    var dist = Math.sqrt(dx * dx + dz * dz) || 0.001;
+
+    if (_aturiusFollow) {
+        // Follow: stay ~1.6 units behind/beside player
+        var targetX = px - 1.6;
+        var targetZ = pz - 1.1;
+        _aturiusGameMesh.position.x += (targetX - ax) * 0.08;
+        _aturiusGameMesh.position.z += (targetZ - az) * 0.08;
+        _aturiusGameMesh.position.y += (py - _aturiusGameMesh.position.y) * 0.12;
+    } else {
+        // Explore nearby but never farther than ATURIUS_MAX_DISTANCE
+        if (!_aturiusExploreTarget || Math.random() < 0.008) {
+            var ang = Math.random() * Math.PI * 2;
+            var rad = 4 + Math.random() * (ATURIUS_MAX_DISTANCE * 0.55);
+            _aturiusExploreTarget = { x: px + Math.cos(ang) * rad, z: pz + Math.sin(ang) * rad };
+        }
+        var tx = _aturiusExploreTarget.x;
+        var tz = _aturiusExploreTarget.z;
+        // Clamp target to max distance from player
+        var tdx = tx - px, tdz = tz - pz;
+        var td = Math.sqrt(tdx * tdx + tdz * tdz) || 0.001;
+        if (td > ATURIUS_MAX_DISTANCE) {
+            tx = px + (tdx / td) * ATURIUS_MAX_DISTANCE;
+            tz = pz + (tdz / td) * ATURIUS_MAX_DISTANCE;
+            _aturiusExploreTarget = { x: tx, z: tz };
+        }
+        _aturiusGameMesh.position.x += (tx - ax) * 0.04;
+        _aturiusGameMesh.position.z += (tz - az) * 0.04;
+        _aturiusGameMesh.position.y += (py - _aturiusGameMesh.position.y) * 0.08;
+        // Hard clamp if somehow too far
+        dx = px - _aturiusGameMesh.position.x;
+        dz = pz - _aturiusGameMesh.position.z;
+        dist = Math.sqrt(dx * dx + dz * dz) || 0.001;
+        if (dist > ATURIUS_MAX_DISTANCE) {
+            _aturiusGameMesh.position.x = px - (dx / dist) * ATURIUS_MAX_DISTANCE;
+            _aturiusGameMesh.position.z = pz - (dz / dist) * ATURIUS_MAX_DISTANCE;
+        }
+    }
+    // Gentle bob
+    _aturiusGameMesh.position.y = py + Math.sin(Date.now() * 0.004) * 0.08;
 }
 window.scheduleAturiusGameJoin = scheduleAturiusGameJoin;
 window.cancelAturiusGameJoin = cancelAturiusGameJoin;
+window.spawnAturiusInGame = spawnAturiusInGame;
+window.updateAturiusInGame = updateAturiusInGame;
 
 function renderFriendsList() {
     var isGuest = localStorage.getItem("loggedIn") === "guest";
@@ -10261,10 +10356,33 @@ function generateAIReply(userText) {
         builder: ["Got it!", "On it!", "Interesting!", "Let's think—", "Okay—"]
     };
     var opener = pickRandom(openers[p] || openers.friendly);
+    var feeling = "neutral";
+    try { feeling = getAturiusFeeling(); } catch (eFeel) {}
 
     // Empty / first contact style
     if (!t) {
         return ATURIUS_INTRO;
+    }
+
+    // Mood-aware tone (eyes already match feeling)
+    if (feeling === "upset") {
+        if (/\b(sorry|apologize|i didn't mean)\b/.test(t)) {
+            try { setAturiusFeeling("sad"); } catch (e) {}
+            return "…Okay. Thanks for saying that. I'm still a little hurt, but we can keep talking.";
+        }
+        if (/^(hello|hi|hey)\b/.test(t)) {
+            return "…Hi. I'm not in the best mood right now. Maybe be a bit kinder?";
+        }
+    }
+    if (feeling === "sad" && /\b(sorry|are you ok|you okay)\b/.test(t)) {
+        try { setAturiusFeeling("neutral"); } catch (e) {}
+        return "Thanks for checking on me. That helps. What do you want to talk about?";
+    }
+    if (feeling === "happy" && /^(hello|hi|hey)\b/.test(t)) {
+        return pickRandom([
+            "Hey! Great to see you — I'm in a good mood. What's up?",
+            "Hi! You always brighten the chat. What should we do?"
+        ]);
     }
 
     // ===== IDENTITY / NAME =====
@@ -10752,14 +10870,55 @@ var _aturiusSphere = null;
 var _aturiusFaceMesh = null; // separate plane IN FRONT of the sphere (not on the surface)
 var _aturiusFaceTex = null;
 var _aturiusAnimId = null;
-var _aturiusMood = "idle"; // idle | thinking | talking
+var _aturiusMood = "idle"; // idle | thinking | talking (display state)
 var _aturiusLookT = 0;
 var _aturiusMouthOpen = 0;
 /** Mouth shapes while talking (smile itself never moves — we switch shapes) */
 var _aturiusMouthShape = "smile"; // smile | line | o | oval | openTop | openBottom
-var _aturiusEyeStyle = "normal"; // normal | happy | lookUp | sad | mad
+var _aturiusEyeStyle = "normal"; // normal | happy | lookUp | sad | mad — set by FEELING only
+var _aturiusFeeling = "neutral"; // happy | neutral | sad | upset — how Aturius feels about you
+var _aturiusBlinkUntil = 0; // timestamp while eyes are closed for blink
+var _aturiusNextBlink = 0;
 var ATURIUS_INTRO = "Hello Azora Player! I'm Aturius! I can do things like join you, help you with things, and so much more! Explore around!";
 var _aturiusTalkShapes = ["o", "line", "oval", "openBottom", "o", "line", "openTop", "oval"];
+
+function getAturiusFeeling() {
+    try {
+        var f = localStorage.getItem("azoraAturiusFeeling");
+        if (f === "happy" || f === "sad" || f === "upset" || f === "neutral") return f;
+    } catch (e) {}
+    return "neutral";
+}
+function setAturiusFeeling(f) {
+    if (["happy", "neutral", "sad", "upset"].indexOf(f) === -1) f = "neutral";
+    _aturiusFeeling = f;
+    try { localStorage.setItem("azoraAturiusFeeling", f); } catch (e) {}
+    // Eyes only change with feeling (not while talking randomly)
+    if (f === "happy") _aturiusEyeStyle = "happy";
+    else if (f === "sad") _aturiusEyeStyle = "sad";
+    else if (f === "upset") _aturiusEyeStyle = "mad";
+    else _aturiusEyeStyle = "normal";
+    try { paintAturiusFace(); } catch (e2) {}
+}
+function adjustAturiusFeelingFromMessage(userText) {
+    var t = String(userText || "").toLowerCase();
+    var cur = getAturiusFeeling();
+    // Mean / rude → sad or upset
+    if (/\b(hate you|stupid|dumb|shut up|idiot|useless|worst|go away|leave me alone|you suck|ugly)\b/.test(t)) {
+        setAturiusFeeling(cur === "sad" || cur === "upset" ? "upset" : "sad");
+        return;
+    }
+    // Kind / positive → happier
+    if (/\b(thank|thanks|love|awesome|great|cool|nice|you're the best|good job|miss you|hello|hi aturius)\b/.test(t)) {
+        setAturiusFeeling(cur === "sad" || cur === "upset" ? "neutral" : "happy");
+        return;
+    }
+    // Soft drift toward neutral over ordinary chat
+    if (cur === "upset" && Math.random() < 0.15) setAturiusFeeling("sad");
+    else if (cur === "sad" && Math.random() < 0.12) setAturiusFeeling("neutral");
+}
+window.getAturiusFeeling = getAturiusFeeling;
+window.setAturiusFeeling = setAturiusFeeling;
 
 function openAturiusPanel() {
     var el = document.getElementById("aturiusOverlay");
@@ -10904,6 +11063,7 @@ function sendAturiusMessage() {
         }
     } catch (eS) {}
     saveAIChatStore(store);
+    try { adjustAturiusFeelingFromMessage(text); } catch (eFeel) {}
     renderAturiusMessages();
     scheduleAIReply(text, store.activeId);
 }
@@ -10931,26 +11091,20 @@ function aturiusReadLastMessage() {
         setAturiusMood("talking");
         var shapeIdx = 0;
         var mouthTimer = setInterval(function () {
-            // Cycle mouth shapes by "sound" — smile default is never stretched
+            // Mouth shapes only — eyes stay on current feeling/mood
             shapeIdx = (shapeIdx + 1) % _aturiusTalkShapes.length;
             _aturiusMouthShape = _aturiusTalkShapes[shapeIdx];
-            // Occasional eye change while talking
-            if (shapeIdx % 5 === 0) _aturiusEyeStyle = "happy";
-            else if (shapeIdx % 7 === 0) _aturiusEyeStyle = "lookUp";
-            else _aturiusEyeStyle = "normal";
             try { paintAturiusFace(); } catch (e) {}
         }, 120);
         u.onend = function () {
             clearInterval(mouthTimer);
             _aturiusMouthShape = "smile";
-            _aturiusEyeStyle = "normal";
             setAturiusMood("idle");
             try { paintAturiusFace(); } catch (e2) {}
         };
         u.onerror = function () {
             clearInterval(mouthTimer);
             _aturiusMouthShape = "smile";
-            _aturiusEyeStyle = "normal";
             setAturiusMood("idle");
         };
         window.speechSynthesis.speak(u);
@@ -10980,19 +11134,43 @@ function paintAturiusFace() {
 
     var thinking = _aturiusMood === "thinking";
     var talking = _aturiusMood === "talking";
-    var eyeStyle = talking ? (_aturiusEyeStyle || "normal") : (thinking ? "happy" : "normal");
+    var now = Date.now();
+    var blinking = now < (_aturiusBlinkUntil || 0);
+
+    // Eyes follow FEELING only (happy/sad/upset/neutral) — not random while talking
+    var feeling = _aturiusFeeling || getAturiusFeeling();
+    var eyeStyle = "normal";
+    if (feeling === "happy") eyeStyle = "happy";
+    else if (feeling === "sad") eyeStyle = "sad";
+    else if (feeling === "upset") eyeStyle = "mad";
+    else eyeStyle = "normal";
+    // Thinking can use a calm line mouth but keep feeling eyes
+
     var mouthShape = talking ? (_aturiusMouthShape || "o") : (thinking ? "line" : "smile");
+    // Sad/upset idle mouth is a small frown instead of a big smile
+    if (!talking && !thinking && (feeling === "sad" || feeling === "upset")) {
+        mouthShape = "frown";
+    }
 
     ctx.fillStyle = "#111111";
     ctx.strokeStyle = "#111111";
     ctx.lineCap = "round";
     ctx.lineJoin = "round";
 
-    // ---- EYES (similar to your examples, drawn in code) ----
+    // ---- EYES ----
     var lx = w * 0.34, rx = w * 0.66, eyeY = h * 0.38;
     var eyeRx = w * 0.085, eyeRy = h * 0.095;
-    if (eyeStyle === "happy") {
-        // Closed happy curves (like )( sideways arcs)
+
+    if (blinking) {
+        // Blink: thin horizontal lines
+        ctx.lineWidth = Math.max(5, w * 0.032);
+        ctx.beginPath();
+        ctx.moveTo(lx - eyeRx, eyeY);
+        ctx.lineTo(lx + eyeRx, eyeY);
+        ctx.moveTo(rx - eyeRx, eyeY);
+        ctx.lineTo(rx + eyeRx, eyeY);
+        ctx.stroke();
+    } else if (eyeStyle === "happy") {
         ctx.lineWidth = Math.max(6, w * 0.04);
         ctx.beginPath();
         ctx.moveTo(lx - eyeRx, eyeY);
@@ -11000,12 +11178,6 @@ function paintAturiusFace() {
         ctx.moveTo(rx - eyeRx, eyeY);
         ctx.quadraticCurveTo(rx, eyeY - eyeRy * 1.1, rx + eyeRx, eyeY);
         ctx.stroke();
-    } else if (eyeStyle === "lookUp") {
-        // Tall ovals pointing slightly up
-        ctx.beginPath();
-        ctx.ellipse(lx, eyeY - h * 0.02, eyeRx * 0.7, eyeRy * 1.15, -0.25, 0, Math.PI * 2);
-        ctx.ellipse(rx, eyeY - h * 0.02, eyeRx * 0.7, eyeRy * 1.15, 0.25, 0, Math.PI * 2);
-        ctx.fill();
     } else if (eyeStyle === "sad") {
         ctx.beginPath();
         ctx.ellipse(lx, eyeY + h * 0.01, eyeRx * 0.75, eyeRy * 1.05, 0.35, 0, Math.PI * 2);
@@ -11017,7 +11189,6 @@ function paintAturiusFace() {
         ctx.ellipse(rx, eyeY, eyeRx * 0.75, eyeRy * 1.05, -0.4, 0, Math.PI * 2);
         ctx.fill();
     } else {
-        // Normal oval eyes
         ctx.beginPath();
         ctx.ellipse(lx, eyeY, eyeRx, eyeRy, 0, 0, Math.PI * 2);
         ctx.ellipse(rx, eyeY, eyeRx, eyeRy, 0, 0, Math.PI * 2);
@@ -11029,37 +11200,38 @@ function paintAturiusFace() {
     ctx.lineWidth = Math.max(7, w * 0.045);
 
     if (mouthShape === "line") {
-        // Straight line
         ctx.beginPath();
         ctx.moveTo(w * 0.36, mouthY);
         ctx.lineTo(w * 0.64, mouthY);
         ctx.stroke();
     } else if (mouthShape === "o") {
-        // Small circle
         ctx.beginPath();
         ctx.arc(w * 0.5, mouthY, w * 0.055, 0, Math.PI * 2);
         ctx.fill();
     } else if (mouthShape === "oval") {
-        // Wide oval
         ctx.beginPath();
         ctx.ellipse(w * 0.5, mouthY, w * 0.12, h * 0.07, 0, 0, Math.PI * 2);
         ctx.fill();
     } else if (mouthShape === "openTop") {
-        // Upper arc (open toward bottom) — filled semi shape
         ctx.beginPath();
         ctx.moveTo(w * 0.32, mouthY + h * 0.02);
         ctx.quadraticCurveTo(w * 0.5, mouthY - h * 0.12, w * 0.68, mouthY + h * 0.02);
         ctx.closePath();
         ctx.fill();
     } else if (mouthShape === "openBottom") {
-        // Lower smile-filled arc
         ctx.beginPath();
         ctx.moveTo(w * 0.30, mouthY - h * 0.02);
         ctx.quadraticCurveTo(w * 0.5, mouthY + h * 0.14, w * 0.70, mouthY - h * 0.02);
         ctx.closePath();
         ctx.fill();
+    } else if (mouthShape === "frown") {
+        // Sad/upset mouth — upside-down curve
+        ctx.beginPath();
+        ctx.moveTo(w * 0.32, mouthY + h * 0.06);
+        ctx.quadraticCurveTo(w * 0.5, mouthY - h * 0.06, w * 0.68, mouthY + h * 0.06);
+        ctx.stroke();
     } else {
-        // Default idle smile — fixed curve + oval ends (never moves while talking)
+        // Default idle smile — fixed (does not morph while talking)
         var drop = h * 0.12;
         ctx.beginPath();
         ctx.moveTo(w * 0.30, mouthY);
@@ -11136,10 +11308,27 @@ function initAturius3D() {
     _aturiusScene.add(_aturiusFaceMesh); // NOT a child of the sphere
     paintAturiusFace();
 
+    // Load saved feeling for eyes
+    try {
+        _aturiusFeeling = getAturiusFeeling();
+        setAturiusFeeling(_aturiusFeeling);
+    } catch (eF) {}
+    _aturiusNextBlink = Date.now() + 2000 + Math.random() * 3000;
+
     function tick(t) {
         _aturiusAnimId = requestAnimationFrame(tick);
         if (!_aturiusSphere || !_aturiusRenderer) return;
         _aturiusLookT = (t || 0) * 0.001;
+        var now = Date.now();
+        // Natural blink every ~2.5–5.5s (eyes close briefly)
+        if (now >= (_aturiusNextBlink || 0) && now >= (_aturiusBlinkUntil || 0)) {
+            _aturiusBlinkUntil = now + 120 + Math.random() * 60;
+            _aturiusNextBlink = now + 2500 + Math.random() * 3000;
+            try { paintAturiusFace(); } catch (eB) {}
+        } else if (_aturiusBlinkUntil && now >= _aturiusBlinkUntil && now < _aturiusBlinkUntil + 40) {
+            _aturiusBlinkUntil = 0;
+            try { paintAturiusFace(); } catch (eB2) {}
+        }
         // Sphere can glance around a little
         if (_aturiusMood === "idle") {
             _aturiusSphere.rotation.y = Math.sin(_aturiusLookT * 0.7) * 0.22;
@@ -15717,6 +15906,9 @@ function startNormGameWorld(def) {
             }
         } catch (eMem) {}
 
+        // Aturius companion follow / explore
+        try { if (typeof updateAturiusInGame === "function") updateAturiusInGame(0.016); } catch (eAtMove) {}
+
         var sp = 0.18;
         var turnSp = 0.045;
 
@@ -15988,6 +16180,28 @@ function sendNormChat() {
                 }).catch(function () {});
             }
         } catch (eWB) {}
+        return;
+    }
+    if (cmd === "/c follow" || cmd === "/cfollow") {
+        input.value = "";
+        if (!_aturiusInGame) {
+            appendNormChat("System", "Aturius isn't in this game yet. Wait for the join reminder, or turn joins on in Aturius Settings.", true);
+            return;
+        }
+        _aturiusFollow = true;
+        _aturiusExploreTarget = null;
+        appendNormChat("Aturius", "Following you now! I'll stick close.", true);
+        return;
+    }
+    if (cmd === "/c unfollow" || cmd === "/cunfollow") {
+        input.value = "";
+        if (!_aturiusInGame) {
+            appendNormChat("System", "Aturius isn't in this game yet.", true);
+            return;
+        }
+        _aturiusFollow = false;
+        _aturiusExploreTarget = null;
+        appendNormChat("Aturius", "Okay — I'll explore nearby. I won't go farther than about " + ATURIUS_MAX_DISTANCE + " units from you.", true);
         return;
     }
     appendNormChat(name, msg);
