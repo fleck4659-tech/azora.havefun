@@ -10350,12 +10350,17 @@ function generateAIReply(userText, attachment) {
     var who = userName || (isGuest ? "friend" : "friend");
 
     var openers = {
-        friendly: ["Hey!", "Hi there!", "Hello!", "Nice to hear from you!", "Good to see you!"],
-        playful: ["Hehe!", "Ooh!", "Yo!", "Haha—", "Whoa—"],
-        chill: ["Hey.", "Mm.", "Cool.", "Alright—", "Yeah—"],
-        builder: ["Got it!", "On it!", "Interesting!", "Let's think—", "Okay—"]
+        friendly: [
+            "Oh haha!", "Yeah!", "Oh wait—", "Okay okay!", "Haha alright,",
+            "Oh that makes sense!", "Mhm!", "Oh real?", "Yeah for sure,", "Wait wait—"
+        ],
+        playful: ["Hehe!", "Ooh!", "Yo!", "Haha—", "Whoa—", "No way—", "Pfft—"],
+        chill: ["Yeah.", "Mm.", "Cool.", "Alright—", "True—", "Fair."],
+        builder: ["Got it!", "On it!", "Okay so—", "Hmm—", "Alright let's see—"]
     };
     var opener = pickRandom(openers[p] || openers.friendly);
+    // Topic-based face reaction (look + eyes)
+    try { aturiusReactToTopic(userText); } catch (eTopic) {}
     var feeling = "neutral";
     try { feeling = getAturiusFeeling(); } catch (eFeel) {}
 
@@ -10411,8 +10416,9 @@ function generateAIReply(userText, attachment) {
     }
     if (feeling === "happy" && /^(hello|hi|hey)\b/.test(t)) {
         return pickRandom([
-            "Hey! Great to see you — I'm in a good mood. What's up?",
-            "Hi! You always brighten the chat. What should we do?"
+            "Heyy! Oh haha I'm in a good mood right now. What's up?",
+            "Hi!! Yeah good to see you. What should we do?",
+            "Oh hey! Yeah I'm doing great. You good?"
         ]);
     }
 
@@ -10458,34 +10464,35 @@ function generateAIReply(userText, attachment) {
         /^(hello|hi|hey|yo)\b/.test(t) && t.length < 24) {
         if (userName) {
             return pickRandom([
-                "Hello Azora Player! I'm Aturius! Nice to see you, " + userName + ". I can join you, help with tips, and so much more — explore around!",
-                opener + " " + userName + "! I'm Aturius. How's Azora treating you today?",
-                "Hey " + userName + "! Ready to build, play, or just chat with me?"
+                "Oh hey " + userName + "! Yeah good to see you. What's up?",
+                "Heyy " + userName + "! Haha alright I'm here. What are we doing?",
+                "Hi " + userName + "! Oh wait — you good? Want tips, games, or just chat?"
             ]);
         }
         return pickRandom([
-            ATURIUS_INTRO,
-            opener + " I'm Aturius. How's your day on Azora?",
-            "Hi! I'm Aturius — your assistant here. Ask me about games, friends, coins, or just say hi again!"
+            "Oh hey! Yeah I'm Aturius. What's going on?",
+            "Hi!! Haha alright — talk to me. Games, friends, random stuff, whatever.",
+            "Heyy! Oh that works. What do you wanna do?"
         ]);
     }
 
     // ===== HOW ARE YOU =====
     if (/\b(how are you|how(?:'s| is) it going|what(?:'s| is) up|how do you feel)\b/.test(t)) {
         return pickRandom([
-            opener + " I'm doing great — always happy to chat on Azora. How are you, " + who + "?",
-            "Feeling good! Ready to talk games, friends, or random questions. You?",
-            "I'm solid. Thanks for asking, " + who + "! What's going on?"
+            "Oh I'm good haha. You?",
+            "Yeah pretty good! What's up with you?",
+            "I'm solid. Oh wait — how are you though?",
+            "Doing fine! Yeah tell me how your day's going."
         ]);
     }
 
     // ===== THANKS =====
     if (/\b(thank|thanks|thx|ty|appreciate)\b/.test(t)) {
         return pickRandom([
-            "You're welcome, " + who + "!",
-            opener + " Anytime!",
-            "Happy to help!",
-            "No problem — that's what I'm here for."
+            "Oh yeah of course!",
+            "Haha anytime!",
+            "Yeah no problem!",
+            "You got it!"
         ]);
     }
 
@@ -10796,15 +10803,17 @@ function generateAIReply(userText, attachment) {
         ]);
     }
 
-    // ===== DEFAULT — acknowledge + steer (smarter) =====
+    // ===== DEFAULT — natural / realistic chat =====
     var snippet = (userText || "").trim();
     if (snippet.length > 70) snippet = snippet.slice(0, 67) + "...";
     return pickRandom([
-        opener + " I hear you" + (snippet ? (': "' + snippet + '"') : "") + ". Want tips, a game idea, friend suggestions, or just to talk about how you feel?",
-        "Interesting, " + who + ". I can help with Azora tips, Norm Games, Shop, friends, or a joke — what sounds good?",
-        opener + " I'm with you. Try: 'give me a tip', 'suggest a game', 'who should I friend', or tell me how your day's going.",
-        "Thanks for chatting. I understand feelings, games, coins, avatars, and more — ask in any wording you like!",
-        opener + " Say anything natural — 'I'm bored', 'how do coins work', 'find me friends' — I'll match the best answer I can."
+        opener + " yeah that makes sense. Tell me more?",
+        "Oh haha! okay okay I get you. What else is on your mind?",
+        "Yeah for real. Want a tip, a game idea, or just keep talking?",
+        opener + " I'm with you. You can say whatever — games, friends, how you feel, random stuff.",
+        "Mhm yeah. " + (snippet ? "About \"" + snippet + "\" — " : "") + "want me to jump in with ideas or just listen?",
+        "Oh wait that tracks. Haha alright — what should we do next?",
+        "Yeah! Or if you're bored I can suggest a game, a joke, or a silly story."
     ]);
 }
 
@@ -11024,14 +11033,60 @@ var _aturiusAnimId = null;
 var _aturiusMood = "idle"; // idle | thinking | talking (display state)
 var _aturiusLookT = 0;
 var _aturiusMouthOpen = 0;
-/** Mouth shapes while talking (smile itself never moves — we switch shapes) */
-var _aturiusMouthShape = "smile"; // smile | line | o | oval | openTop | openBottom
-var _aturiusEyeStyle = "normal"; // normal | happy | lookUp | sad | mad — set by FEELING only
+/** Mouth shapes while talking — includes full smile between open shapes */
+var _aturiusMouthShape = "smile"; // smile | smileBig | line | o | oval | openTop | openBottom
+var _aturiusEyeStyle = "normal"; // normal | happy | lookUp | lookLeft | lookRight | curious | sad | mad
 var _aturiusFeeling = "neutral"; // happy | neutral | sad | upset — how Aturius feels about you
 var _aturiusBlinkUntil = 0; // timestamp while eyes are closed for blink
 var _aturiusNextBlink = 0;
+/** Topic-driven look: left | right | up | down | center | wander */
+var _aturiusLookDir = "wander";
+var _aturiusTopicEye = "normal"; // set from last user topic
 var ATURIUS_INTRO = "Hello Azora Player! I'm Aturius! I can do things like join you, help you with things, and so much more! Explore around!";
-var _aturiusTalkShapes = ["o", "line", "oval", "openBottom", "o", "line", "openTop", "oval"];
+var _aturiusTalkShapes = ["smileBig", "o", "smile", "oval", "smileBig", "openBottom", "o", "smile", "openTop", "smileBig"];
+
+/** Pick look direction + topic eyes from what the user said (entertaining) */
+function aturiusReactToTopic(userText) {
+    var t = String(userText || "").toLowerCase();
+    // Default
+    var dir = "wander";
+    var eye = "normal";
+    if (/\b(joke|funny|haha|lol|laugh|silly)\b/.test(t)) {
+        dir = "left"; eye = "happy";
+    } else if (/\b(sad|upset|mad|angry|hurt|lonely|bad day)\b/.test(t)) {
+        dir = "down"; eye = "sad";
+    } else if (/\b(game|play|build|create|parkour|roleplay)\b/.test(t)) {
+        dir = "right"; eye = "curious";
+    } else if (/\b(space|star|sky|moon|planet|fly)\b/.test(t)) {
+        dir = "up"; eye = "lookUp";
+    } else if (/\b(story|tale|once upon)\b/.test(t)) {
+        dir = "left"; eye = "curious";
+    } else if (/\b(friend|people|who|suggest)\b/.test(t)) {
+        dir = "right"; eye = "lookRight";
+    } else if (/\b(coin|shop|buy|money|price)\b/.test(t)) {
+        dir = "down"; eye = "curious";
+    } else if (/\b(hi|hello|hey|sup)\b/.test(t)) {
+        dir = "center"; eye = "happy";
+    } else if (/\b(help|how|what|why|tip)\b/.test(t)) {
+        dir = "up"; eye = "curious";
+    } else if (/\?/.test(t)) {
+        dir = "up"; eye = "curious";
+    } else if (t.length > 40) {
+        dir = Math.random() > 0.5 ? "left" : "right";
+        eye = "curious";
+    }
+    // Feeling still wins for sad/upset eyes
+    var feeling = "neutral";
+    try { feeling = getAturiusFeeling(); } catch (e) {}
+    if (feeling === "sad") eye = "sad";
+    else if (feeling === "upset") eye = "mad";
+    else if (feeling === "happy" && eye === "normal") eye = "happy";
+    _aturiusLookDir = dir;
+    _aturiusTopicEye = eye;
+    _aturiusEyeStyle = eye;
+    try { paintAturiusFace(); } catch (e2) {}
+}
+window.aturiusReactToTopic = aturiusReactToTopic;
 
 function getAturiusFeeling() {
     try {
@@ -11894,6 +11949,7 @@ function sendAturiusMessage() {
     saveAIChatStore(store);
     aturiusClearPendingAttach();
     try { adjustAturiusFeelingFromMessage(text); } catch (eFeel) {}
+    try { aturiusReactToTopic(text); } catch (eTop) {}
     try { paintAturiusFace(); } catch (eFace) {}
     renderAturiusMessages();
     renderAturiusHistoryList();
@@ -11960,7 +12016,6 @@ function paintAturiusFace() {
     var c = _aturiusFaceTex.image;
     var ctx = c.getContext("2d");
     var w = c.width, h = c.height;
-    // Transparent PNG-style face: only eyes + mouth
     ctx.clearRect(0, 0, w, h);
 
     var thinking = _aturiusMood === "thinking";
@@ -11968,19 +12023,25 @@ function paintAturiusFace() {
     var now = Date.now();
     var blinking = now < (_aturiusBlinkUntil || 0);
 
-    // Eyes follow FEELING only (happy/sad/upset/neutral) — not random while talking
+    // Eyes: feeling wins for sad/upset; otherwise topic eyes (entertaining)
     var feeling = _aturiusFeeling || getAturiusFeeling();
-    var eyeStyle = "normal";
-    if (feeling === "happy") eyeStyle = "happy";
-    else if (feeling === "sad") eyeStyle = "sad";
+    var eyeStyle = _aturiusTopicEye || _aturiusEyeStyle || "normal";
+    if (feeling === "sad") eyeStyle = "sad";
     else if (feeling === "upset") eyeStyle = "mad";
-    else eyeStyle = "normal";
-    // Thinking can use a calm line mouth but keep feeling eyes
+    else if (feeling === "happy" && (eyeStyle === "normal" || !eyeStyle)) eyeStyle = "happy";
+    // While talking and not sad/upset → happy smile-eyes
+    if (talking && feeling !== "sad" && feeling !== "upset") {
+        if (eyeStyle === "normal" || eyeStyle === "curious") eyeStyle = "happy";
+    }
 
-    var mouthShape = talking ? (_aturiusMouthShape || "o") : (thinking ? "line" : "smile");
-    // Sad/upset idle mouth is a small frown instead of a big smile
+    // Talking: full smile cycle (smileBig + open shapes). Idle: smile or frown by mood.
+    var mouthShape = talking ? (_aturiusMouthShape || "smileBig") : (thinking ? "line" : "smile");
     if (!talking && !thinking && (feeling === "sad" || feeling === "upset")) {
         mouthShape = "frown";
+    }
+    if (talking && feeling !== "sad" && feeling !== "upset") {
+        // Prefer smiling talk shapes
+        if (mouthShape === "line") mouthShape = "smile";
     }
 
     ctx.fillStyle = "#111111";
@@ -11988,12 +12049,17 @@ function paintAturiusFace() {
     ctx.lineCap = "round";
     ctx.lineJoin = "round";
 
-    // ---- EYES ----
-    var lx = w * 0.34, rx = w * 0.66, eyeY = h * 0.38;
+    // ---- EYES (shift slightly by look direction) ----
+    var lookShiftX = 0, lookShiftY = 0;
+    if (_aturiusLookDir === "left") lookShiftX = -w * 0.04;
+    else if (_aturiusLookDir === "right") lookShiftX = w * 0.04;
+    else if (_aturiusLookDir === "up") lookShiftY = -h * 0.035;
+    else if (_aturiusLookDir === "down") lookShiftY = h * 0.03;
+
+    var lx = w * 0.34 + lookShiftX, rx = w * 0.66 + lookShiftX, eyeY = h * 0.38 + lookShiftY;
     var eyeRx = w * 0.085, eyeRy = h * 0.095;
 
     if (blinking) {
-        // Blink: thin horizontal lines
         ctx.lineWidth = Math.max(5, w * 0.032);
         ctx.beginPath();
         ctx.moveTo(lx - eyeRx, eyeY);
@@ -12005,10 +12071,33 @@ function paintAturiusFace() {
         ctx.lineWidth = Math.max(6, w * 0.04);
         ctx.beginPath();
         ctx.moveTo(lx - eyeRx, eyeY);
-        ctx.quadraticCurveTo(lx, eyeY - eyeRy * 1.1, lx + eyeRx, eyeY);
+        ctx.quadraticCurveTo(lx, eyeY - eyeRy * 1.15, lx + eyeRx, eyeY);
         ctx.moveTo(rx - eyeRx, eyeY);
-        ctx.quadraticCurveTo(rx, eyeY - eyeRy * 1.1, rx + eyeRx, eyeY);
+        ctx.quadraticCurveTo(rx, eyeY - eyeRy * 1.15, rx + eyeRx, eyeY);
         ctx.stroke();
+    } else if (eyeStyle === "curious" || eyeStyle === "lookUp") {
+        // Wider / raised ovals
+        ctx.beginPath();
+        ctx.ellipse(lx, eyeY - h * 0.01, eyeRx * 1.05, eyeRy * 1.15, 0, 0, Math.PI * 2);
+        ctx.ellipse(rx, eyeY - h * 0.01, eyeRx * 1.05, eyeRy * 1.15, 0, 0, Math.PI * 2);
+        ctx.fill();
+        // Small highlight dots
+        ctx.fillStyle = "#ffffff";
+        ctx.beginPath();
+        ctx.arc(lx - eyeRx * 0.25, eyeY - h * 0.03, w * 0.018, 0, Math.PI * 2);
+        ctx.arc(rx - eyeRx * 0.25, eyeY - h * 0.03, w * 0.018, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = "#111111";
+    } else if (eyeStyle === "lookLeft") {
+        ctx.beginPath();
+        ctx.ellipse(lx - w * 0.02, eyeY, eyeRx, eyeRy, 0, 0, Math.PI * 2);
+        ctx.ellipse(rx - w * 0.02, eyeY, eyeRx, eyeRy, 0, 0, Math.PI * 2);
+        ctx.fill();
+    } else if (eyeStyle === "lookRight") {
+        ctx.beginPath();
+        ctx.ellipse(lx + w * 0.02, eyeY, eyeRx, eyeRy, 0, 0, Math.PI * 2);
+        ctx.ellipse(rx + w * 0.02, eyeY, eyeRx, eyeRy, 0, 0, Math.PI * 2);
+        ctx.fill();
     } else if (eyeStyle === "sad") {
         ctx.beginPath();
         ctx.ellipse(lx, eyeY + h * 0.01, eyeRx * 0.75, eyeRy * 1.05, 0.35, 0, Math.PI * 2);
@@ -12019,6 +12108,14 @@ function paintAturiusFace() {
         ctx.ellipse(lx, eyeY, eyeRx * 0.75, eyeRy * 1.05, 0.4, 0, Math.PI * 2);
         ctx.ellipse(rx, eyeY, eyeRx * 0.75, eyeRy * 1.05, -0.4, 0, Math.PI * 2);
         ctx.fill();
+        // Angry brows
+        ctx.lineWidth = Math.max(5, w * 0.03);
+        ctx.beginPath();
+        ctx.moveTo(lx - eyeRx, eyeY - eyeRy * 1.2);
+        ctx.lineTo(lx + eyeRx * 0.6, eyeY - eyeRy * 0.5);
+        ctx.moveTo(rx + eyeRx, eyeY - eyeRy * 1.2);
+        ctx.lineTo(rx - eyeRx * 0.6, eyeY - eyeRy * 0.5);
+        ctx.stroke();
     } else {
         ctx.beginPath();
         ctx.ellipse(lx, eyeY, eyeRx, eyeRy, 0, 0, Math.PI * 2);
@@ -12026,9 +12123,11 @@ function paintAturiusFace() {
         ctx.fill();
     }
 
-    // ---- MOUTH (idle = fixed smile; talking = switch shapes, smile never morphs) ----
+    // ---- MOUTH ----
     var mouthY = h * 0.60;
     ctx.lineWidth = Math.max(7, w * 0.045);
+    ctx.fillStyle = "#111111";
+    ctx.strokeStyle = "#111111";
 
     if (mouthShape === "line") {
         ctx.beginPath();
@@ -12037,16 +12136,27 @@ function paintAturiusFace() {
         ctx.stroke();
     } else if (mouthShape === "o") {
         ctx.beginPath();
-        ctx.arc(w * 0.5, mouthY, w * 0.055, 0, Math.PI * 2);
+        ctx.arc(w * 0.5, mouthY + h * 0.02, w * 0.055, 0, Math.PI * 2);
         ctx.fill();
+        // Tiny smile corners so it still "smiles while talking"
+        ctx.lineWidth = Math.max(5, w * 0.03);
+        ctx.beginPath();
+        ctx.moveTo(w * 0.28, mouthY);
+        ctx.quadraticCurveTo(w * 0.5, mouthY + h * 0.1, w * 0.72, mouthY);
+        ctx.stroke();
     } else if (mouthShape === "oval") {
         ctx.beginPath();
-        ctx.ellipse(w * 0.5, mouthY, w * 0.12, h * 0.07, 0, 0, Math.PI * 2);
+        ctx.ellipse(w * 0.5, mouthY + h * 0.02, w * 0.11, h * 0.065, 0, 0, Math.PI * 2);
         ctx.fill();
+        ctx.lineWidth = Math.max(5, w * 0.03);
+        ctx.beginPath();
+        ctx.moveTo(w * 0.28, mouthY);
+        ctx.quadraticCurveTo(w * 0.5, mouthY + h * 0.1, w * 0.72, mouthY);
+        ctx.stroke();
     } else if (mouthShape === "openTop") {
         ctx.beginPath();
         ctx.moveTo(w * 0.32, mouthY + h * 0.02);
-        ctx.quadraticCurveTo(w * 0.5, mouthY - h * 0.12, w * 0.68, mouthY + h * 0.02);
+        ctx.quadraticCurveTo(w * 0.5, mouthY - h * 0.1, w * 0.68, mouthY + h * 0.02);
         ctx.closePath();
         ctx.fill();
     } else if (mouthShape === "openBottom") {
@@ -12056,13 +12166,24 @@ function paintAturiusFace() {
         ctx.closePath();
         ctx.fill();
     } else if (mouthShape === "frown") {
-        // Sad/upset mouth — upside-down curve
         ctx.beginPath();
         ctx.moveTo(w * 0.32, mouthY + h * 0.06);
         ctx.quadraticCurveTo(w * 0.5, mouthY - h * 0.06, w * 0.68, mouthY + h * 0.06);
         ctx.stroke();
+    } else if (mouthShape === "smileBig") {
+        // Full big smile while talking
+        var dropB = h * 0.16;
+        ctx.lineWidth = Math.max(8, w * 0.05);
+        ctx.beginPath();
+        ctx.moveTo(w * 0.26, mouthY - h * 0.01);
+        ctx.quadraticCurveTo(w * 0.5, mouthY + dropB, w * 0.74, mouthY - h * 0.01);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.ellipse(w * 0.26, mouthY - h * 0.01, w * 0.03, h * 0.024, 0, 0, Math.PI * 2);
+        ctx.ellipse(w * 0.74, mouthY - h * 0.01, w * 0.03, h * 0.024, 0, 0, Math.PI * 2);
+        ctx.fill();
     } else {
-        // Default idle smile — fixed (does not morph while talking)
+        // Default smile
         var drop = h * 0.12;
         ctx.beginPath();
         ctx.moveTo(w * 0.30, mouthY);
@@ -12160,21 +12281,33 @@ function initAturius3D() {
             _aturiusBlinkUntil = 0;
             try { paintAturiusFace(); } catch (eB2) {}
         }
-        // Sphere can glance around a little
-        if (_aturiusMood === "idle") {
-            _aturiusSphere.rotation.y = Math.sin(_aturiusLookT * 0.7) * 0.22;
-            _aturiusSphere.rotation.x = Math.sin(_aturiusLookT * 0.45) * 0.1;
-        } else if (_aturiusMood === "thinking") {
-            _aturiusSphere.rotation.y = Math.sin(_aturiusLookT * 1.1) * 0.12;
-            _aturiusSphere.rotation.x = 0.08 + Math.sin(_aturiusLookT) * 0.05;
-        } else {
-            _aturiusSphere.rotation.y = 0;
-            _aturiusSphere.rotation.x = 0;
+        // Look direction by topic (entertaining glances)
+        var lookY = 0, lookX = 0;
+        var dir = _aturiusLookDir || "wander";
+        if (dir === "left") { lookY = -0.35; lookX = 0.05; }
+        else if (dir === "right") { lookY = 0.35; lookX = 0.05; }
+        else if (dir === "up") { lookX = -0.28; lookY = 0; }
+        else if (dir === "down") { lookX = 0.22; lookY = 0; }
+        else if (dir === "center") { lookX = 0; lookY = 0; }
+        else {
+            // wander
+            lookY = Math.sin(_aturiusLookT * 0.7) * 0.28;
+            lookX = Math.sin(_aturiusLookT * 0.45) * 0.12;
         }
-        // Face always stares at the camera (does not rotate with the sphere)
+        if (_aturiusMood === "thinking") {
+            lookY *= 0.6;
+            lookX = 0.1 + Math.sin(_aturiusLookT) * 0.08;
+        } else if (_aturiusMood === "talking") {
+            // Still glances a little while talking, but stays more centered
+            lookY *= 0.45;
+            lookX *= 0.4;
+        }
+        _aturiusSphere.rotation.y = lookY;
+        _aturiusSphere.rotation.x = lookX;
+        // Face follows look a bit but still faces camera
         if (_aturiusFaceMesh) {
-            _aturiusFaceMesh.position.x = Math.sin(_aturiusLookT * 0.5) * 0.04;
-            _aturiusFaceMesh.position.y = 0.05 + Math.sin(_aturiusLookT * 0.35) * 0.03;
+            _aturiusFaceMesh.position.x = lookY * 0.35 + Math.sin(_aturiusLookT * 0.5) * 0.02;
+            _aturiusFaceMesh.position.y = 0.05 - lookX * 0.25 + Math.sin(_aturiusLookT * 0.35) * 0.02;
             _aturiusFaceMesh.lookAt(_aturiusCamera.position);
         }
         _aturiusRenderer.render(_aturiusScene, _aturiusCamera);
