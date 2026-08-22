@@ -11043,7 +11043,8 @@ var _aturiusNextBlink = 0;
 var _aturiusLookDir = "wander";
 var _aturiusTopicEye = "normal"; // set from last user topic
 var ATURIUS_INTRO = "Hello Azora Player! I'm Aturius! I can do things like join you, help you with things, and so much more! Explore around!";
-var _aturiusTalkShapes = ["smileBig", "o", "smile", "oval", "smileBig", "openBottom", "o", "smile", "openTop", "smileBig"];
+// Mouth shapes from your drawings: solid circle, wide oval, smile curve
+var _aturiusTalkShapes = ["o", "oval", "smile", "o", "smileBig", "oval", "smile", "o", "oval", "smileBig"];
 
 /** Pick look direction + topic eyes from what the user said (entertaining) */
 function aturiusReactToTopic(userText) {
@@ -11226,7 +11227,7 @@ function testAturiusVoice() {
     if (isNaN(pitch)) pitch = 1;
     pitch = Math.max(0.1, Math.min(5, pitch));
     window.speechSynthesis.cancel();
-    var u = new SpeechSynthesisUtterance("Hello! Love to work with you.");
+    var u = new SpeechSynthesisUtterance("The quick brown fox jumps over the lazy dog");
     u.pitch = pitch;
     u.rate = 1;
     try {
@@ -12129,70 +12130,51 @@ function paintAturiusFace() {
     ctx.fillStyle = "#111111";
     ctx.strokeStyle = "#111111";
 
+    // Mouth shapes match reference: solid circle, wide oval, thick smile curve
     if (mouthShape === "line") {
         ctx.beginPath();
         ctx.moveTo(w * 0.36, mouthY);
         ctx.lineTo(w * 0.64, mouthY);
         ctx.stroke();
     } else if (mouthShape === "o") {
+        // Small solid circle (like reference dot)
         ctx.beginPath();
-        ctx.arc(w * 0.5, mouthY + h * 0.02, w * 0.055, 0, Math.PI * 2);
+        ctx.arc(w * 0.5, mouthY + h * 0.02, w * 0.07, 0, Math.PI * 2);
         ctx.fill();
-        // Tiny smile corners so it still "smiles while talking"
-        ctx.lineWidth = Math.max(5, w * 0.03);
-        ctx.beginPath();
-        ctx.moveTo(w * 0.28, mouthY);
-        ctx.quadraticCurveTo(w * 0.5, mouthY + h * 0.1, w * 0.72, mouthY);
-        ctx.stroke();
     } else if (mouthShape === "oval") {
+        // Wide solid horizontal oval (like reference oval)
         ctx.beginPath();
-        ctx.ellipse(w * 0.5, mouthY + h * 0.02, w * 0.11, h * 0.065, 0, 0, Math.PI * 2);
+        ctx.ellipse(w * 0.5, mouthY + h * 0.02, w * 0.16, h * 0.055, 0, 0, Math.PI * 2);
         ctx.fill();
-        ctx.lineWidth = Math.max(5, w * 0.03);
-        ctx.beginPath();
-        ctx.moveTo(w * 0.28, mouthY);
-        ctx.quadraticCurveTo(w * 0.5, mouthY + h * 0.1, w * 0.72, mouthY);
-        ctx.stroke();
     } else if (mouthShape === "openTop") {
         ctx.beginPath();
-        ctx.moveTo(w * 0.32, mouthY + h * 0.02);
-        ctx.quadraticCurveTo(w * 0.5, mouthY - h * 0.1, w * 0.68, mouthY + h * 0.02);
-        ctx.closePath();
+        ctx.ellipse(w * 0.5, mouthY, w * 0.12, h * 0.08, 0, 0, Math.PI * 2);
         ctx.fill();
     } else if (mouthShape === "openBottom") {
         ctx.beginPath();
-        ctx.moveTo(w * 0.30, mouthY - h * 0.02);
-        ctx.quadraticCurveTo(w * 0.5, mouthY + h * 0.14, w * 0.70, mouthY - h * 0.02);
-        ctx.closePath();
+        ctx.ellipse(w * 0.5, mouthY + h * 0.03, w * 0.14, h * 0.09, 0, 0, Math.PI * 2);
         ctx.fill();
     } else if (mouthShape === "frown") {
+        // Mood: sad/upset — inverted curve
+        ctx.lineWidth = Math.max(10, w * 0.055);
         ctx.beginPath();
-        ctx.moveTo(w * 0.32, mouthY + h * 0.06);
-        ctx.quadraticCurveTo(w * 0.5, mouthY - h * 0.06, w * 0.68, mouthY + h * 0.06);
+        ctx.moveTo(w * 0.30, mouthY + h * 0.08);
+        ctx.quadraticCurveTo(w * 0.5, mouthY - h * 0.08, w * 0.70, mouthY + h * 0.08);
         ctx.stroke();
     } else if (mouthShape === "smileBig") {
-        // Full big smile while talking
-        var dropB = h * 0.16;
-        ctx.lineWidth = Math.max(8, w * 0.05);
+        // Thick filled smile arc (reference smile, bigger)
+        ctx.lineWidth = Math.max(14, w * 0.07);
         ctx.beginPath();
-        ctx.moveTo(w * 0.26, mouthY - h * 0.01);
-        ctx.quadraticCurveTo(w * 0.5, mouthY + dropB, w * 0.74, mouthY - h * 0.01);
+        ctx.moveTo(w * 0.26, mouthY);
+        ctx.quadraticCurveTo(w * 0.5, mouthY + h * 0.2, w * 0.74, mouthY);
         ctx.stroke();
-        ctx.beginPath();
-        ctx.ellipse(w * 0.26, mouthY - h * 0.01, w * 0.03, h * 0.024, 0, 0, Math.PI * 2);
-        ctx.ellipse(w * 0.74, mouthY - h * 0.01, w * 0.03, h * 0.024, 0, 0, Math.PI * 2);
-        ctx.fill();
     } else {
-        // Default smile
-        var drop = h * 0.12;
+        // Default smile curve (reference smile)
+        ctx.lineWidth = Math.max(12, w * 0.06);
         ctx.beginPath();
-        ctx.moveTo(w * 0.30, mouthY);
-        ctx.quadraticCurveTo(w * 0.5, mouthY + drop, w * 0.70, mouthY);
+        ctx.moveTo(w * 0.28, mouthY);
+        ctx.quadraticCurveTo(w * 0.5, mouthY + h * 0.16, w * 0.72, mouthY);
         ctx.stroke();
-        ctx.beginPath();
-        ctx.ellipse(w * 0.30, mouthY, w * 0.028, h * 0.022, 0, 0, Math.PI * 2);
-        ctx.ellipse(w * 0.70, mouthY, w * 0.028, h * 0.022, 0, 0, Math.PI * 2);
-        ctx.fill();
     }
     _aturiusFaceTex.needsUpdate = true;
 }
