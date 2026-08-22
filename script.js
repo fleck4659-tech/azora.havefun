@@ -1791,12 +1791,29 @@ function setLoggedInAccount(account) {
         }
     }
     try { localStorage.setItem("azoraCoins", String(account.coins || 0)); } catch (eC) {}
+    // Stamp last login / lastSeen so profiles never show "Unknown"
+    try {
+        account.lastLogin = Date.now();
+        account.lastSeen = account.lastLogin;
+        account.updatedAt = account.lastLogin;
+        var mapLL = typeof getSavedAccounts === "function" ? getSavedAccounts() : {};
+        if (account.username && mapLL[account.username]) {
+            mapLL[account.username].lastLogin = account.lastLogin;
+            mapLL[account.username].lastSeen = account.lastSeen;
+            mapLL[account.username].updatedAt = account.updatedAt;
+            if (typeof saveSavedAccounts === "function") saveSavedAccounts(mapLL);
+        }
+    } catch (eLL) {}
     // Save session FIRST so isAzoraOwner() works for grants below
     localStorage.setItem("azoraAccount", JSON.stringify(account));
     localStorage.setItem("loggedIn", "true");
     try {
         if (typeof persistActiveAccount === "function") persistActiveAccount(account);
     } catch (eP) {}
+    try {
+        if (typeof writeFirebasePresence === "function") writeFirebasePresence("online");
+        if (typeof startPresenceHeartbeat === "function") startPresenceHeartbeat();
+    } catch (ePresLogin) {}
     // ONLY the official Azora owner gets the full catalog — never alts
     try {
         if (account.isOwner || (typeof isOwnerUsername === "function" && isOwnerUsername(account.username))) {
@@ -9205,13 +9222,15 @@ function openUserProfile(username) {
     function applyProfilePresenceUI(pres) {
         var st = "offline";
         var lastSeen = 0;
-        if (pres && pres.lastSeen) {
-            lastSeen = Number(pres.lastSeen) || 0;
-            if (lastSeen && (Date.now() - lastSeen) <= PRESENCE_ONLINE_WINDOW_MS) st = "online";
-        } else if (isUserCurrentlyOnlineSync(username)) {
-            st = "online";
-            lastSeen = getPresenceLastSeenSync(username);
+        // Prefer cloud / callback payload
+        if (pres) {
+            lastSeen = Number(pres.lastSeen || pres.updatedAt || 0) || 0;
         }
+        // Merge with best local knowledge (cache, status, account)
+        var localBest = 0;
+        try { localBest = getPresenceLastSeenSync(username) || 0; } catch (eL) {}
+        if (localBest > lastSeen) lastSeen = localBest;
+        if (lastSeen && (Date.now() - lastSeen) <= PRESENCE_ONLINE_WINDOW_MS) st = "online";
         // Viewing yourself while logged in → always Online
         try {
             var meSelf = typeof getMyUsername === "function" ? getMyUsername() : null;
@@ -9226,13 +9245,23 @@ function openUserProfile(username) {
         }
         var lastEl = document.getElementById("profileLastOnline");
         if (lastEl) {
-            lastEl.textContent = st === "online" ? "Online now" : formatLastOnline(lastSeen);
+            if (st === "online") {
+                lastEl.textContent = "Online now";
+            } else if (lastSeen > 0) {
+                lastEl.textContent = formatLastOnline(lastSeen);
+            } else if (joinedAt && typeof joinedAt === "number" && joinedAt > 0) {
+                // Never had a presence ping — use join date as earliest known activity
+                lastEl.textContent = formatLastOnline(joinedAt);
+            } else {
+                lastEl.textContent = "Never";
+            }
         }
         var joinedEl = document.getElementById("profileJoinedDate");
         if (joinedEl) {
             joinedEl.textContent = formatJoinedDate(joinedAt);
         }
     }
+    // Instant paint from local data (no more blank "Unknown")
     applyProfilePresenceUI(null);
     try {
         if (typeof fetchFirebasePresence === "function") {
@@ -9242,6 +9271,21 @@ function openUserProfile(username) {
             });
         }
     } catch (ePres) {}
+    // Second pass a moment later in case heartbeat just wrote
+    try {
+        setTimeout(function () {
+            if (openUserProfile._activeUsername !== username) return;
+            applyProfilePresenceUI(null);
+            try {
+                if (typeof fetchFirebasePresence === "function") {
+                    fetchFirebasePresence(username, function (pres) {
+                        if (openUserProfile._activeUsername !== username) return;
+                        applyProfilePresenceUI(pres);
+                    });
+                }
+            } catch (e2) {}
+        }, 1200);
+    } catch (eT) {}
 
     // Bio (below status)
     var profiles = getProfileData();
@@ -9564,14 +9608,15 @@ function startNewAIChat() {
     store.chats.unshift({
         id: id,
         title: "Chat " + n,
-        messages: [],
+        messages: [{ from: AZORA_AI_ID, text: ATURIUS_INTRO, at: Date.now(), isAI: true }],
         updatedAt: Date.now()
     });
     store.activeId = id;
     currentAIChatId = id;
     saveAIChatStore(store);
-    selectChatFriend(AZORA_AI_ID);
-    renderAIChatHistoryList();
+    currentChatFriend = AZORA_AI_ID;
+    try { renderAturiusMessages(); } catch (e) {}
+    try { renderAIChatHistoryList(); } catch (e2) {}
 }
 function deleteAIChat(id, ev) {
     if (ev) ev.stopPropagation();
@@ -9718,25 +9763,30 @@ window.closeChatArchives = closeChatArchives;
 
 function getAICompanion() {
     var def = {
-        name: "Aza",
+        name: "Aturius",
         personality: "friendly",
         head: "#ffcc00",
-        body: "#a78bfa",
-        accent: "#00ebd4",
+        body: "#ffcc00",
+        accent: "#111111",
         apiKey: "",
-        useOpenEnded: true
+        useOpenEnded: true,
+        allowJoinGames: true
     };
     try {
         var saved = JSON.parse(localStorage.getItem("azoraAICompanion") || "null");
         if (saved && typeof saved === "object") {
+            var nm = (saved.name || def.name).toString().slice(0, 24);
+            // Migrate old default name "Aza" → Aturius
+            if (!saved.name || String(saved.name).toLowerCase() === "aza") nm = "Aturius";
             return {
-                name: (saved.name || def.name).toString().slice(0, 24),
+                name: nm,
                 personality: saved.personality || def.personality,
                 head: saved.head || def.head,
                 body: saved.body || def.body,
                 accent: saved.accent || def.accent,
                 apiKey: saved.apiKey || localStorage.getItem("azoraAIApiKey") || "",
-                useOpenEnded: saved.useOpenEnded !== false
+                useOpenEnded: saved.useOpenEnded !== false,
+                allowJoinGames: saved.allowJoinGames !== false
             };
         }
     } catch (e) {}
@@ -9748,43 +9798,32 @@ function saveAICompanion(data) {
     localStorage.setItem("azoraAICompanion", JSON.stringify(data));
 }
 
+function isAturiusJoinAllowed() {
+    try {
+        var ai = getAICompanion();
+        return ai.allowJoinGames !== false;
+    } catch (e) { return true; }
+}
+
+function saveAturiusJoinSetting(on) {
+    var ai = getAICompanion();
+    ai.allowJoinGames = !!on;
+    ai.name = "Aturius";
+    saveAICompanion(ai);
+    var note = document.getElementById("aturiusJoinNote");
+    if (note) note.innerHTML = "Joins are <strong>" + (on ? "ON" : "OFF") + "</strong>.";
+}
+
 function isAIChat() {
     return currentChatFriend === AZORA_AI_ID;
 }
 
 function openAICompanionSettings() {
-    var ai = getAICompanion();
-    document.getElementById("aiCompName").value = ai.name;
-    document.getElementById("aiCompPersonality").value = ai.personality;
-    document.getElementById("aiCompHead").value = ai.head;
-    document.getElementById("aiCompBody").value = ai.body;
-    document.getElementById("aiCompAccent").value = ai.accent;
-    var keyEl = document.getElementById("aiCompApiKey");
-    if (keyEl) keyEl.value = ai.apiKey || "";
-    var useEl = document.getElementById("aiCompUseOpenAI");
-    if (useEl) useEl.checked = ai.useOpenEnded !== false;
-    var st = document.getElementById("aiApiStatus");
-    if (st) {
-        if (ai.useOpenEnded === false) {
-            st.textContent = "Open-ended AI is turned off. Only simple replies will be used.";
-            st.style.color = "#666";
-        } else if (ai.apiKey) {
-            st.textContent = "Open-ended AI: Gemini key saved (this device).";
-            st.style.color = "#059669";
-        } else {
-            st.textContent = "Open-ended AI: free mode (no key needed).";
-            st.style.color = "#059669";
-        }
+    // AI lives in Aturius panel now
+    try { openAturiusPanel(); setAturiusTab("settings"); } catch (e) {
+        var el = document.getElementById("aiCompanionOverlay");
+        if (el) el.style.display = "flex";
     }
-    updateAICompanionPreview();
-    ["aiCompHead", "aiCompBody", "aiCompAccent"].forEach(function (id) {
-        var el = document.getElementById(id);
-        if (el && !el._bound) {
-            el._bound = true;
-            el.addEventListener("input", updateAICompanionPreview);
-        }
-    });
-    document.getElementById("aiCompanionOverlay").style.display = "flex";
 }
 
 function updateAICompanionPreview() {
@@ -9842,21 +9881,21 @@ function openChatPanel() {
         return;
     }
     document.getElementById("chatOverlay").style.display = "flex";
-    ensureActiveAIChat();
-    // Sync friends / requests from Firebase before drawing list
+    // Friends chat only — AI is in Aturius panel now
     try {
         refreshCloudSocial(function () {
             renderFriendsList();
-            renderAIChatHistoryList();
         });
         startCloudSocialPolling();
         startCloudChatPolling();
     } catch (e) {}
     renderFriendsList();
-    renderAIChatHistoryList();
     try { updateChatBadge(); } catch (eB0) {}
-    // Default: open AI companion (available to accounts and guests)
-    selectChatFriend(AZORA_AI_ID);
+    if (currentChatFriend === AZORA_AI_ID) currentChatFriend = null;
+    var label = document.getElementById("chatWithLabel");
+    if (label && !currentChatFriend) label.textContent = "Select a friend to chat";
+    var row = document.getElementById("chatInputRow");
+    if (row && !currentChatFriend) row.style.display = "none";
 }
 
 function closeChatPanel() {
@@ -9869,48 +9908,47 @@ function closeChatPanel() {
 }
 
 function updateAICompanionListItem() {
-    var ai = getAICompanion();
-    var item = document.getElementById("aiCompanionListItem");
-    var nameEl = document.getElementById("aiCompanionListName");
-    var slot = document.getElementById("aiChatSlot");
-    if (nameEl) nameEl.textContent = ai.name || "Aza";
-    if (item) {
-        item.className = "friend-item ai-companion" + (currentChatFriend === AZORA_AI_ID ? " active" : "");
-        item.onclick = function () { selectChatFriend(AZORA_AI_ID); };
-        var av = item.querySelector(".friend-avatar");
-        if (av) {
-            av.className = "friend-avatar ai-face";
-            av.style.setProperty("--ai-head", ai.head || "#ffcc00");
-            av.style.setProperty("--ai-body", ai.body || "#a78bfa");
-            av.style.background = "linear-gradient(135deg, " + (ai.head || "#ffcc00") + ", " + (ai.body || "#a78bfa") + ")";
-            av.textContent = "AI";
-        }
-        // ensure meta text under name
-        var meta = item.querySelector(".friend-meta");
-        if (meta) {
-            var small = meta.querySelector("small");
-            if (small) {
-            try {
-                var ac = getActiveAIChat();
-                var ts = ac && ac.updatedAt ? ac.updatedAt : null;
-                if (ac && ac.messages && ac.messages.length && ac.messages[ac.messages.length - 1].at) {
-                    ts = ac.messages[ac.messages.length - 1].at;
-                }
-                small.textContent = formatLastTalked(ts);
-            } catch (e) {
-                small.textContent = "AI Companion · Tap to chat";
-            }
-        }
-        }
-    } else if (slot) {
-        // recreate if missing
-        slot.innerHTML =
-            '<div class="friend-item ai-companion' + (currentChatFriend === AZORA_AI_ID ? " active" : "") + '" id="aiCompanionListItem" onclick="selectChatFriend(\'__azora_ai__\')">' +
-            '<div class="friend-avatar ai-face" style="background:linear-gradient(135deg,' + (ai.head || "#ffcc00") + ',' + (ai.body || "#a78bfa") + ')">AI</div>' +
-            '<div class="friend-meta"><span id="aiCompanionListName">' + escapeHtml(ai.name || "Aza") + '</span>' +
-            '<small>AI Companion · Tap to chat</small></div></div>';
-    }
+    // AI companion removed from Chat — lives in Aturius panel
 }
+
+// When player is in a Norm Game and joins are allowed, Aturius may "join" after 30–60s
+var _aturiusJoinTimer = null;
+function scheduleAturiusGameJoin() {
+    try { if (_aturiusJoinTimer) clearTimeout(_aturiusJoinTimer); } catch (e) {}
+    if (!isAturiusJoinAllowed()) return;
+    var delay = 30000 + Math.floor(Math.random() * 30000);
+    _aturiusJoinTimer = setTimeout(function () {
+        _aturiusJoinTimer = null;
+        if (!isAturiusJoinAllowed()) return;
+        // Soft presence message — does not inject a fake multiplayer body
+        try {
+            var tip = document.createElement("div");
+            tip.className = "aturius-game-join-toast";
+            tip.textContent = "Aturius joined your game session!";
+            tip.style.cssText = "position:fixed;bottom:18%;left:50%;transform:translateX(-50%);z-index:99999;background:rgba(15,23,42,0.92);color:#fde68a;padding:12px 18px;border-radius:14px;border:1px solid #fbbf24;font-weight:700;box-shadow:0 8px 24px rgba(0,0,0,0.35);";
+            document.body.appendChild(tip);
+            setTimeout(function () { try { tip.remove(); } catch (e2) {} }, 4500);
+        } catch (e3) {}
+        try {
+            var store = ensureActiveAIChat();
+            var chat = getActiveAIChat();
+            chat.messages.push({
+                from: AZORA_AI_ID,
+                text: "I hopped into your game session! Have fun — I'm around if you need tips.",
+                at: Date.now(),
+                isAI: true
+            });
+            chat.updatedAt = Date.now();
+            saveAIChatStore(store);
+        } catch (e4) {}
+    }, delay);
+}
+function cancelAturiusGameJoin() {
+    try { if (_aturiusJoinTimer) clearTimeout(_aturiusJoinTimer); } catch (e) {}
+    _aturiusJoinTimer = null;
+}
+window.scheduleAturiusGameJoin = scheduleAturiusGameJoin;
+window.cancelAturiusGameJoin = cancelAturiusGameJoin;
 
 function renderFriendsList() {
     var isGuest = localStorage.getItem("loggedIn") === "guest";
@@ -10208,7 +10246,7 @@ function getChatUserContext() {
 function generateAIReply(userText) {
     var ai = getAICompanion();
     var t = (userText || "").toLowerCase().trim();
-    var name = ai.name || "Aza";
+    var name = "Aturius";
     var p = ai.personality || "friendly";
     var ctx = getChatUserContext();
     var userName = ctx.userName;
@@ -10217,12 +10255,17 @@ function generateAIReply(userText) {
     var who = userName || (isGuest ? "friend" : "friend");
 
     var openers = {
-        friendly: ["Hey!", "Hi there!", "Hello!", "Nice to hear from you!"],
-        playful: ["Hehe!", "Ooh!", "Yo!", "Haha—"],
-        chill: ["Hey.", "Mm.", "Cool.", "Alright—"],
-        builder: ["Got it!", "On it!", "Interesting!", "Let's think—"]
+        friendly: ["Hey!", "Hi there!", "Hello!", "Nice to hear from you!", "Good to see you!"],
+        playful: ["Hehe!", "Ooh!", "Yo!", "Haha—", "Whoa—"],
+        chill: ["Hey.", "Mm.", "Cool.", "Alright—", "Yeah—"],
+        builder: ["Got it!", "On it!", "Interesting!", "Let's think—", "Okay—"]
     };
     var opener = pickRandom(openers[p] || openers.friendly);
+
+    // Empty / first contact style
+    if (!t) {
+        return ATURIUS_INTRO;
+    }
 
     // ===== IDENTITY / NAME =====
     if (/\b(my name|what(?:'s| is) my name|who am i|what(?:'s| is) my username|my username|do you know (?:my )?name|what do you call me)\b/.test(t) ||
@@ -10239,12 +10282,22 @@ function generateAIReply(userText) {
             "Easy — you're " + userName + "!" + (userId ? " (" + userId + ")" : "")
         ]);
     }
-    if (/\b(your name|who are you|what(?:'s| is) your name|what are you called)\b/.test(t)) {
+    if (/\b(your name|who are you|what(?:'s| is) your name|what are you called|aturius)\b/.test(t)) {
         return pickRandom([
-            "I'm " + name + ", your AI companion on Azora! You can rename me in Customize AI.",
-            "My name is " + name + ". I'm here to chat, help with Azora tips, and keep you company!",
-            "I'm " + name + " — built into Azora Chat just for you."
+            "I'm Aturius — your AI assistant on Azora! I can chat, give tips, and even join your games if you leave that setting on.",
+            "My name is Aturius. I'm the yellow sphere buddy who stares at the screen and helps you explore Azora.",
+            "I'm Aturius! Open me from the Aturius button anytime. I can help with Azora features, jokes, and more."
         ]);
+    }
+    if (/\b(join me|join (my |the )?game|come (play|join)|can you join)\b/.test(t)) {
+        if (isAturiusJoinAllowed()) {
+            return pickRandom([
+                "Yep! Joins are on. When you're in a Norm Game, I may pop in after about 30–60 seconds.",
+                "I can join you in games. Keep \"Allow Aturius to join my games\" on in my Settings tab, then hop into a Norm Game!",
+                "Sure thing — with joins enabled I'll try to meet you in-game within about half a minute to a minute."
+            ]);
+        }
+        return "Joins are turned off right now. Open Aturius → Settings and toggle \"Allow Aturius to join my games\" back on.";
     }
     if (/\b(my (user )?id|what(?:'s| is) my id)\b/.test(t)) {
         if (userId) return opener + " Your public User ID is " + userId + ".";
@@ -10256,15 +10309,15 @@ function generateAIReply(userText) {
         /^(hello|hi|hey|yo)\b/.test(t) && t.length < 24) {
         if (userName) {
             return pickRandom([
-                opener + " " + userName + "! How's Azora treating you today?",
-                "Hey " + userName + "! I'm " + name + ". What do you want to talk about?",
-                "Hi " + userName + "! Ready to build, play, or just chat?"
+                "Hello Azora Player! I'm Aturius! Nice to see you, " + userName + ". I can join you, help with tips, and so much more — explore around!",
+                opener + " " + userName + "! I'm Aturius. How's Azora treating you today?",
+                "Hey " + userName + "! Ready to build, play, or just chat with me?"
             ]);
         }
         return pickRandom([
-            opener + " I'm " + name + ". How's your day?",
-            "Hey! Welcome to Azora Chat. What's up?",
-            "Hi! I'm " + name + " — your companion here. Say anything!"
+            ATURIUS_INTRO,
+            opener + " I'm Aturius. How's your day on Azora?",
+            "Hi! I'm Aturius — your assistant here. Ask me about games, friends, coins, or just say hi again!"
         ]);
     }
 
@@ -10341,8 +10394,17 @@ function generateAIReply(userText) {
     if (/\b(notification|bell)\b/.test(t)) {
         return "The bell icon shows important alerts — follows, friend requests, game milestones, and events. Tap it to open your notification list.";
     }
-    if (/\b(status|online|afk|busy)\b/.test(t)) {
-        return "Your profile can show a status like Online, AFK, Building, Playing, Busy, or Offline. AFK and Offline can update after you are inactive for a while.";
+    if (/\b(status|online|afk|busy|last online)\b/.test(t)) {
+        return "Profiles now show live Online or Offline from presence. You can also see Last online and Joined date at the bottom of a profile. Manual AFK/Busy statuses were removed.";
+    }
+    if (/\b(marketplace|shop|t-?shirt|hair|face|inventory|bag)\b/.test(t)) {
+        return "Open Shop for hair, faces, and T-shirts. Inventory (Bag) is where you equip items you own. Creators can upload free T-shirts; Azora takes a small cut on sales at higher prices.";
+    }
+    if (/\b(norm game|roleplay|multiplayer)\b/.test(t)) {
+        return "Norm Games are multiplayer servers you join from the Games section. Quick Games on Feed are short solo experiences. Friends and chat work best in Norm Games.";
+    }
+    if (/\b(help|what can you do|commands)\b/.test(t)) {
+        return "I can answer Azora questions (rules, coins, games, avatars, friends), tell jokes, chat, and — if joins are on — meet you in a Norm Game after 30–60 seconds. Tap Read to me to hear my last reply out loud!";
     }
 
 
@@ -10654,16 +10716,16 @@ function scheduleAIReply(userText, aiChatId) {
         clearTimeout(chatAiReplyTimer);
         chatAiReplyTimer = null;
     }
-    showChatTyping();
+    try { showAturiusTyping(true); } catch (eT) {}
+    try { setAturiusMood("thinking"); } catch (eM) {}
+    try { showChatTyping(); } catch (eC) {}
 
     var delay = aiReplyDelayMs(userText);
     chatAiReplyTimer = setTimeout(function () {
         chatAiReplyTimer = null;
-        if (currentChatFriend !== AZORA_AI_ID) {
-            clearChatTyping();
-            return;
-        }
-        clearChatTyping();
+        try { showAturiusTyping(false); } catch (eT2) {}
+        try { clearChatTyping(); } catch (eC2) {}
+        try { setAturiusMood("idle"); } catch (eM2) {}
         var reply = generateAIReply(userText);
         var store = getAIChatStore();
         var chat = null;
@@ -10674,11 +10736,319 @@ function scheduleAIReply(userText, aiChatId) {
         chat.messages.push({ from: AZORA_AI_ID, text: reply, at: Date.now(), isAI: true });
         chat.updatedAt = Date.now();
         saveAIChatStore(store);
-        renderChatMessages();
-        renderAIChatHistoryList();
-        clearChatTyping();
+        try { renderAturiusMessages(); } catch (eR) {}
+        try { if (typeof renderChatMessages === "function" && currentChatFriend === AZORA_AI_ID) renderChatMessages(); } catch (eR2) {}
+        try { if (typeof renderAIChatHistoryList === "function") renderAIChatHistoryList(); } catch (eH) {}
     }, delay);
 }
+
+// ============================================================
+// Aturius — standalone AI panel + 3D sphere character
+// ============================================================
+var _aturiusScene = null;
+var _aturiusRenderer = null;
+var _aturiusCamera = null;
+var _aturiusSphere = null;
+var _aturiusFaceTex = null;
+var _aturiusAnimId = null;
+var _aturiusMood = "idle"; // idle | thinking | talking
+var _aturiusLookT = 0;
+var _aturiusMouthOpen = 0;
+var ATURIUS_INTRO = "Hello Azora Player! I'm Aturius! I can do things like join you, help you with things, and so much more! Explore around!";
+
+function openAturiusPanel() {
+    var el = document.getElementById("aturiusOverlay");
+    if (!el) return;
+    el.style.display = "flex";
+    currentChatFriend = AZORA_AI_ID;
+    ensureActiveAIChat();
+    // Ensure intro exists once per device
+    try {
+        var chat = getActiveAIChat();
+        if (chat && (!chat.messages || !chat.messages.length)) {
+            chat.messages = [{ from: AZORA_AI_ID, text: ATURIUS_INTRO, at: Date.now(), isAI: true }];
+            chat.updatedAt = Date.now();
+            var store = getAIChatStore();
+            saveAIChatStore(store);
+        }
+    } catch (eI) {}
+    setAturiusTab("chat");
+    renderAturiusMessages();
+    var ai = getAICompanion();
+    var toggle = document.getElementById("aturiusJoinToggle");
+    if (toggle) toggle.checked = ai.allowJoinGames !== false;
+    var note = document.getElementById("aturiusJoinNote");
+    if (note) note.innerHTML = "Joins are <strong>" + (ai.allowJoinGames !== false ? "ON" : "OFF") + "</strong> by default.";
+    var label = document.getElementById("aturiusWithLabel");
+    if (label) label.textContent = "Chat with Aturius";
+    initAturius3D();
+    setAturiusMood("idle");
+}
+
+function closeAturiusPanel() {
+    var el = document.getElementById("aturiusOverlay");
+    if (el) el.style.display = "none";
+    try {
+        if (window.speechSynthesis) window.speechSynthesis.cancel();
+    } catch (e) {}
+    setAturiusMood("idle");
+    _aturiusMouthOpen = 0;
+}
+
+function setAturiusTab(tab) {
+    var chatPane = document.getElementById("aturiusChatPane");
+    var setPane = document.getElementById("aturiusSettingsPane");
+    var tChat = document.getElementById("aturiusTabChat");
+    var tSet = document.getElementById("aturiusTabSettings");
+    if (tab === "settings") {
+        if (chatPane) chatPane.style.display = "none";
+        if (setPane) setPane.style.display = "block";
+        if (tChat) tChat.classList.remove("active");
+        if (tSet) tSet.classList.add("active");
+    } else {
+        if (chatPane) chatPane.style.display = "flex";
+        if (setPane) setPane.style.display = "none";
+        if (tChat) tChat.classList.add("active");
+        if (tSet) tSet.classList.remove("active");
+    }
+}
+
+function renderAturiusMessages() {
+    var box = document.getElementById("aturiusMessages");
+    if (!box) return;
+    var chat = getActiveAIChat();
+    var msgs = (chat && chat.messages) ? chat.messages : [];
+    var html = "";
+    for (var i = 0; i < msgs.length; i++) {
+        var m = msgs[i];
+        var isAI = m.isAI || m.from === AZORA_AI_ID;
+        html += '<div class="' + (isAI ? "aturius-msg-ai" : "aturius-msg-me") + '">' +
+            escapeHtml(String(m.text || "")) + "</div>";
+    }
+    box.innerHTML = html;
+    box.scrollTop = box.scrollHeight;
+}
+
+function showAturiusTyping(on) {
+    var box = document.getElementById("aturiusMessages");
+    if (!box) return;
+    var existing = box.querySelector(".aturius-typing");
+    if (existing) existing.remove();
+    if (!on) return;
+    var div = document.createElement("div");
+    div.className = "aturius-typing aturius-msg-ai";
+    div.innerHTML = "<span></span><span></span><span></span>";
+    box.appendChild(div);
+    box.scrollTop = box.scrollHeight;
+}
+
+function sendAturiusMessage() {
+    var input = document.getElementById("aturiusInput");
+    if (!input) return;
+    var text = (input.value || "").trim();
+    if (!text) return;
+    if (typeof azoraAutoModerate === "function") {
+        var mod = azoraAutoModerate(text);
+        if (!mod.ok) {
+            alert(mod.reason || "Message blocked by moderation.");
+            return;
+        }
+    }
+    input.value = "";
+    currentChatFriend = AZORA_AI_ID;
+    var me = (typeof getChatSenderId === "function" && getChatSenderId()) || getMyUsername() || "Player";
+    var store = ensureActiveAIChat();
+    var chat = getActiveAIChat();
+    chat.messages.push({ from: me, text: text, at: Date.now() });
+    chat.updatedAt = Date.now();
+    if (!chat.title || /^Chat \d+$/.test(chat.title)) chat.title = text.slice(0, 24) || chat.title;
+    saveAIChatStore(store);
+    renderAturiusMessages();
+    scheduleAIReply(text, store.activeId);
+}
+
+function aturiusReadLastMessage() {
+    var chat = getActiveAIChat();
+    if (!chat || !chat.messages || !chat.messages.length) return;
+    var last = null;
+    for (var i = chat.messages.length - 1; i >= 0; i--) {
+        if (chat.messages[i].isAI || chat.messages[i].from === AZORA_AI_ID) {
+            last = chat.messages[i];
+            break;
+        }
+    }
+    if (!last || !last.text) return;
+    try {
+        if (!window.speechSynthesis) {
+            alert("Read to me is not supported on this device.");
+            return;
+        }
+        window.speechSynthesis.cancel();
+        var u = new SpeechSynthesisUtterance(String(last.text));
+        u.rate = 1;
+        u.pitch = 1.05;
+        setAturiusMood("talking");
+        var mouthTimer = setInterval(function () {
+            _aturiusMouthOpen = 0.35 + Math.random() * 0.55;
+            try { paintAturiusFace(); } catch (e) {}
+        }, 90);
+        u.onend = function () {
+            clearInterval(mouthTimer);
+            _aturiusMouthOpen = 0;
+            setAturiusMood("idle");
+            try { paintAturiusFace(); } catch (e2) {}
+        };
+        u.onerror = function () {
+            clearInterval(mouthTimer);
+            _aturiusMouthOpen = 0;
+            setAturiusMood("idle");
+        };
+        window.speechSynthesis.speak(u);
+    } catch (e) {
+        alert("Could not start voice reading.");
+    }
+}
+
+function setAturiusMood(mood) {
+    _aturiusMood = mood || "idle";
+    var lab = document.getElementById("aturiusMoodLabel");
+    if (lab) {
+        if (_aturiusMood === "thinking") lab.textContent = "Thinking…";
+        else if (_aturiusMood === "talking") lab.textContent = "Speaking…";
+        else lab.textContent = "Looking at you";
+    }
+    try { paintAturiusFace(); } catch (e) {}
+}
+
+function paintAturiusFace() {
+    if (!_aturiusFaceTex || !_aturiusFaceTex.image) return;
+    var c = _aturiusFaceTex.image;
+    var ctx = c.getContext("2d");
+    var w = c.width, h = c.height;
+    ctx.clearRect(0, 0, w, h);
+    // transparent face plane — only features
+    ctx.fillStyle = "rgba(0,0,0,0)";
+    ctx.fillRect(0, 0, w, h);
+
+    var thinking = _aturiusMood === "thinking";
+    var talking = _aturiusMood === "talking";
+
+    // Oval eyes (black)
+    ctx.fillStyle = "#111";
+    var eyeY = thinking ? h * 0.42 : h * 0.40;
+    var eyeH = thinking ? h * 0.06 : h * 0.10;
+    ctx.beginPath();
+    ctx.ellipse(w * 0.35, eyeY, w * 0.08, eyeH, 0, 0, Math.PI * 2);
+    ctx.ellipse(w * 0.65, eyeY, w * 0.08, eyeH, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Smile — oval ends; mouth opens while talking
+    ctx.strokeStyle = "#111";
+    ctx.lineWidth = Math.max(4, w * 0.035);
+    ctx.lineCap = "round";
+    var mouthY = h * 0.62;
+    var open = talking ? (0.08 + _aturiusMouthOpen * 0.12) : 0.02;
+    if (thinking) {
+        // small neutral curve
+        ctx.beginPath();
+        ctx.arc(w * 0.5, mouthY - h * 0.02, w * 0.12, 0.15 * Math.PI, 0.85 * Math.PI);
+        ctx.stroke();
+    } else {
+        ctx.beginPath();
+        ctx.moveTo(w * 0.32, mouthY);
+        ctx.quadraticCurveTo(w * 0.5, mouthY + h * (0.14 + open), w * 0.68, mouthY);
+        ctx.stroke();
+        // oval smile ends
+        ctx.beginPath();
+        ctx.ellipse(w * 0.32, mouthY, w * 0.03, h * 0.025, 0, 0, Math.PI * 2);
+        ctx.ellipse(w * 0.68, mouthY, w * 0.03, h * 0.025, 0, 0, Math.PI * 2);
+        ctx.fill();
+        if (talking && open > 0.05) {
+            ctx.fillStyle = "#111";
+            ctx.beginPath();
+            ctx.ellipse(w * 0.5, mouthY + h * 0.04, w * 0.1, h * open, 0, 0, Math.PI * 2);
+            ctx.fill();
+        }
+    }
+    _aturiusFaceTex.needsUpdate = true;
+}
+
+function initAturius3D() {
+    var canvas = document.getElementById("aturiusCanvas");
+    if (!canvas || typeof THREE === "undefined") return;
+    if (_aturiusRenderer) {
+        try { paintAturiusFace(); } catch (e) {}
+        return;
+    }
+    var w = canvas.width || 280;
+    var h = canvas.height || 280;
+    _aturiusRenderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true, alpha: true });
+    _aturiusRenderer.setSize(w, h, false);
+    _aturiusRenderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    _aturiusScene = new THREE.Scene();
+    // Fixed camera — never moves
+    _aturiusCamera = new THREE.PerspectiveCamera(40, w / h, 0.1, 100);
+    _aturiusCamera.position.set(0, 0, 3.2);
+    _aturiusCamera.lookAt(0, 0, 0);
+
+    var light = new THREE.DirectionalLight(0xffffff, 1.05);
+    light.position.set(2, 3, 4);
+    _aturiusScene.add(light);
+    _aturiusScene.add(new THREE.AmbientLight(0xffffff, 0.55));
+
+    var geo = new THREE.SphereGeometry(1, 48, 48);
+    var mat = new THREE.MeshStandardMaterial({
+        color: 0xffcc00,
+        roughness: 0.35,
+        metalness: 0.08
+    });
+    _aturiusSphere = new THREE.Mesh(geo, mat);
+    _aturiusScene.add(_aturiusSphere);
+
+    // Face decal on front of sphere (always faces camera)
+    var faceCanvas = document.createElement("canvas");
+    faceCanvas.width = 256;
+    faceCanvas.height = 256;
+    _aturiusFaceTex = new THREE.CanvasTexture(faceCanvas);
+    _aturiusFaceTex.minFilter = THREE.LinearFilter;
+    _aturiusFaceTex.magFilter = THREE.LinearFilter;
+    var faceMat = new THREE.MeshBasicMaterial({
+        map: _aturiusFaceTex,
+        transparent: true,
+        depthWrite: false
+    });
+    var faceMesh = new THREE.Mesh(new THREE.PlaneGeometry(1.15, 1.15), faceMat);
+    faceMesh.position.z = 0.92;
+    _aturiusSphere.add(faceMesh);
+    paintAturiusFace();
+
+    function tick(t) {
+        _aturiusAnimId = requestAnimationFrame(tick);
+        if (!_aturiusSphere) return;
+        // Slight look-around only (sphere turns a little); camera stays fixed
+        _aturiusLookT = (t || 0) * 0.001;
+        if (_aturiusMood === "idle") {
+            _aturiusSphere.rotation.y = Math.sin(_aturiusLookT * 0.7) * 0.18;
+            _aturiusSphere.rotation.x = Math.sin(_aturiusLookT * 0.45) * 0.08;
+        } else if (_aturiusMood === "thinking") {
+            _aturiusSphere.rotation.y = Math.sin(_aturiusLookT * 1.2) * 0.12;
+            _aturiusSphere.rotation.x = 0.1 + Math.sin(_aturiusLookT) * 0.05;
+        } else {
+            _aturiusSphere.rotation.y = 0;
+            _aturiusSphere.rotation.x = 0;
+        }
+        _aturiusRenderer.render(_aturiusScene, _aturiusCamera);
+    }
+    tick(0);
+}
+
+window.openAturiusPanel = openAturiusPanel;
+window.closeAturiusPanel = closeAturiusPanel;
+window.setAturiusTab = setAturiusTab;
+window.sendAturiusMessage = sendAturiusMessage;
+window.aturiusReadLastMessage = aturiusReadLastMessage;
+window.saveAturiusJoinSetting = saveAturiusJoinSetting;
+window.renderAturiusMessages = renderAturiusMessages;
 
 function sendChatMessage() {
     var input = document.getElementById("chatInput");
@@ -10705,8 +11075,8 @@ function sendChatMessage() {
 
     var isGuest = localStorage.getItem("loggedIn") === "guest";
     if (isGuest && currentChatFriend !== AZORA_AI_ID) {
-        alert("Guests can only chat with their AI companion. Create an account to message friends!");
-        selectChatFriend(AZORA_AI_ID);
+        alert("Guests can't message friends yet. Open Aturius to chat with the AI, or create an account for friends!");
+        try { closeChatPanel(); openAturiusPanel(); } catch (eG) {}
         return;
     }
 
@@ -10881,15 +11251,9 @@ function saveStatusData(data) {
     localStorage.setItem("azoraStatuses", JSON.stringify(data));
 }
 
-/** Read lastSeen from local presence cache (sync). */
+/** Best-effort lastSeen from cache, status data, or account activity. */
 function getPresenceLastSeenSync(username) {
     if (!username) return 0;
-    try {
-        var safe = presenceSafeUser(username);
-        var all = JSON.parse(localStorage.getItem("azoraPresenceCache") || "{}");
-        var row = all[safe];
-        if (row && row.lastSeen) return Number(row.lastSeen) || 0;
-    } catch (e) {}
     // Self is always "online" while this tab is logged in
     try {
         var me = typeof getMyUsername === "function" ? getMyUsername() : null;
@@ -10897,7 +11261,46 @@ function getPresenceLastSeenSync(username) {
             return Date.now();
         }
     } catch (e2) {}
-    return 0;
+    var best = 0;
+    try {
+        var safe = presenceSafeUser(username);
+        var all = JSON.parse(localStorage.getItem("azoraPresenceCache") || "{}");
+        var row = all[safe];
+        if (row) {
+            var ls = Number(row.lastSeen || row.updatedAt || 0) || 0;
+            if (ls > best) best = ls;
+        }
+    } catch (e) {}
+    // Fallback: local status timestamps
+    try {
+        var st = getStatusData();
+        if (st[username] && st[username].updatedAt) {
+            var u = Number(st[username].updatedAt) || 0;
+            if (u > best) best = u;
+        }
+    } catch (e3) {}
+    // Fallback: account lastLogin / updatedAt / createdAt
+    try {
+        var map = typeof getSavedAccounts === "function" ? getSavedAccounts() : {};
+        var acc = map[username];
+        if (acc) {
+            var candidates = [acc.lastLogin, acc.lastSeen, acc.updatedAt, acc.createdAt];
+            for (var i = 0; i < candidates.length; i++) {
+                var n = Number(candidates[i]) || 0;
+                if (n > best) best = n;
+            }
+        }
+    } catch (e4) {}
+    try {
+        var reg = JSON.parse(localStorage.getItem("azoraUserRegistry") || "[]");
+        for (var ri = 0; ri < reg.length; ri++) {
+            if (reg[ri] && String(reg[ri].username || "").toLowerCase() === String(username).toLowerCase()) {
+                var rc = Number(reg[ri].lastSeen || reg[ri].updatedAt || reg[ri].createdAt || 0) || 0;
+                if (rc > best) best = rc;
+            }
+        }
+    } catch (e5) {}
+    return best;
 }
 
 function isUserCurrentlyOnlineSync(username) {
@@ -10920,7 +11323,7 @@ function setUserStatus(username, status) {
 }
 
 function formatLastOnline(ts) {
-    if (!ts || typeof ts !== "number" || ts <= 0) return "Unknown";
+    if (!ts || typeof ts !== "number" || ts <= 0) return "Never";
     var now = Date.now();
     var diff = now - ts;
     if (diff < 0) diff = 0;
@@ -10934,6 +11337,10 @@ function formatLastOnline(ts) {
         var hrs = Math.floor(diff / 3600000);
         return hrs + (hrs === 1 ? " hour ago" : " hours ago");
     }
+    if (diff < 7 * 24 * 60 * 60 * 1000) {
+        var days = Math.floor(diff / 86400000);
+        return days + (days === 1 ? " day ago" : " days ago");
+    }
     try {
         var d = new Date(ts);
         var mm = d.getMonth() + 1;
@@ -10944,7 +11351,6 @@ function formatLastOnline(ts) {
         var ampm = hh >= 12 ? "PM" : "AM";
         hh = hh % 12; if (hh === 0) hh = 12;
         var mis = mi < 10 ? "0" + mi : String(mi);
-        // Same calendar day vs older
         var today = new Date();
         if (d.getFullYear() === today.getFullYear() && d.getMonth() === today.getMonth() && d.getDate() === today.getDate()) {
             return "Today at " + hh + ":" + mis + " " + ampm;
@@ -10955,7 +11361,7 @@ function formatLastOnline(ts) {
         }
         return mm + "/" + dd + "/" + yyyy + " at " + hh + ":" + mis + " " + ampm;
     } catch (e) {
-        return "Unknown";
+        return "Never";
     }
 }
 
@@ -11115,17 +11521,29 @@ function fetchFirebasePresence(username, cb) {
             return;
         }
         var base = String(AZORA_CLOUD.firebaseUrl || "").replace(/\/$/, "");
+        if (!base) {
+            cb(cached);
+            return;
+        }
         fetch(base + "/azoraPresence/" + encodeURIComponent(safe) + ".json?ts=" + Date.now())
-            .then(function (r) { return r.json(); })
+            .then(function (r) {
+                if (!r.ok) throw new Error("HTTP " + r.status);
+                return r.json();
+            })
             .then(function (data) {
-                if (data && data.username) {
+                // Accept any object that has lastSeen / updatedAt (username field optional)
+                if (data && typeof data === "object" && (data.lastSeen || data.updatedAt || data.username || data.online != null)) {
+                    if (!data.username) data.username = username;
+                    if (!data.lastSeen && data.updatedAt) data.lastSeen = data.updatedAt;
                     try {
                         var all = JSON.parse(localStorage.getItem("azoraPresenceCache") || "{}");
                         all[safe] = data;
                         localStorage.setItem("azoraPresenceCache", JSON.stringify(all));
                     } catch (e) {}
                     cb(data);
-                } else cb(cached);
+                } else {
+                    cb(cached);
+                }
             })
             .catch(function () { cb(cached); });
     } catch (e) { cb(null); }
@@ -14997,6 +15415,7 @@ function startNormGameWorld(def) {
     disposeNormWorld(false);
     try { clearNormGameInventoryRuntime(false); } catch (eClr) {}
     startNormMusic();
+    try { if (typeof scheduleAturiusGameJoin === "function") scheduleAturiusGameJoin(); } catch (eAt) {}
     try {
         if (!_normSession) _normSession = {};
         _normSession.world = (def && def.world) || _normSession.world || "city";
@@ -15713,6 +16132,7 @@ function disposeNormWorld(keepSession) {
 
 function leaveNormGame() {
     stopNormMusic();
+    try { if (typeof cancelAturiusGameJoin === "function") cancelAturiusGameJoin(); } catch (eAt) {}
     try { stopWalkSfx(); } catch (e) {}
     try {
         var st = document.querySelector(".norm-game-stage");

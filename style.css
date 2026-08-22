@@ -5888,3 +5888,211 @@ html[data-theme="dark"] .azora-bg-wave { background: transparent; }
     border: 2px solid rgba(255, 255, 255, 0.55) !important;
     box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.35);
 }
+
+/* === Aturius AI button + panel === */
+.aturius-btn {
+    position: relative;
+    border: none;
+    border-radius: 999px;
+    padding: 8px 14px;
+    font-weight: 800;
+    font-size: 13px;
+    color: #fff;
+    cursor: pointer;
+    background: linear-gradient(120deg, #f59e0b, #a855f7, #22d3ee, #f59e0b);
+    background-size: 300% 300%;
+    animation: aturiusBtnFade 6s ease-in-out infinite;
+    box-shadow: 0 0 14px rgba(168, 85, 247, 0.45);
+}
+.aturius-btn:hover {
+    filter: brightness(1.08);
+}
+@keyframes aturiusBtnFade {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+.aturius-overlay .aturius-header h2 {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.aturius-title-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: #facc15;
+    box-shadow: 0 0 10px #facc15;
+    display: inline-block;
+}
+.aturius-tab-btn {
+    margin: 0;
+    background: rgba(255,255,255,0.12);
+    color: #fff;
+    border: 1px solid rgba(255,255,255,0.2);
+}
+.aturius-tab-btn.active {
+    background: linear-gradient(180deg, #fbbf24, #f59e0b);
+    color: #1f2937;
+    font-weight: 800;
+}
+.aturius-layout {
+    display: flex;
+    flex: 1;
+    min-height: 0;
+    gap: 12px;
+    padding: 12px;
+    flex-wrap: wrap;
+}
+.aturius-stage {
+    width: min(300px, 100%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: radial-gradient(circle at 50% 40%, #1e293b, #0f172a 70%);
+    border-radius: 18px;
+    padding: 12px;
+}
+#aturiusCanvas {
+    width: 100%;
+    max-width: 280px;
+    height: auto;
+    border-radius: 16px;
+    background: transparent;
+}
+.aturius-stage-hint {
+    margin: 8px 0 0;
+    font-size: 12px;
+    color: rgba(255,255,255,0.7);
+}
+.aturius-main {
+    flex: 1;
+    min-width: min(280px, 100%);
+    display: flex;
+    flex-direction: column;
+    min-height: 280px;
+}
+.aturius-with {
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 8px;
+}
+.aturius-messages {
+    flex: 1;
+    overflow-y: auto;
+    background: rgba(0,0,0,0.25);
+    border-radius: 12px;
+    padding: 10px;
+    min-height: 180px;
+}
+.aturius-actions {
+    display: flex;
+    gap: 8px;
+    margin: 8px 0;
+    flex-wrap: wrap;
+}
+.aturius-read-btn, .aturius-new-btn {
+    border: none;
+    border-radius: 10px;
+    padding: 8px 12px;
+    font-weight: 700;
+    cursor: pointer;
+}
+.aturius-read-btn {
+    background: linear-gradient(180deg, #38bdf8, #0284c7);
+    color: #fff;
+}
+.aturius-new-btn {
+    background: rgba(255,255,255,0.12);
+    color: #fff;
+}
+.aturius-input-row {
+    display: flex;
+    gap: 8px;
+}
+.aturius-input-row input {
+    flex: 1;
+}
+.aturius-settings-pane {
+    flex: 1;
+    min-width: min(280px, 100%);
+    color: #fff;
+    background: rgba(0,0,0,0.2);
+    border-radius: 14px;
+    padding: 16px;
+}
+.aturius-settings-hint, .aturius-settings-note {
+    color: rgba(255,255,255,0.75);
+    font-size: 13px;
+}
+.aturius-toggle-row {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    margin: 14px 0;
+    padding: 12px;
+    background: rgba(255,255,255,0.08);
+    border-radius: 12px;
+    cursor: pointer;
+}
+.aturius-toggle-row strong {
+    display: block;
+    margin-bottom: 4px;
+}
+.aturius-toggle-row small {
+    display: block;
+    color: rgba(255,255,255,0.65);
+    font-size: 12px;
+    line-height: 1.35;
+}
+.aturius-toggle-row input[type="checkbox"] {
+    width: 22px;
+    height: 22px;
+    margin-top: 4px;
+    flex-shrink: 0;
+}
+.aturius-msg-ai, .aturius-msg-me {
+    margin: 8px 0;
+    padding: 10px 12px;
+    border-radius: 12px;
+    max-width: 92%;
+    line-height: 1.4;
+    font-size: 14px;
+}
+.aturius-msg-ai {
+    background: rgba(250, 204, 21, 0.18);
+    border: 1px solid rgba(250, 204, 21, 0.35);
+    color: #fff;
+    margin-right: auto;
+}
+.aturius-msg-me {
+    background: rgba(59, 130, 246, 0.25);
+    border: 1px solid rgba(59, 130, 246, 0.4);
+    color: #fff;
+    margin-left: auto;
+}
+.aturius-typing {
+    display: flex;
+    gap: 5px;
+    padding: 10px 12px;
+    align-items: center;
+}
+.aturius-typing span {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #facc15;
+    animation: aturiusDot 1.1s ease-in-out infinite;
+}
+.aturius-typing span:nth-child(2) { animation-delay: 0.15s; }
+.aturius-typing span:nth-child(3) { animation-delay: 0.3s; }
+@keyframes aturiusDot {
+    0%, 80%, 100% { transform: scale(0.55); opacity: 0.35; }
+    40% { transform: scale(1.15); opacity: 1; }
+}
+@media (max-width: 700px) {
+    .aturius-layout { flex-direction: column; }
+    .aturius-stage { width: 100%; }
+}

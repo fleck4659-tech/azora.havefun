@@ -422,6 +422,7 @@
     </div>
     <div class="topbar-fun-right" id="topbarFunRight">
         <button id="searchButton" type="button" onclick="openSearch()">🔍 Search</button>
+        <button id="aturiusButton" type="button" class="aturius-btn" onclick="openAturiusPanel()" title="Talk to Aturius">✨ Aturius</button>
         <button id="chatButton" type="button" onclick="openChatPanel()" class="chat-btn-wrap">💬 Chat<span id="chatBadge" class="notif-badge chat-badge" style="display:none;">0</span></button>
         <button id="notifButton" class="notif-bell-btn" type="button" onclick="toggleNotifPanel()">
             🔔<span id="notifBadge" class="notif-badge" style="display:none;">0</span>
@@ -810,31 +811,17 @@
     </div>
 </div>
 
-<!-- Chat Panel -->
+<!-- Chat Panel (friends only — AI moved to Aturius) -->
 <div id="chatOverlay" class="azafn-overlay" style="display:none;">
     <div class="azafn-header">
         <h2><img src="logo.jpg?v=70.2" alt="Azora"> Chat</h2>
         <div class="azafn-tabs">
-            <button type="button" onclick="openAICompanionSettings()" style="margin:0;background:linear-gradient(180deg,#a78bfa,#7c3aed);color:#fff;">Customize AI</button>
             <button type="button" onclick="closeChatPanel()" style="margin:0;background:#ff3b30;color:#fff;">✕ Close</button>
         </div>
     </div>
     <div class="chat-layout">
         <div class="chat-sidebar" id="chatSidebar">
-            <h3 style="color:#fff;margin:0 0 8px 0;font-size:13px;text-transform:uppercase;letter-spacing:0.04em;opacity:0.85;">Your AI</h3>
-            <div id="aiChatSlot">
-                <div class="friend-item ai-companion" id="aiCompanionListItem" onclick="selectChatFriend('__azora_ai__')">
-                    <div class="friend-avatar ai-face">AI</div>
-                    <div class="friend-meta">
-                        <span id="aiCompanionListName">Aza</span>
-                        <small>AI Companion</small>
-                    </div>
-                </div>
-            </div>
-            <button type="button" class="ai-rename-btn" onclick="startNewAIChat()">＋ New AI chat</button>
-            <button type="button" class="ai-rename-btn" onclick="openAICompanionSettings()">✏️ Customize name & look</button>
-            <div id="aiChatHistoryList" class="ai-chat-history-list"></div>
-            <h3 style="color:#fff;margin:16px 0 8px 0;font-size:13px;text-transform:uppercase;letter-spacing:0.04em;opacity:0.85;">Friends</h3>
+            <h3 style="color:#fff;margin:0 0 8px 0;font-size:13px;text-transform:uppercase;letter-spacing:0.04em;opacity:0.85;">Friends</h3>
             <div id="friendRequestsChatSection" class="friend-requests-chat-section" style="display:none;">
                 <div class="chat-side-label">Friend requests <span id="chatRequestBadge" class="notif-badge chat-inline-badge" style="display:none;">0</span></div>
                 <div id="friendRequestsChatList"></div>
@@ -855,6 +842,49 @@
     </div>
 </div>
 
+<!-- Aturius AI Panel (standalone) -->
+<div id="aturiusOverlay" class="azafn-overlay aturius-overlay" style="display:none;">
+    <div class="azafn-header aturius-header">
+        <h2><span class="aturius-title-dot"></span> Aturius</h2>
+        <div class="azafn-tabs">
+            <button type="button" class="aturius-tab-btn" id="aturiusTabChat" onclick="setAturiusTab('chat')">Chat</button>
+            <button type="button" class="aturius-tab-btn" id="aturiusTabSettings" onclick="setAturiusTab('settings')">Settings</button>
+            <button type="button" onclick="closeAturiusPanel()" style="margin:0;background:#ff3b30;color:#fff;">✕ Close</button>
+        </div>
+    </div>
+    <div class="aturius-layout">
+        <div class="aturius-stage">
+            <canvas id="aturiusCanvas" width="280" height="280" aria-label="Aturius 3D sphere"></canvas>
+            <p class="aturius-stage-hint" id="aturiusMoodLabel">Looking at you</p>
+        </div>
+        <div class="aturius-main" id="aturiusChatPane">
+            <div class="aturius-with" id="aturiusWithLabel">Chat with Aturius</div>
+            <div class="chat-messages aturius-messages" id="aturiusMessages"></div>
+            <div class="aturius-actions">
+                <button type="button" class="aturius-read-btn" id="aturiusReadBtn" onclick="aturiusReadLastMessage()">🔊 Read to me</button>
+                <button type="button" class="aturius-new-btn" onclick="startNewAIChat(); renderAturiusMessages();">＋ New chat</button>
+            </div>
+            <div class="chat-input-row aturius-input-row">
+                <input type="text" id="aturiusInput" placeholder="Talk to Aturius..." onkeydown="if(event.key==='Enter')sendAturiusMessage()">
+                <button type="button" onclick="sendAturiusMessage()">Send</button>
+            </div>
+        </div>
+        <div class="aturius-settings-pane" id="aturiusSettingsPane" style="display:none;">
+            <h3>Aturius Settings</h3>
+            <p class="aturius-settings-hint">More options will appear here later. For now you can control game joins.</p>
+            <label class="aturius-toggle-row">
+                <span>
+                    <strong>Allow Aturius to join my games</strong>
+                    <small>When on, Aturius may join you in a Norm Game after about 30–60 seconds.</small>
+                </span>
+                <input type="checkbox" id="aturiusJoinToggle" checked onchange="saveAturiusJoinSetting(this.checked)">
+            </label>
+            <p class="aturius-settings-note" id="aturiusJoinNote">Joins are <strong>ON</strong> by default.</p>
+            <button type="button" class="secondary" onclick="setAturiusTab('chat')" style="margin-top:14px;">Back to chat</button>
+        </div>
+    </div>
+</div>
+
 <!-- Player message archives -->
 <div id="chatArchivesOverlay" class="overlay" style="display:none;">
     <div class="popup" style="max-width:min(380px,calc(100vw - 20px));max-height:min(86vh,620px);display:flex;flex-direction:column;">
@@ -865,34 +895,19 @@
     </div>
 </div>
 
-<!-- AI Companion customize -->
-<div id="aiCompanionOverlay" class="overlay" style="display:none;">
+<!-- Legacy AI companion overlay kept hidden for compatibility -->
+<div id="aiCompanionOverlay" class="overlay" style="display:none;" aria-hidden="true">
     <div class="popup" style="max-width:min(360px,calc(100vw - 20px));">
-        <h1 style="font-size:1.3rem;">Your AI Companion</h1>
-        <p style="color:#666;font-size:13px;margin-top:-6px;">Customize the AI you chat with by default.</p>
-        <label style="display:block;text-align:left;font-size:13px;font-weight:bold;margin:8px 0 4px;">AI name (what shows in Chats)</label>
-        <input id="aiCompName" type="text" maxlength="24" placeholder="Type a name, e.g. Nova or Buddy">
-        <label style="display:block;text-align:left;font-size:13px;font-weight:bold;margin:8px 0 4px;">Personality</label>
-        <select id="aiCompPersonality" style="width:100%;padding:12px;border-radius:10px;border:2px solid #ddd;margin-bottom:10px;">
-            <option value="friendly">Friendly</option>
-            <option value="playful">Playful</option>
-            <option value="chill">Chill</option>
-            <option value="builder">Builder / helpful</option>
-        </select>
-        <label style="display:block;text-align:left;font-size:13px;font-weight:bold;margin:8px 0 4px;">Avatar colors</label>
-        <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:12px;">
-            <div style="text-align:center;"><div style="font-size:11px;">Head</div><input type="color" id="aiCompHead" value="#ffcc00"></div>
-            <div style="text-align:center;"><div style="font-size:11px;">Body</div><input type="color" id="aiCompBody" value="#a78bfa"></div>
-            <div style="text-align:center;"><div style="font-size:11px;">Accent</div><input type="color" id="aiCompAccent" value="#00ebd4"></div>
-        </div>
-        <div id="aiCompPreview" class="ai-comp-preview" aria-hidden="true"></div>
-        <hr style="border:none;border-top:1px solid #e5e7eb;margin:12px 0;">
-        <p style="text-align:left;font-size:12px;color:#666;margin:8px 0 10px;line-height:1.4;">
-            Your AI uses a <strong>built-in response list</strong> (Azora tips, jokes, simple science, your username, and more).
-            No outside AI account needed — it works offline on your device.
-        </p>
-        <button type="button" onclick="saveAICompanionSettings()" style="background:linear-gradient(180deg,#34d399,#10b981);color:#fff;">Save AI</button>
-        <button type="button" class="secondary" onclick="closeAICompanionSettings()">Cancel</button>
+        <h1 style="font-size:1.3rem;">Aturius</h1>
+        <p style="color:#666;font-size:13px;">Open Aturius from the top bar for chat and settings.</p>
+        <button type="button" class="secondary" onclick="closeAICompanionSettings(); openAturiusPanel();">Open Aturius</button>
+        <button type="button" class="secondary" onclick="closeAICompanionSettings()">Close</button>
+        <input id="aiCompName" type="hidden" value="Aturius">
+        <select id="aiCompPersonality" style="display:none;"><option value="friendly">Friendly</option></select>
+        <input type="color" id="aiCompHead" value="#ffcc00" style="display:none;">
+        <input type="color" id="aiCompBody" value="#ffcc00" style="display:none;">
+        <input type="color" id="aiCompAccent" value="#111111" style="display:none;">
+        <div id="aiCompPreview" style="display:none;"></div>
     </div>
 </div>
 
