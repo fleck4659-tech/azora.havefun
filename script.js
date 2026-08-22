@@ -10400,6 +10400,20 @@ function generateAIReply(userText, attachment) {
         return aturiusGenerateRandomStory(who);
     }
 
+    // ===== JOKES / LAUGH (early so it always triggers) =====
+    if (aturiusIsJokeRequest(t) || aturiusIsJokeRequest(userText)) {
+        try { startAturiusLaugh(3500); } catch (eLaugh) {}
+        return pickRandom([
+            "Haha— okay okay! Why did the avatar bring a ladder to Azora? To reach the next level!",
+            "Oh haha! What do clouds wear under their clothes? Thunderwear!",
+            "Pfft— why don't programmers like nature? Too many bugs.",
+            "Haha wait— I told my computer I needed a break… and it said 'No problem, I'll go to sleep.'",
+            "Hehe! Why was the Feed always calm? Because all the drama got moderated!",
+            "Haha— what is a skeleton's favorite instrument? The trom-bone!",
+            "Oh haha! Why did the player bring string to Azora? To tie up loose ends!"
+        ]);
+    }
+
     // Mood-aware tone (eyes already match feeling)
     if (feeling === "upset") {
         if (/\b(sorry|apologize|i didn't mean)\b/.test(t)) {
@@ -10592,18 +10606,7 @@ function generateAIReply(userText, attachment) {
         ]);
     }
 
-    // ===== JOKES =====
-    if (/\b(joke|funny|make me laugh|haha|lol)\b/.test(t)) {
-        try { startAturiusLaugh(3200); } catch (eLaugh) {}
-        return pickRandom([
-            "Haha— okay okay! Why did the avatar bring a ladder to Azora? To reach the next level!",
-            "Oh haha! What do clouds wear under their clothes? Thunderwear!",
-            "Pfft— why don't programmers like nature? Too many bugs.",
-            "Haha wait— I told my computer I needed a break… and it said 'No problem, I'll go to sleep.'",
-            "Hehe! Why was the Feed always calm? Because all the drama got moderated!",
-            "Haha— what is a skeleton's favorite instrument? The trom-bone!"
-        ]);
-    }
+    // (Jokes handled early above)
 
     // ===== USER FEELINGS (flexible phrasing) =====
     var feelsBad = /\b(i\s*(feel|am|'m|been)\s*(sad|bad|down|upset|mad|angry|lonely|tired|scared|anxious|nervous|worried|hurt|awful|terrible|horrible|not\s*good|not\s*okay|not\s*ok)|feeling\s*(sad|bad|down|low|mad|angry|lonely)|don'?t\s*feel\s*(good|great|okay|ok|well)|having\s*a\s*(bad|rough|hard)\s*day|not\s*having\s*a\s*good\s*day)\b/.test(t) ||
@@ -10776,46 +10779,206 @@ function generateAIReply(userText, attachment) {
         return "Profiles show live Online/Offline from presence, plus Last online and Joined date. Manual busy/AFK statuses were removed so it stays simple.";
     }
 
+    // ===== BORED / NOTHING TO DO =====
+    if (/\b(bored|nothing to do|i'm bored|im bored|what now|idle)\b/.test(t)) {
+        return pickRandom([
+            "Oh haha okay — bored mode. Want a joke, a mini story, a game idea, or a random Azora tip?",
+            "Yeah I got you. Try a Norm Game, tweak your avatar, or say \"make me a game about cats\" and I'll build one.",
+            "Alright challenge: open Games, join something, and type /c hi. Or stay here and I'll keep you company."
+        ]);
+    }
+
+    // ===== FAVORITE / PREFERENCE =====
+    if (/\b(favorite|favourite|best|do you like|what do you think of)\b/.test(t)) {
+        if (/\b(game|games)\b/.test(t)) {
+            return "Oh hard pick — I like Norm Games where people actually hang out. Roleplay-style maps are fun. What's your favorite?";
+        }
+        if (/\b(color|colour)\b/.test(t)) {
+            return "Haha I'm biased — yellow. Obviously. What's yours?";
+        }
+        return pickRandom([
+            "Hmm good question. I like chatting with you and watching people build weird games. You?",
+            "Oh I like when someone says hi and then we actually talk. Not a deep answer but it's true haha."
+        ]);
+    }
+
+    // ===== WHO MADE YOU / WHAT ARE YOU =====
+    if (/\b(who made you|who created you|are you (an )?ai|are you real|are you a bot|what are you)\b/.test(t)) {
+        return pickRandom([
+            "I'm Aturius — Azora's AI helper. I'm a yellow sphere with opinions and a slightly too loud laugh.",
+            "Yeah I'm an AI buddy built into Azora. Not a human, but I try to talk like a friend, not a textbook.",
+            "I'm Aturius. Think of me as the platform's chat buddy who can joke, help, and join games if you let me."
+        ]);
+    }
+
+    // ===== REPEAT / SAY AGAIN =====
+    if (/\b(say that again|repeat that|what did you say|come again)\b/.test(t)) {
+        var lastAi = aturiusGetLastAiText();
+        if (lastAi) return "Oh yeah — I said: " + lastAi.slice(0, 220) + (lastAi.length > 220 ? "…" : "");
+        return "Hmm I don't have a last line saved in this chat yet. Ask me something and I'll answer clear.";
+    }
+
+    // ===== WHY / BECAUSE follow-ups =====
+    if (/^(why|why though|why not|how come)[\s?.!]*$/.test(t) || /\b(why is that|why though)\b/.test(t)) {
+        var prev = aturiusGetLastUserTextBeforeLast();
+        return pickRandom([
+            "Oh — mostly because that's how Azora is set up right now. Want the short version or the detailed one?",
+            "Yeah fair question. " + (prev ? "About what you said earlier — " : "") + "I can explain more if you tell me which part is confusing.",
+            "Haha okay. Sometimes the simple answer is: it keeps things fair and family-friendly on Azora."
+        ]);
+    }
+
+    // ===== AVATAR / LOOKS =====
+    if (/\b(avatar|my look|customize me|change my (look|outfit|face|hair)|wardrobe|closet)\b/.test(t)) {
+        return pickRandom([
+            "Yeah — open avatar customization on the main page. Colors, hair, faces, T-shirts. Save when you like it so it sticks.",
+            "Oh haha avatar time. Equip stuff from Inventory, then Save. Guests can look around but saving needs an account.",
+            "Tip: pick a face you like, tweak limb colors, Save. In games you can mess with extra parts too."
+        ]);
+    }
+
+    // ===== SETTINGS / THEME / VOICE =====
+    if (/\b(settings|dark mode|light mode|theme|notifications|bell)\b/.test(t)) {
+        return "Settings is where you handle theme, security (accounts only), broadcast popup length, and more. My own voice/pitch is under Aturius → Settings.";
+    }
+    if (/\b(voice|pitch|read to me|tts)\b/.test(t)) {
+        return "Oh yeah — Aturius Settings has Voice + Pitch. Hit Test to hear \"The quick brown fox…\", then OK to save. Read to me uses that voice too.";
+    }
+
+    // ===== DONATE / COINS ECONOMY =====
+    if (/\b(donate|donation|give coins|send coins)\b/.test(t)) {
+        return "You can donate AzoraCoins from someone's profile (green donate). Minimum is low, there's a confirm step, and it sits in Pending a bit before it lands.";
+    }
+    if (/\b(pending|pending coins)\b/.test(t)) {
+        return "Pending is coins that are on the way — donations, shop cuts, that kind of thing. They show up before they hit your real balance.";
+    }
+
+    // ===== MUSIC / SOUND =====
+    if (/\b(music|song|sound|mute|volume)\b/.test(t)) {
+        return "In some Norm Games there's music (and Pause/Unpause). Walking/jump sounds exist too. If it's loud, check device volume first haha.";
+    }
+
+    // ===== FOLLOW-UPS: really / wait / nvm =====
+    if (/^(really|wait|what|huh)[\s?!]*$/.test(t)) {
+        return pickRandom([
+            "Yeah really. Want me to explain more?",
+            "Haha yes. Which part surprised you?",
+            "Mhm. I can go deeper — just say what you want clarified."
+        ]);
+    }
+    if (/\b(nvm|never ?mind|forget it|n\/m)\b/.test(t)) {
+        return pickRandom(["Okay all good.", "Haha alright, dropped. What else?", "Cool cool. I'm still here."]);
+    }
+
     // ===== BYE =====
     if (/\b(bye|goodbye|see you|cya|good night|gn)\b/.test(t)) {
         return pickRandom([
-            "Bye, " + who + "! Come chat anytime.",
-            "See you later! Have fun on Azora.",
-            "Goodbye! I'll be here when you get back."
+            "Bye " + who + "! Come back anytime.",
+            "See you later — have fun on Azora.",
+            "Alright later! I'll be here."
         ]);
     }
 
     // ===== YES / NO / OK =====
-    if (/^(yes|yeah|yep|ok|okay|sure|alright|no|nope)[\s!.]*$/.test(t)) {
+    if (/^(yes|yeah|yep|yea|ok|okay|sure|alright|no|nope|nah)[\s!.]*$/.test(t)) {
         return pickRandom([
-            "Got it!",
+            "Got it.",
             "Okay!",
-            "Cool. What next?",
-            "Alright, " + who + ". I'm listening."
+            "Cool — what next?",
+            "Alright, I'm listening.",
+            "Bet. What do you wanna do?"
         ]);
     }
 
-    // ===== QUESTIONS generic =====
+    // ===== SMARTER QUESTIONS (keyword → topic before generic) =====
     if (/\?/.test(t)) {
+        if (/\b(coin|azoracoin|currency)\b/.test(t)) {
+            return "AzoraCoins are the platform currency — daily claim, shop, donations, creator sales (with the split rules). Want a tip on earning or spending?";
+        }
+        if (/\b(friend|add|follow)\b/.test(t)) {
+            return isGuest
+                ? "Guests can't full friend-list yet — make an account, Search a username, Add Friend."
+                : "Search their username → profile → Add Friend. Requests show up in Chat/notifications.";
+        }
+        if (/\b(join|multiplayer|norm)\b/.test(t)) {
+            return "Norm Games are the joinable multiplayer ones under Games. Quick/Feed style is more solo scroll stuff.";
+        }
+        if (/\b(aturius|you)\b/.test(t) && /\b(join|follow)\b/.test(t)) {
+            return isAturiusJoinAllowed()
+                ? "Yeah — if joins are ON, I can pop into a Norm Game after a bit. In-game: /c follow or /c unfollow."
+                : "Joins are off in my Settings. Turn \"Allow Aturius to join my games\" on first.";
+        }
         return pickRandom([
-            opener + " Good question, " + who + "! I know a lot about Azora, simple science, jokes, and chatting. Can you add a bit more detail?",
-            "Hmm — try asking about Azora features, your username, a joke, space, volcanoes, or games. I'll do my best!",
-            "I'm not a giant internet brain, but I have a big built-in list of helpful answers. Ask about Azora, fun facts, or how you're feeling!"
+            opener + " okay solid question. I can talk Azora, feelings, jokes, simple science, stories, or game ideas — add a bit more detail?",
+            "Hmm — try being specific like \"how do coins work\" or \"suggest a game\". I'll lock onto it better.",
+            "Yeah I can try. Azora features, your username, jokes, space facts, how you feel — what's the target?"
         ]);
     }
 
-    // ===== DEFAULT — natural / realistic chat =====
+    // ===== CONTEXT-AWARE DEFAULT =====
     var snippet = (userText || "").trim();
     if (snippet.length > 70) snippet = snippet.slice(0, 67) + "...";
+    var recent = aturiusGetRecentTopicHint();
+    var contextBit = recent ? (" We were kind of on " + recent + ".") : "";
     return pickRandom([
-        opener + " yeah that makes sense. Tell me more?",
+        opener + " yeah that makes sense." + contextBit + " Tell me more?",
         "Oh haha! okay okay I get you. What else is on your mind?",
-        "Yeah for real. Want a tip, a game idea, or just keep talking?",
-        opener + " I'm with you. You can say whatever — games, friends, how you feel, random stuff.",
-        "Mhm yeah. " + (snippet ? "About \"" + snippet + "\" — " : "") + "want me to jump in with ideas or just listen?",
+        "Yeah for real." + contextBit + " Want a tip, a game idea, or just keep talking?",
+        opener + " I'm with you. Games, friends, feelings, random stuff — your call.",
+        "Mhm yeah. " + (snippet ? "About \"" + snippet + "\" — " : "") + "want ideas or just a listener?",
         "Oh wait that tracks. Haha alright — what should we do next?",
-        "Yeah! Or if you're bored I can suggest a game, a joke, or a silly story."
+        "Yeah! If you're bored I can do a joke, a story, or generate a mini-game."
     ]);
+}
+
+/** Last AI message text in active chat */
+function aturiusGetLastAiText() {
+    try {
+        var chat = getActiveAIChat();
+        if (!chat || !chat.messages) return "";
+        for (var i = chat.messages.length - 1; i >= 0; i--) {
+            var m = chat.messages[i];
+            if (m && (m.isAI || m.from === AZORA_AI_ID) && m.text) return String(m.text);
+        }
+    } catch (e) {}
+    return "";
+}
+
+/** Previous user line (for why-followups) */
+function aturiusGetLastUserTextBeforeLast() {
+    try {
+        var chat = getActiveAIChat();
+        if (!chat || !chat.messages) return "";
+        var seenUser = 0;
+        for (var i = chat.messages.length - 1; i >= 0; i--) {
+            var m = chat.messages[i];
+            if (!m || m.isAI || m.from === AZORA_AI_ID) continue;
+            seenUser++;
+            if (seenUser >= 2 && m.text) return String(m.text).slice(0, 80);
+        }
+    } catch (e) {}
+    return "";
+}
+
+/** Rough topic hint from recent user messages */
+function aturiusGetRecentTopicHint() {
+    try {
+        var chat = getActiveAIChat();
+        if (!chat || !chat.messages) return "";
+        var blob = "";
+        for (var i = chat.messages.length - 1; i >= 0 && blob.length < 200; i--) {
+            var m = chat.messages[i];
+            if (!m || m.isAI || m.from === AZORA_AI_ID) continue;
+            blob += " " + String(m.text || "").toLowerCase();
+        }
+        if (/\b(game|play|norm)\b/.test(blob)) return "games";
+        if (/\b(friend|chat|message)\b/.test(blob)) return "friends";
+        if (/\b(coin|shop|buy)\b/.test(blob)) return "coins/shop";
+        if (/\b(avatar|hair|face)\b/.test(blob)) return "avatars";
+        if (/\b(sad|mad|feel|happy)\b/.test(blob)) return "feelings";
+        if (/\b(joke|haha|funny)\b/.test(blob)) return "jokes";
+    } catch (e) {}
+    return "";
 }
 
 function buildAISystemPrompt() {
@@ -10999,14 +11162,17 @@ function scheduleAIReply(userText, aiChatId, attachment) {
         chatAiReplyTimer = null;
         try { showAturiusTyping(false); } catch (eT2) {}
         try { clearChatTyping(); } catch (eC2) {}
-        try { setAturiusMood("idle"); } catch (eM2) {}
+        // Don't force idle if a laugh is already playing
+        try {
+            if (!(Date.now() < (_aturiusLaughUntil || 0))) setAturiusMood("idle");
+        } catch (eM2) {}
         var extra = generateAIReply(userText, attachment);
         var reply = typeof extra === "string" ? extra : (extra && extra.text) || String(extra || "");
         var gameId = (extra && typeof extra === "object") ? extra.gameId : null;
-        // If reply is laughing / joke-y, play full laugh animation
+        // Keep / refresh laugh for joke requests or funny replies
         try {
-            if (/\b(haha|hehe|pfft|lol|😂|hilarious)\b/i.test(reply) || /\bjoke\b/i.test(userText || "")) {
-                startAturiusLaugh(3000);
+            if (aturiusIsJokeRequest(userText) || /\b(haha|hehe|pfft|lol|hilarious)\b/i.test(reply)) {
+                startAturiusLaugh(3200);
             }
         } catch (eLaugh2) {}
         var store = getAIChatStore();
@@ -11959,6 +12125,10 @@ function sendAturiusMessage() {
     aturiusClearPendingAttach();
     try { adjustAturiusFeelingFromMessage(text); } catch (eFeel) {}
     try { aturiusReactToTopic(text); } catch (eTop) {}
+    // Start laugh right away on joke / haha messages (don't wait for reply delay)
+    try {
+        if (aturiusIsJokeRequest(text)) startAturiusLaugh(3500);
+    } catch (eLaughNow) {}
     try { paintAturiusFace(); } catch (eFace) {}
     renderAturiusMessages();
     renderAturiusHistoryList();
@@ -12021,26 +12191,57 @@ function setAturiusMood(mood) {
     try { paintAturiusFace(); } catch (e) {}
 }
 
+/** Detect joke / laugh requests (flexible phrasing) */
+function aturiusIsJokeRequest(text) {
+    var t = String(text || "").toLowerCase().trim();
+    if (!t) return false;
+    if (/\b(haha|hahaha|hehe|lol|lmao|rofl)\b/.test(t)) return true;
+    if (/\b(joke|jokes|funny|hilarious)\b/.test(t)) return true;
+    if (/\b(make me laugh|tell me a joke|give me a joke|make me a joke|say a joke|another joke)\b/.test(t)) return true;
+    if (/\b(tell|give|make|say)\b.{0,20}\bjoke\b/.test(t)) return true;
+    return false;
+}
+window.aturiusIsJokeRequest = aturiusIsJokeRequest;
+
 /** Big laugh: look around hard + squash/stretch bounce */
 function startAturiusLaugh(ms) {
-    var dur = Math.max(1200, Number(ms) || 2800);
-    _aturiusLaughUntil = Date.now() + dur;
-    setAturiusMood("laughing");
-    _aturiusLookDir = "wander";
-    _aturiusTopicEye = "happy";
-    _aturiusEyeStyle = "happy";
-    _aturiusMouthShape = "smileBig";
-    try { paintAturiusFace(); } catch (e) {}
-    // After laugh ends, return to idle (unless something else took over)
-    setTimeout(function () {
-        if (Date.now() >= (_aturiusLaughUntil || 0) && _aturiusMood === "laughing") {
-            setAturiusMood("idle");
-            if (_aturiusSphere) {
-                _aturiusSphere.scale.set(1, 1, 1);
-                _aturiusSphere.position.y = 0;
+    try {
+        // Make sure 3D is up if panel is open
+        try { initAturius3D(); } catch (eInit) {}
+        var dur = Math.max(1500, Number(ms) || 3200);
+        _aturiusLaughUntil = Date.now() + dur;
+        _aturiusMood = "laughing";
+        _aturiusLookDir = "wander";
+        _aturiusTopicEye = "happy";
+        _aturiusEyeStyle = "happy";
+        _aturiusMouthShape = "smileBig";
+        try { setAturiusFeeling("happy"); } catch (eF) {}
+        var lab = document.getElementById("aturiusMoodLabel");
+        if (lab) lab.textContent = "Laughing!";
+        try { paintAturiusFace(); } catch (e) {}
+        // After laugh ends, return to idle
+        setTimeout(function () {
+            if (Date.now() >= (_aturiusLaughUntil || 0)) {
+                if (_aturiusMood === "laughing") {
+                    _aturiusMood = "idle";
+                    var lab2 = document.getElementById("aturiusMoodLabel");
+                    if (lab2) lab2.textContent = "Looking at you";
+                }
+                if (_aturiusSphere) {
+                    try {
+                        _aturiusSphere.scale.set(1, 1, 1);
+                        _aturiusSphere.position.y = 0;
+                    } catch (eS) {}
+                }
+                if (_aturiusFaceMesh) {
+                    try { _aturiusFaceMesh.scale.set(1, 1, 1); } catch (eF2) {}
+                }
+                try { paintAturiusFace(); } catch (eP) {}
             }
-        }
-    }, dur + 50);
+        }, dur + 80);
+    } catch (err) {
+        console.warn("[Aturius] laugh failed", err);
+    }
 }
 window.startAturiusLaugh = startAturiusLaugh;
 
@@ -12312,13 +12513,15 @@ function initAturius3D() {
             var squashX = 1 - bounce * 0.14;   // flatten sideways when tall
             _aturiusSphere.scale.set(squashX, squashY, squashX);
             _aturiusSphere.position.y = Math.abs(bounce) * 0.12; // hop up a bit
-            // Happy laugh face
+            // Happy laugh face (throttle paint so it stays smooth)
             if (Math.floor(_aturiusLookT * 8) % 2 === 0) {
                 _aturiusMouthShape = "smileBig";
             } else {
                 _aturiusMouthShape = "oval";
             }
-            try { paintAturiusFace(); } catch (eL) {}
+            if (Math.floor(now / 80) !== Math.floor((now - 16) / 80)) {
+                try { paintAturiusFace(); } catch (eL) {}
+            }
         } else {
             // Reset scale when not laughing
             _aturiusSphere.scale.set(1, 1, 1);
