@@ -10749,6 +10749,7 @@ var _aturiusScene = null;
 var _aturiusRenderer = null;
 var _aturiusCamera = null;
 var _aturiusSphere = null;
+var _aturiusFaceMesh = null; // separate plane IN FRONT of the sphere (not on the surface)
 var _aturiusFaceTex = null;
 var _aturiusAnimId = null;
 var _aturiusMood = "idle"; // idle | thinking | talking
@@ -10762,18 +10763,26 @@ function openAturiusPanel() {
     el.style.display = "flex";
     currentChatFriend = AZORA_AI_ID;
     ensureActiveAIChat();
-    // Ensure intro exists once per device
+    // Always guarantee at least the welcome message is visible
     try {
+        var store = ensureActiveAIChat();
         var chat = getActiveAIChat();
-        if (chat && (!chat.messages || !chat.messages.length)) {
-            chat.messages = [{ from: AZORA_AI_ID, text: ATURIUS_INTRO, at: Date.now(), isAI: true }];
-            chat.updatedAt = Date.now();
-            var store = getAIChatStore();
-            saveAIChatStore(store);
+        if (!chat.messages) chat.messages = [];
+        var hasIntro = chat.messages.some(function (m) {
+            return m && m.isAI && String(m.text || "").indexOf("I'm Aturius") !== -1;
+        });
+        if (!chat.messages.length || !hasIntro && chat.messages.length < 2) {
+            if (!chat.messages.length) {
+                chat.messages.push({ from: AZORA_AI_ID, text: ATURIUS_INTRO, at: Date.now(), isAI: true });
+                chat.updatedAt = Date.now();
+                saveAIChatStore(store);
+            }
         }
     } catch (eI) {}
     setAturiusTab("chat");
-    renderAturiusMessages();
+    try { renderAturiusMessages(); } catch (eR) { console.warn("[Aturius] render failed", eR); }
+    // Second paint after layout so messages aren't empty if DOM was late
+    setTimeout(function () { try { renderAturiusMessages(); } catch (e) {} }, 50);
     var ai = getAICompanion();
     var toggle = document.getElementById("aturiusJoinToggle");
     if (toggle) toggle.checked = ai.allowJoinGames !== false;
@@ -10816,16 +10825,31 @@ function setAturiusTab(tab) {
 function renderAturiusMessages() {
     var box = document.getElementById("aturiusMessages");
     if (!box) return;
-    var chat = getActiveAIChat();
-    var msgs = (chat && chat.messages) ? chat.messages : [];
-    var html = "";
-    for (var i = 0; i < msgs.length; i++) {
-        var m = msgs[i];
-        var isAI = m.isAI || m.from === AZORA_AI_ID;
-        html += '<div class="' + (isAI ? "aturius-msg-ai" : "aturius-msg-me") + '">' +
-            escapeHtml(String(m.text || "")) + "</div>";
+    var chat = null;
+    try { chat = getActiveAIChat(); } catch (e) {}
+    var msgs = (chat && Array.isArray(chat.messages)) ? chat.messages : [];
+    // If still empty, show the default welcome so the panel is never blank
+    if (!msgs.length) {
+        msgs = [{ from: AZORA_AI_ID, text: ATURIUS_INTRO, at: Date.now(), isAI: true }];
+        try {
+            var store = ensureActiveAIChat();
+            var c = getActiveAIChat();
+            if (c && (!c.messages || !c.messages.length)) {
+                c.messages = msgs.slice();
+                c.updatedAt = Date.now();
+                saveAIChatStore(store);
+            }
+        } catch (e2) {}
     }
-    box.innerHTML = html;
+    box.innerHTML = "";
+    for (var i = 0; i < msgs.length; i++) {
+        var m = msgs[i] || {};
+        var isAI = !!(m.isAI || m.from === AZORA_AI_ID || m.from === "__azora_ai__");
+        var div = document.createElement("div");
+        div.className = isAI ? "aturius-msg-ai" : "aturius-msg-me";
+        div.textContent = String(m.text || "");
+        box.appendChild(div);
+    }
     box.scrollTop = box.scrollHeight;
 }
 
@@ -10856,12 +10880,25 @@ function sendAturiusMessage() {
     }
     input.value = "";
     currentChatFriend = AZORA_AI_ID;
-    var me = (typeof getChatSenderId === "function" && getChatSenderId()) || getMyUsername() || "Player";
+    var me = "Player";
+    try {
+        me = (typeof getChatSenderId === "function" && getChatSenderId()) || (typeof getMyUsername === "function" && getMyUsername()) || "Player";
+    } catch (eM) {}
     var store = ensureActiveAIChat();
     var chat = getActiveAIChat();
-    chat.messages.push({ from: me, text: text, at: Date.now() });
+    if (!chat.messages) chat.messages = [];
+    chat.messages.push({ from: me, text: text, at: Date.now(), isAI: false });
     chat.updatedAt = Date.now();
     if (!chat.title || /^Chat \d+$/.test(chat.title)) chat.title = text.slice(0, 24) || chat.title;
+    // Keep store in sync (getActiveAIChat returns reference into store)
+    try {
+        for (var i = 0; i < store.chats.length; i++) {
+            if (store.chats[i].id === store.activeId) {
+                store.chats[i] = chat;
+                break;
+            }
+        }
+    } catch (eS) {}
     saveAIChatStore(store);
     renderAturiusMessages();
     scheduleAIReply(text, store.activeId);
@@ -10926,47 +10963,49 @@ function paintAturiusFace() {
     var ctx = c.getContext("2d");
     var w = c.width, h = c.height;
     ctx.clearRect(0, 0, w, h);
-    // transparent face plane — only features
-    ctx.fillStyle = "rgba(0,0,0,0)";
-    ctx.fillRect(0, 0, w, h);
 
     var thinking = _aturiusMood === "thinking";
     var talking = _aturiusMood === "talking";
 
-    // Oval eyes (black)
-    ctx.fillStyle = "#111";
-    var eyeY = thinking ? h * 0.42 : h * 0.40;
-    var eyeH = thinking ? h * 0.06 : h * 0.10;
+    // Soft yellow disc so face reads clearly ABOVE the sphere
+    ctx.fillStyle = "#ffcc00";
     ctx.beginPath();
-    ctx.ellipse(w * 0.35, eyeY, w * 0.08, eyeH, 0, 0, Math.PI * 2);
-    ctx.ellipse(w * 0.65, eyeY, w * 0.08, eyeH, 0, 0, Math.PI * 2);
+    ctx.arc(w / 2, h / 2, w * 0.46, 0, Math.PI * 2);
     ctx.fill();
 
-    // Smile — oval ends; mouth opens while talking
-    ctx.strokeStyle = "#111";
-    ctx.lineWidth = Math.max(4, w * 0.035);
+    // Oval eyes (black)
+    ctx.fillStyle = "#111111";
+    var eyeY = thinking ? h * 0.40 : h * 0.38;
+    var eyeH = thinking ? h * 0.05 : h * 0.09;
+    ctx.beginPath();
+    ctx.ellipse(w * 0.35, eyeY, w * 0.09, eyeH, 0, 0, Math.PI * 2);
+    ctx.ellipse(w * 0.65, eyeY, w * 0.09, eyeH, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Smile with oval ends; mouth opens while talking
+    ctx.strokeStyle = "#111111";
+    ctx.fillStyle = "#111111";
+    ctx.lineWidth = Math.max(6, w * 0.04);
     ctx.lineCap = "round";
-    var mouthY = h * 0.62;
-    var open = talking ? (0.08 + _aturiusMouthOpen * 0.12) : 0.02;
+    var mouthY = h * 0.60;
+    var open = talking ? (0.06 + _aturiusMouthOpen * 0.14) : 0.02;
     if (thinking) {
-        // small neutral curve
         ctx.beginPath();
-        ctx.arc(w * 0.5, mouthY - h * 0.02, w * 0.12, 0.15 * Math.PI, 0.85 * Math.PI);
+        ctx.arc(w * 0.5, mouthY - h * 0.01, w * 0.14, 0.2 * Math.PI, 0.8 * Math.PI);
         ctx.stroke();
     } else {
         ctx.beginPath();
-        ctx.moveTo(w * 0.32, mouthY);
-        ctx.quadraticCurveTo(w * 0.5, mouthY + h * (0.14 + open), w * 0.68, mouthY);
+        ctx.moveTo(w * 0.30, mouthY);
+        ctx.quadraticCurveTo(w * 0.5, mouthY + h * (0.16 + open), w * 0.70, mouthY);
         ctx.stroke();
         // oval smile ends
         ctx.beginPath();
-        ctx.ellipse(w * 0.32, mouthY, w * 0.03, h * 0.025, 0, 0, Math.PI * 2);
-        ctx.ellipse(w * 0.68, mouthY, w * 0.03, h * 0.025, 0, 0, Math.PI * 2);
+        ctx.ellipse(w * 0.30, mouthY, w * 0.035, h * 0.03, 0, 0, Math.PI * 2);
+        ctx.ellipse(w * 0.70, mouthY, w * 0.035, h * 0.03, 0, 0, Math.PI * 2);
         ctx.fill();
         if (talking && open > 0.05) {
-            ctx.fillStyle = "#111";
             ctx.beginPath();
-            ctx.ellipse(w * 0.5, mouthY + h * 0.04, w * 0.1, h * open, 0, 0, Math.PI * 2);
+            ctx.ellipse(w * 0.5, mouthY + h * 0.05, w * 0.11, h * open, 0, 0, Math.PI * 2);
             ctx.fill();
         }
     }
@@ -10976,66 +11015,86 @@ function paintAturiusFace() {
 function initAturius3D() {
     var canvas = document.getElementById("aturiusCanvas");
     if (!canvas || typeof THREE === "undefined") return;
-    if (_aturiusRenderer) {
+
+    // Always rebuild face paint if already initialized
+    if (_aturiusRenderer && _aturiusSphere) {
         try { paintAturiusFace(); } catch (e) {}
         return;
     }
-    var w = canvas.width || 280;
-    var h = canvas.height || 280;
+
+    var w = canvas.clientWidth || canvas.width || 280;
+    var h = canvas.clientHeight || canvas.height || 280;
+    if (w < 50) w = 280;
+    if (h < 50) h = 280;
+    canvas.width = w;
+    canvas.height = h;
+
     _aturiusRenderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true, alpha: true });
     _aturiusRenderer.setSize(w, h, false);
     _aturiusRenderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    _aturiusRenderer.setClearColor(0x000000, 0);
+
     _aturiusScene = new THREE.Scene();
     // Fixed camera — never moves
     _aturiusCamera = new THREE.PerspectiveCamera(40, w / h, 0.1, 100);
-    _aturiusCamera.position.set(0, 0, 3.2);
+    _aturiusCamera.position.set(0, 0, 3.4);
     _aturiusCamera.lookAt(0, 0, 0);
 
-    var light = new THREE.DirectionalLight(0xffffff, 1.05);
-    light.position.set(2, 3, 4);
+    var light = new THREE.DirectionalLight(0xffffff, 1.1);
+    light.position.set(2, 3, 5);
     _aturiusScene.add(light);
-    _aturiusScene.add(new THREE.AmbientLight(0xffffff, 0.55));
+    _aturiusScene.add(new THREE.AmbientLight(0xffffff, 0.65));
 
+    // Yellow sphere body
     var geo = new THREE.SphereGeometry(1, 48, 48);
     var mat = new THREE.MeshStandardMaterial({
         color: 0xffcc00,
-        roughness: 0.35,
-        metalness: 0.08
+        roughness: 0.4,
+        metalness: 0.05
     });
     _aturiusSphere = new THREE.Mesh(geo, mat);
     _aturiusScene.add(_aturiusSphere);
 
-    // Face decal on front of sphere (always faces camera)
+    // Face sits IN FRONT of the sphere (not on the surface) so it never disappears
     var faceCanvas = document.createElement("canvas");
-    faceCanvas.width = 256;
-    faceCanvas.height = 256;
+    faceCanvas.width = 512;
+    faceCanvas.height = 512;
     _aturiusFaceTex = new THREE.CanvasTexture(faceCanvas);
     _aturiusFaceTex.minFilter = THREE.LinearFilter;
     _aturiusFaceTex.magFilter = THREE.LinearFilter;
     var faceMat = new THREE.MeshBasicMaterial({
         map: _aturiusFaceTex,
         transparent: true,
-        depthWrite: false
+        depthTest: true,
+        depthWrite: false,
+        side: THREE.DoubleSide
     });
-    var faceMesh = new THREE.Mesh(new THREE.PlaneGeometry(1.15, 1.15), faceMat);
-    faceMesh.position.z = 0.92;
-    _aturiusSphere.add(faceMesh);
+    _aturiusFaceMesh = new THREE.Mesh(new THREE.PlaneGeometry(1.35, 1.35), faceMat);
+    // Position toward the camera, slightly in front of the sphere surface
+    _aturiusFaceMesh.position.set(0, 0.05, 1.25);
+    _aturiusScene.add(_aturiusFaceMesh); // NOT a child of the sphere
     paintAturiusFace();
 
     function tick(t) {
         _aturiusAnimId = requestAnimationFrame(tick);
-        if (!_aturiusSphere) return;
-        // Slight look-around only (sphere turns a little); camera stays fixed
+        if (!_aturiusSphere || !_aturiusRenderer) return;
         _aturiusLookT = (t || 0) * 0.001;
+        // Sphere can glance around a little
         if (_aturiusMood === "idle") {
-            _aturiusSphere.rotation.y = Math.sin(_aturiusLookT * 0.7) * 0.18;
-            _aturiusSphere.rotation.x = Math.sin(_aturiusLookT * 0.45) * 0.08;
+            _aturiusSphere.rotation.y = Math.sin(_aturiusLookT * 0.7) * 0.22;
+            _aturiusSphere.rotation.x = Math.sin(_aturiusLookT * 0.45) * 0.1;
         } else if (_aturiusMood === "thinking") {
-            _aturiusSphere.rotation.y = Math.sin(_aturiusLookT * 1.2) * 0.12;
-            _aturiusSphere.rotation.x = 0.1 + Math.sin(_aturiusLookT) * 0.05;
+            _aturiusSphere.rotation.y = Math.sin(_aturiusLookT * 1.1) * 0.12;
+            _aturiusSphere.rotation.x = 0.08 + Math.sin(_aturiusLookT) * 0.05;
         } else {
             _aturiusSphere.rotation.y = 0;
             _aturiusSphere.rotation.x = 0;
+        }
+        // Face always stares at the camera (does not rotate with the sphere)
+        if (_aturiusFaceMesh) {
+            _aturiusFaceMesh.position.x = Math.sin(_aturiusLookT * 0.5) * 0.04;
+            _aturiusFaceMesh.position.y = 0.05 + Math.sin(_aturiusLookT * 0.35) * 0.03;
+            _aturiusFaceMesh.lookAt(_aturiusCamera.position);
         }
         _aturiusRenderer.render(_aturiusScene, _aturiusCamera);
     }

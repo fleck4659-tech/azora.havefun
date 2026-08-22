@@ -5981,10 +5981,12 @@ html[data-theme="dark"] .azora-bg-wave { background: transparent; }
 .aturius-messages {
     flex: 1;
     overflow-y: auto;
-    background: rgba(0,0,0,0.25);
+    background: rgba(0,0,0,0.35);
     border-radius: 12px;
-    padding: 10px;
+    padding: 12px;
     min-height: 180px;
+    max-height: min(50vh, 420px);
+    color: #fff;
 }
 .aturius-actions {
     display: flex;
@@ -6058,18 +6060,22 @@ html[data-theme="dark"] .azora-bg-wave { background: transparent; }
     padding: 10px 12px;
     border-radius: 12px;
     max-width: 92%;
-    line-height: 1.4;
+    line-height: 1.45;
     font-size: 14px;
+    white-space: pre-wrap;
+    word-break: break-word;
+    display: block;
 }
 .aturius-msg-ai {
-    background: rgba(250, 204, 21, 0.18);
-    border: 1px solid rgba(250, 204, 21, 0.35);
-    color: #fff;
+    background: rgba(250, 204, 21, 0.28);
+    border: 1px solid rgba(250, 204, 21, 0.55);
+    color: #fffef0;
     margin-right: auto;
 }
 .aturius-msg-me {
-    background: rgba(59, 130, 246, 0.25);
-    border: 1px solid rgba(59, 130, 246, 0.4);
+    background: rgba(59, 130, 246, 0.4);
+    border: 1px solid rgba(96, 165, 250, 0.65);
+    color: #f0f9ff;
     color: #fff;
     margin-left: auto;
 }
