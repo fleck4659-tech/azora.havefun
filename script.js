@@ -3104,9 +3104,23 @@ window.applyOwnerRenameFromConsole = applyOwnerRenameFromConsole;
 
 function isAzoraOwner() {
     try {
-        if (localStorage.getItem("loggedIn") !== "true") return false;
+        var logged = String(localStorage.getItem("loggedIn") || "");
+        // Must be a real logged-in account (not guest-only session)
+        if (logged !== "true" && logged !== "yes" && logged !== "account") {
+            // Still allow if azoraAccount is clearly the owner (some builds only set the object)
+            var accEarly = null;
+            try { accEarly = JSON.parse(localStorage.getItem("azoraAccount") || "null"); } catch (e0) {}
+            if (!accEarly) return false;
+        }
         var acc = JSON.parse(localStorage.getItem("azoraAccount") || "null");
-        return !!(acc && isOwnerUsername(acc.username));
+        if (!acc) return false;
+        // Official flags / reserved ID (works even if display name is Azora.HaveFun)
+        if (acc.isOwner === true) return true;
+        if (isOwnerUsername(acc.username)) return true;
+        var uid = String(acc.userId || "").replace(/\s+/g, "").toLowerCase();
+        if (uid === "aza:0" || uid === "aza-0" || uid === "aza:00") return true;
+        // Display name alone is NOT enough (anyone could set a similar name)
+        return false;
     } catch (e) { return false; }
 }
 
@@ -11591,6 +11605,7 @@ function openAturiusPanel() {
     } catch (eFeel) {}
     try { loadAturiusVoiceUI(); } catch (eV) {}
     try { renderAturiusHistoryList(); } catch (eH) {}
+    try { refreshAturiusTrainUI(); } catch (eTr) {}
     setAturiusMood("idle");
     try { paintAturiusFace(); } catch (eP) {}
 }
@@ -11728,11 +11743,32 @@ function refreshAturiusTrainUI() {
     if (!block) return;
     var owner = false;
     try { owner = typeof isAzoraOwner === "function" && isAzoraOwner(); } catch (e) {}
+    // Extra fallback: username Azora OR userId Aza: 0 on this session
+    if (!owner) {
+        try {
+            var acc = JSON.parse(localStorage.getItem("azoraAccount") || "null");
+            if (acc) {
+                var un = String(acc.username || "").trim().toLowerCase();
+                var uid = String(acc.userId || "").replace(/\s+/g, "").toLowerCase();
+                if (un === "azora" || uid === "aza:0" || acc.isOwner) owner = true;
+            }
+        } catch (e2) {}
+    }
     block.style.display = owner ? "block" : "none";
-    if (!owner) return;
+    block.setAttribute("data-owner", owner ? "1" : "0");
+    if (!owner) {
+        // Helpful debug for you only when logged in but not detected
+        try {
+            var acc2 = JSON.parse(localStorage.getItem("azoraAccount") || "null");
+            if (acc2 && console && console.debug) {
+                console.debug("[Aturius Train] Not shown. username=", acc2.username, "userId=", acc2.userId, "isOwner=", acc2.isOwner, "loggedIn=", localStorage.getItem("loggedIn"));
+            }
+        } catch (e3) {}
+        return;
+    }
     var list = getAturiusTraining();
     var note = document.getElementById("aturiusTrainNote");
-    if (note) note.textContent = list.length ? (list.length + " training example(s) saved.") : "No examples yet.";
+    if (note) note.textContent = list.length ? (list.length + " training example(s) saved.") : "No examples yet. Add phrases, then Export code files.";
     var box = document.getElementById("aturiusTrainList");
     if (!box) return;
     box.innerHTML = "";
