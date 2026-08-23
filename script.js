@@ -10861,17 +10861,32 @@ function generateAIReply(userText, attachment) {
         ]);
     }
 
-    // ===== FAVORITE / PREFERENCE =====
-    if (/\b(favorite|favourite|best|do you like|what do you think of)\b/.test(t)) {
-        if (/\b(game|games)\b/.test(t)) {
-            return "Oh hard pick — I like Norm Games where people actually hang out. Roleplay-style maps are fun. What's your favorite?";
+    // ===== FAVORITE / PREFERENCE (color BEFORE game so "favorite color" never becomes a game answer) =====
+    if (/\b(favou?rite|favroite|favo+rite|best|do you like|what do you think of)\b/.test(t) ||
+        /\bwhat('?s| is) your fav/i.test(t)) {
+        // Explicit "not game" / color questions
+        if (/\b(color|colour|colors|colours)\b/.test(t) || /\bnot\s+game\b/.test(t)) {
+            return pickRandom([
+                "Haha — yellow! Same as my sphere. What's your favorite color?",
+                "Oh easy: yellow. Sometimes I vibe with sky blue too. Yours?",
+                "Yellow for sure. I'm literally a yellow ball so I'm biased haha."
+            ]);
         }
-        if (/\b(color|colour)\b/.test(t)) {
-            return "Haha I'm biased — yellow. Obviously. What's yours?";
+        if (/\b(game|games)\b/.test(t) && !/\bnot\s+game\b/.test(t)) {
+            return pickRandom([
+                "Oh hard pick — I like Norm Games where people hang out. Azora Roleplay is a solid one. What's yours?",
+                "I'd say Azora Roleplay for hanging out, but Quick Games are fun when you only have a minute. You?"
+            ]);
+        }
+        if (/\b(food|snack|eat)\b/.test(t)) {
+            return "Haha I don't eat, but if I could? Probably something yellow. Like... yellow candy?";
+        }
+        if (/\b(animal|pet)\b/.test(t)) {
+            return "I'm team cats AND dogs. Don't make me choose haha.";
         }
         return pickRandom([
             "Hmm good question. I like chatting with you and watching people build weird games. You?",
-            "Oh I like when someone says hi and then we actually talk. Not a deep answer but it's true haha."
+            "Oh I like when someone says hi and then we actually talk. Not deep but true haha. What about you?"
         ]);
     }
 
@@ -11740,6 +11755,13 @@ function matchAturiusTraining(userText) {
     if (!t) return null;
     var list = getAturiusTraining();
     if (!list.length) return null;
+    // Common words that must NOT win training alone (stops "favorite" → always same reply)
+    var STOP = {
+        a:1, an:1, the:1, is:1, are:1, was:1, were:1, what:1, who:1, where:1, when:1,
+        why:1, how:1, do:1, does:1, did:1, can:1, could:1, would:1, should:1, i:1, you:1,
+        your:1, my:1, me:1, it:1, to:1, of:1, in:1, on:1, for:1, and:1, or:1, not:1,
+        this:1, that:1, with:1, about:1, favorite:1, favourite:1, best:1, like:1, love:1
+    };
     var best = null;
     var bestScore = 0;
     for (var i = 0; i < list.length; i++) {
@@ -11749,29 +11771,41 @@ function matchAturiusTraining(userText) {
         for (var j = 0; j < triggers.length; j++) {
             var trig = String(triggers[j] || "").toLowerCase().trim();
             if (!trig) continue;
-            // Exact / contains
-            if (t === trig || t.indexOf(trig) !== -1 || trig.indexOf(t) !== -1) {
-                var score = trig.length + 50;
-                if (score > bestScore) { bestScore = score; best = ex.reply; }
+            // Ignore ultra-short / single stop-word triggers
+            var trigWords = trig.split(/\s+/).filter(Boolean);
+            if (trigWords.length === 1 && (trig.length < 4 || STOP[trigWords[0]])) continue;
+
+            // Exact match
+            if (t === trig) {
+                var scoreExact = 100 + trig.length;
+                if (scoreExact > bestScore) { bestScore = scoreExact; best = ex.reply; }
                 continue;
             }
-            // Word overlap
+            // Strong contains (trigger is a real phrase inside the message)
+            if (trig.length >= 5 && t.indexOf(trig) !== -1) {
+                var scoreC = 70 + trig.length;
+                if (scoreC > bestScore) { bestScore = scoreC; best = ex.reply; }
+                continue;
+            }
+            // Word overlap — need most trigger words, ignore stop words
             var tw = t.split(/\s+/);
-            var gw = trig.split(/\s+/);
+            var meaningful = trigWords.filter(function (w) { return w.length > 2 && !STOP[w]; });
+            if (!meaningful.length) continue;
             var hit = 0;
-            for (var a = 0; a < gw.length; a++) {
-                if (gw[a].length < 2) continue;
+            for (var a = 0; a < meaningful.length; a++) {
                 for (var b = 0; b < tw.length; b++) {
-                    if (tw[b] === gw[a]) hit++;
+                    if (tw[b] === meaningful[a]) { hit++; break; }
                 }
             }
-            if (hit > 0 && gw.length > 0) {
-                var sc = (hit / gw.length) * 40 + hit * 5;
-                if (sc >= 20 && sc > bestScore) { bestScore = sc; best = ex.reply; }
+            var ratio = hit / meaningful.length;
+            if (ratio >= 0.75 && hit >= 1) {
+                var sc = ratio * 50 + hit * 8 + meaningful.length;
+                if (sc > bestScore) { bestScore = sc; best = ex.reply; }
             }
         }
     }
-    if (best) return applyAturiusTrainingTemplates(best);
+    // Require a solid score so weak overlaps don't hijack normal chat
+    if (best && bestScore >= 40) return applyAturiusTrainingTemplates(best);
     return null;
 }
 function addAturiusTrainingExample() {
