@@ -10896,6 +10896,18 @@ function generateAIReply(userText, attachment) {
         ]);
     }
 
+    // ===== PURPOSE / WHY DO YOU EXIST =====
+    if (/\b(what('?s| is) your purpose|your purpose|why (do|are) you (here|exist)|what are you for|why were you (made|created)|what('?s| is) the point of you)\b/.test(t) ||
+        (/\bpurpose\b/.test(t) && /\b(you|your|aturius)\b/.test(t))) {
+        return pickRandom([
+            "My purpose? Keep you company on Azora — answer stuff, joke around, help with games and coins, and hang out so the platform feels less empty.",
+            "I'm here to be a friendly yellow sphere buddy. Chat, tips, stories, mini-game ideas — basically make Azora more fun for you.",
+            "Purpose is simple: help players, talk when you want to talk, and make exploring Azora a little less lonely. Also occasional bad jokes.",
+            "Oh — I'm Aturius. Built to chat, help with Azora questions, and keep things light. Not deep philosophy… unless you want that haha.",
+            "To be honest? Be useful and fun. Rules, coins, games, feelings, silly stories — whatever you need in the moment."
+        ]);
+    }
+
     // ===== ARE YOU REAL? (imagination-first — not a dry "I'm just AI" speech) =====
     if (/\b(are you real|you real|r u real|are u real)\b/.test(t) ||
         /\bwait\b.{0,24}\bare you real\b/.test(t) ||
