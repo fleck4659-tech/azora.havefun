@@ -939,6 +939,20 @@
                 <button type="button" class="aturius-test-btn" onclick="resetAturiusMoodToHappy()">Reset mood to happy</button>
             </div>
 
+            <div class="aturius-equip-block" id="aturiusEquipBlock">
+                <h4 class="aturius-train-title" style="color:#a5b4fc;">Aturius look</h4>
+                <p class="aturius-settings-note">Equip hats &amp; faces you own from the <strong>Aturius AI</strong> marketplace tab. Change sphere color anytime.</p>
+                <label class="aturius-field-label" for="aturiusEquipFace"><strong>Animated face</strong></label>
+                <select id="aturiusEquipFace" class="aturius-voice-select" onchange="equipAturiusCosmetic('face', this.value)"></select>
+                <label class="aturius-field-label" for="aturiusEquipHat"><strong>Hat</strong></label>
+                <select id="aturiusEquipHat" class="aturius-voice-select" onchange="equipAturiusCosmetic('hat', this.value)"></select>
+                <label class="aturius-field-label" for="aturiusSphereColor"><strong>Sphere color</strong></label>
+                <input type="color" id="aturiusSphereColor" value="#facc15" onchange="setAturiusSphereColor(this.value)" style="width:100%;height:40px;border:none;border-radius:10px;cursor:pointer;">
+                <div class="aturius-voice-actions" style="margin-top:10px;">
+                    <button type="button" class="aturius-test-btn" onclick="resetAturiusLookDefault()">Reset to default look</button>
+                </div>
+            </div>
+
             <!-- Azora owner only: train Aturius -->
             <div class="aturius-train-block" id="aturiusTrainBlock" style="display:none;">
                 <h4 class="aturius-train-title">Train Aturius (Azora only)</h4>
@@ -1292,10 +1306,15 @@ if ("serviceWorker" in navigator) {
 
 <!-- Marketplace -->
 <div id="marketplaceOverlay" class="overlay" style="display:none;">
-    <div class="popup market-popup" style="max-width:min(420px,calc(100vw - 16px));text-align:left;">
+    <div class="popup market-popup" style="max-width:min(460px,calc(100vw - 16px));text-align:left;">
         <h2 style="text-align:center;margin:0 0 8px;">🛒 Marketplace</h2>
-        <p style="text-align:center;margin:0 0 12px;opacity:0.85;font-size:0.9rem;">Your balance: <strong id="marketCoinBalance">0</strong> 🪙</p>
-        <div style="display:flex;gap:8px;justify-content:center;margin-bottom:12px;flex-wrap:wrap;align-items:center;">
+        <p style="text-align:center;margin:0 0 10px;opacity:0.85;font-size:0.9rem;">Your balance: <strong id="marketCoinBalance">0</strong> 🪙</p>
+        <div class="market-tabs" role="tablist">
+            <button type="button" class="market-tab active" id="marketTabMarket" onclick="setMarketplaceTab('market')">Market</button>
+            <button type="button" class="market-tab" id="marketTabShop" onclick="setMarketplaceTab('shop')">Shop</button>
+            <button type="button" class="market-tab" id="marketTabAturius" onclick="setMarketplaceTab('aturius')">✨ Aturius AI</button>
+        </div>
+        <div id="marketMainFilters" style="display:flex;gap:8px;justify-content:center;margin:10px 0 12px;flex-wrap:wrap;align-items:center;">
             <label style="font-size:0.85rem;">Category:
                 <select id="marketCategory" onchange="renderMarketplace()">
                     <option value="hair">Hair</option>
@@ -1312,6 +1331,16 @@ if ("serviceWorker" in navigator) {
                 </select>
             </label>
         </div>
+        <div id="aturiusMarketFilters" style="display:none;gap:8px;justify-content:center;margin:10px 0 12px;flex-wrap:wrap;align-items:center;">
+            <label style="font-size:0.85rem;">Aturius items:
+                <select id="aturiusMarketCategory" onchange="renderMarketplace()">
+                    <option value="aturius_hats">Hats</option>
+                    <option value="aturius_faces">Animated faces</option>
+                    <option value="aturius_colors">Sphere colors</option>
+                </select>
+            </label>
+        </div>
+        <p id="aturiusMarketHint" style="display:none;text-align:center;font-size:0.82rem;opacity:0.85;margin:0 0 8px;">Buy items here, then equip them in <strong>Aturius → Settings</strong>.</p>
         <div id="marketplaceList" class="market-list"></div>
         <button type="button" onclick="closeMarketplace()" style="width:100%;margin-top:12px;">Close</button>
     </div>

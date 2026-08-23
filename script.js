@@ -11663,6 +11663,7 @@ function setAturiusTab(tab) {
         if (tSet) tSet.classList.add("active");
         try { loadAturiusVoiceUI(); } catch (e) {}
         try { applyAturiusExtraSettings(); } catch (eX) {}
+        try { refreshAturiusEquipUI(); } catch (eEq) {}
         try { refreshAturiusTrainUI(); } catch (eT) {}
         // Make sure Train Aturius is reachable (settings + layout scroll)
         try {
@@ -12679,6 +12680,126 @@ function startAturiusLaugh(ms) {
 }
 window.startAturiusLaugh = startAturiusLaugh;
 
+function equipAturiusCosmetic(kind, id) {
+    var cos = getAturiusCosmetics();
+    if (kind === "face") {
+        if (!ownsItem(id) && id !== "aturius_face_default") {
+            showAzoraToast("You don't own that face yet — check the Aturius AI marketplace tab.");
+            return;
+        }
+        cos.face = id || "aturius_face_default";
+    } else if (kind === "hat") {
+        if (!ownsItem(id) && id !== "aturius_hat_none") {
+            showAzoraToast("You don't own that hat yet.");
+            return;
+        }
+        cos.hat = id || "aturius_hat_none";
+    }
+    saveAturiusCosmetics(cos);
+    showAzoraToast("Equipped!");
+}
+function setAturiusSphereColor(hex) {
+    var cos = getAturiusCosmetics();
+    cos.color = hex || "#facc15";
+    cos.colorId = "custom";
+    saveAturiusCosmetics(cos);
+}
+function resetAturiusLookDefault() {
+    saveAturiusCosmetics({
+        face: "aturius_face_default",
+        hat: "aturius_hat_none",
+        color: "#facc15",
+        colorId: "aturius_color_default"
+    });
+    showAzoraToast("Aturius look reset to default.");
+}
+function refreshAturiusEquipUI() {
+    var faceSel = document.getElementById("aturiusEquipFace");
+    var hatSel = document.getElementById("aturiusEquipHat");
+    var colorIn = document.getElementById("aturiusSphereColor");
+    var cos = getAturiusCosmetics();
+    if (faceSel) {
+        faceSel.innerHTML = "";
+        ATURIUS_MARKET_CATALOG.filter(function (i) { return i.type === "aturius_face"; }).forEach(function (item) {
+            if (!ownsItem(item.id)) return;
+            var opt = document.createElement("option");
+            opt.value = item.id;
+            opt.textContent = item.name + (item.id === "aturius_face_default" ? " (default)" : "");
+            if (item.id === cos.face) opt.selected = true;
+            faceSel.appendChild(opt);
+        });
+        if (!faceSel.options.length) {
+            var o = document.createElement("option");
+            o.value = "aturius_face_default";
+            o.textContent = "Default Smile";
+            faceSel.appendChild(o);
+        }
+    }
+    if (hatSel) {
+        hatSel.innerHTML = "";
+        ATURIUS_MARKET_CATALOG.filter(function (i) { return i.type === "aturius_hat"; }).forEach(function (item) {
+            if (!ownsItem(item.id)) return;
+            var opt = document.createElement("option");
+            opt.value = item.id;
+            opt.textContent = item.name;
+            if (item.id === cos.hat) opt.selected = true;
+            hatSel.appendChild(opt);
+        });
+    }
+    if (colorIn) colorIn.value = cos.color || "#facc15";
+}
+function applyAturiusCosmeticsToScene() {
+    var cos = getAturiusCosmetics();
+    if (_aturiusSphere && _aturiusSphere.material) {
+        try {
+            var hex = String(cos.color || "#facc15").replace("#", "");
+            _aturiusSphere.material.color.setHex(parseInt(hex, 16));
+            _aturiusSphere.material.needsUpdate = true;
+        } catch (e) {}
+    }
+    // Hats as simple meshes parented above sphere
+    if (!_aturiusScene || !_aturiusSphere) return;
+    // Remove old hat group
+    if (window._aturiusHatMesh) {
+        try { _aturiusScene.remove(window._aturiusHatMesh); } catch (eR) {}
+        window._aturiusHatMesh = null;
+    }
+    var hatId = cos.hat || "aturius_hat_none";
+    if (hatId === "aturius_hat_none" || typeof THREE === "undefined") return;
+    var hat = new THREE.Group();
+    if (hatId === "aturius_hat_cap") {
+        var brim = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.55, 0.06, 24), new THREE.MeshStandardMaterial({ color: 0x2563eb }));
+        brim.position.y = 0.95;
+        var top = new THREE.Mesh(new THREE.SphereGeometry(0.42, 16, 12, 0, Math.PI * 2, 0, Math.PI / 2), new THREE.MeshStandardMaterial({ color: 0x3b82f6 }));
+        top.position.y = 1.05;
+        hat.add(brim); hat.add(top);
+    } else if (hatId === "aturius_hat_crown") {
+        var band = new THREE.Mesh(new THREE.CylinderGeometry(0.38, 0.42, 0.18, 6), new THREE.MeshStandardMaterial({ color: 0xfbbf24, metalness: 0.6, roughness: 0.3 }));
+        band.position.y = 1.05;
+        hat.add(band);
+    } else if (hatId === "aturius_hat_top") {
+        var cyl = new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.32, 0.55, 20), new THREE.MeshStandardMaterial({ color: 0x111111 }));
+        cyl.position.y = 1.25;
+        var base = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.5, 0.06, 24), new THREE.MeshStandardMaterial({ color: 0x111111 }));
+        base.position.y = 0.98;
+        hat.add(cyl); hat.add(base);
+    } else if (hatId === "aturius_hat_propeller") {
+        var beanie = new THREE.Mesh(new THREE.SphereGeometry(0.45, 16, 12, 0, Math.PI * 2, 0, Math.PI / 2), new THREE.MeshStandardMaterial({ color: 0xef4444 }));
+        beanie.position.y = 1.0;
+        var prop = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.06, 0.12), new THREE.MeshStandardMaterial({ color: 0xfbbf24 }));
+        prop.position.y = 1.35;
+        prop.name = "propeller";
+        hat.add(beanie); hat.add(prop);
+    }
+    window._aturiusHatMesh = hat;
+    _aturiusScene.add(hat);
+}
+window.equipAturiusCosmetic = equipAturiusCosmetic;
+window.setAturiusSphereColor = setAturiusSphereColor;
+window.resetAturiusLookDefault = resetAturiusLookDefault;
+window.refreshAturiusEquipUI = refreshAturiusEquipUI;
+window.applyAturiusCosmeticsToScene = applyAturiusCosmeticsToScene;
+
 function paintAturiusFace() {
     if (!_aturiusFaceTex || !_aturiusFaceTex.image) return;
     var c = _aturiusFaceTex.image;
@@ -12692,14 +12813,23 @@ function paintAturiusFace() {
     var now = Date.now();
     var blinking = now < (_aturiusBlinkUntil || 0);
 
+    // Equipped animated face style (marketplace)
+    var cosFace = "aturius_face_default";
+    try { cosFace = getAturiusCosmetics().face || "aturius_face_default"; } catch (eCF) {}
+
     // Eyes: feeling wins for sad/upset; otherwise topic eyes (entertaining)
     var feeling = _aturiusFeeling || getAturiusFeeling();
     var eyeStyle = _aturiusTopicEye || _aturiusEyeStyle || "normal";
     if (feeling === "sad") eyeStyle = "sad";
     else if (feeling === "upset") eyeStyle = "mad";
     else if (feeling === "happy" && (eyeStyle === "normal" || !eyeStyle)) eyeStyle = "happy";
-    // While talking/laughing and not sad/upset → happy smile-eyes
-    if ((talking || laughing) && feeling !== "sad" && feeling !== "upset") {
+    // Marketplace face styles
+    if (cosFace === "aturius_face_happy" && feeling !== "sad" && feeling !== "upset") eyeStyle = "happy";
+    if (cosFace === "aturius_face_cool" && feeling !== "sad" && feeling !== "upset") eyeStyle = "cool";
+    if (cosFace === "aturius_face_wink" && feeling !== "sad" && feeling !== "upset" && !blinking) eyeStyle = "wink";
+    if (cosFace === "aturius_face_spark" && feeling !== "sad" && feeling !== "upset") eyeStyle = "spark";
+    // While talking/laughing and not sad/upset → happy smile-eyes (unless cool/wink equipped)
+    if ((talking || laughing) && feeling !== "sad" && feeling !== "upset" && cosFace !== "aturius_face_cool" && cosFace !== "aturius_face_wink") {
         eyeStyle = "happy";
     }
 
@@ -12765,6 +12895,31 @@ function paintAturiusFace() {
         ctx.moveTo(rx - eyeRx, eyeY + eyeRy * 0.15);
         ctx.quadraticCurveTo(rx, eyeY - eyeRy * 1.05, rx + eyeRx, eyeY + eyeRy * 0.15);
         ctx.stroke();
+    } else if (eyeStyle === "wink") {
+        drawSolidEye(lx, eyeY, eyeRx, eyeRy, 0);
+        ctx.strokeStyle = "#111111";
+        ctx.lineWidth = Math.max(6, w * 0.038);
+        ctx.beginPath();
+        ctx.moveTo(rx - eyeRx, eyeY + eyeRy * 0.1);
+        ctx.quadraticCurveTo(rx, eyeY - eyeRy * 0.9, rx + eyeRx, eyeY + eyeRy * 0.1);
+        ctx.stroke();
+    } else if (eyeStyle === "cool") {
+        // Half-lidded ovals
+        drawSolidEye(lx, eyeY + eyeRy * 0.15, eyeRx * 1.05, eyeRy * 0.55, 0);
+        drawSolidEye(rx, eyeY + eyeRy * 0.15, eyeRx * 1.05, eyeRy * 0.55, 0);
+    } else if (eyeStyle === "spark") {
+        drawSolidEye(lx, eyeY, eyeRx, eyeRy, 0);
+        drawSolidEye(rx, eyeY, eyeRx, eyeRy, 0);
+        // Sparkle star accents
+        ctx.fillStyle = "rgba(255,255,255,0.9)";
+        var sp = (Math.floor(now / 180) % 2 === 0);
+        if (sp) {
+            ctx.beginPath();
+            ctx.arc(lx + eyeRx * 0.9, eyeY - eyeRy * 1.1, w * 0.012, 0, Math.PI * 2);
+            ctx.arc(rx - eyeRx * 0.9, eyeY - eyeRy * 1.15, w * 0.01, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        ctx.fillStyle = "#111111";
     } else if (eyeStyle === "curious" || eyeStyle === "lookUp") {
         drawSolidEye(lx, eyeY - h * 0.012, eyeRx * 1.02, eyeRy * 1.12, 0);
         drawSolidEye(rx, eyeY - h * 0.012, eyeRx * 1.02, eyeRy * 1.12, 0);
@@ -12911,6 +13066,7 @@ function initAturius3D() {
     _aturiusFaceMesh.position.set(0, 0.05, 1.25);
     _aturiusScene.add(_aturiusFaceMesh); // NOT a child of the sphere
     paintAturiusFace();
+    try { applyAturiusCosmeticsToScene(); } catch (eCos) {}
 
     // Load saved feeling for eyes
     try {
@@ -20546,17 +20702,73 @@ function grantAllOfficialItemsToOwner() {
 }
 
 function ownsItem(itemId) {
-    // Official account owns every official catalog item (hair + faces + shirts)
+    // Official account owns every official catalog item (hair + faces + shirts + Aturius)
     try {
         if (typeof isAzoraOwner === "function" && isAzoraOwner()) {
             if (hairCatalogById(itemId) || faceCatalogById(itemId) ||
+                aturiusMarketById(itemId) ||
                 (typeof officialTShirtCatalogById === "function" && officialTShirtCatalogById(itemId))) {
                 return true;
             }
         }
     } catch (e) {}
+    // Free Aturius defaults always owned
+    if (itemId === "aturius_face_default" || itemId === "aturius_hat_none" || itemId === "aturius_color_default") return true;
     var inv = getInventory();
     return inv.items.indexOf(itemId) !== -1;
+}
+
+// ============================================================
+// Aturius AI Marketplace (hats, animated faces, sphere colors)
+// ============================================================
+var ATURIUS_MARKET_CATALOG = [
+    // Faces
+    { id: "aturius_face_default", name: "Default Smile", type: "aturius_face", price: 0, desc: "Classic Aturius smile (equipped by default)." },
+    { id: "aturius_face_happy", name: "Happy Arcs", type: "aturius_face", price: 0, desc: "Closed happy eyes — free." },
+    { id: "aturius_face_wink", name: "Wink", type: "aturius_face", price: 0.05, desc: "One eye winks while idle." },
+    { id: "aturius_face_cool", name: "Cool", type: "aturius_face", price: 0.08, desc: "Chill half-lidded look." },
+    { id: "aturius_face_spark", name: "Spark Eyes", type: "aturius_face", price: 0.12, desc: "Animated sparkle blinks." },
+    // Hats
+    { id: "aturius_hat_none", name: "No Hat", type: "aturius_hat", price: 0, desc: "Default — nothing on top." },
+    { id: "aturius_hat_cap", name: "Blue Cap", type: "aturius_hat", price: 0.05, desc: "Simple blue baseball cap." },
+    { id: "aturius_hat_crown", name: "Gold Crown", type: "aturius_hat", price: 0.15, desc: "Tiny royal crown." },
+    { id: "aturius_hat_propeller", name: "Propeller Beanie", type: "aturius_hat", price: 0.10, desc: "Spins slowly (just for fun)." },
+    { id: "aturius_hat_top", name: "Top Hat", type: "aturius_hat", price: 0.12, desc: "Fancy black top hat." },
+    // Colors
+    { id: "aturius_color_default", name: "Default Yellow", type: "aturius_color", price: 0, desc: "Classic Aturius yellow.", color: "#facc15" },
+    { id: "aturius_color_sky", name: "Sky Blue", type: "aturius_color", price: 0, desc: "Free sky blue sphere.", color: "#38bdf8" },
+    { id: "aturius_color_mint", name: "Mint", type: "aturius_color", price: 0.05, desc: "Soft mint green.", color: "#34d399" },
+    { id: "aturius_color_violet", name: "Violet", type: "aturius_color", price: 0.08, desc: "Purple glow vibe.", color: "#a78bfa" },
+    { id: "aturius_color_rose", name: "Rose", type: "aturius_color", price: 0.08, desc: "Warm rose pink.", color: "#fb7185" },
+    { id: "aturius_color_night", name: "Night", type: "aturius_color", price: 0.10, desc: "Deep navy sphere.", color: "#1e3a8a" }
+];
+
+function aturiusMarketById(id) {
+    for (var i = 0; i < ATURIUS_MARKET_CATALOG.length; i++) {
+        if (ATURIUS_MARKET_CATALOG[i].id === id) return ATURIUS_MARKET_CATALOG[i];
+    }
+    return null;
+}
+
+function getAturiusCosmetics() {
+    try {
+        var c = JSON.parse(localStorage.getItem("azoraAturiusCosmetics") || "null");
+        if (c && typeof c === "object") {
+            return {
+                face: c.face || "aturius_face_default",
+                hat: c.hat || "aturius_hat_none",
+                color: c.color || "#facc15",
+                colorId: c.colorId || "aturius_color_default"
+            };
+        }
+    } catch (e) {}
+    return { face: "aturius_face_default", hat: "aturius_hat_none", color: "#facc15", colorId: "aturius_color_default" };
+}
+function saveAturiusCosmetics(c) {
+    localStorage.setItem("azoraAturiusCosmetics", JSON.stringify(c || getAturiusCosmetics()));
+    try { applyAturiusCosmeticsToScene(); } catch (e) {}
+    try { paintAturiusFace(); } catch (e2) {}
+    try { refreshAturiusEquipUI(); } catch (e3) {}
 }
 
 function getEquippedHairStyle() {
@@ -20599,8 +20811,9 @@ function buyMarketplaceItem(itemId) {
         showAzoraToast("Azora already owns every official item.");
         return;
     }
-    var item = hairCatalogById(itemId) || faceCatalogById(itemId);
+    var item = hairCatalogById(itemId) || faceCatalogById(itemId) || aturiusMarketById(itemId);
     var isShirt = false;
+    var isAturiusItem = !!(item && String(item.type || "").indexOf("aturius_") === 0);
     if (!item && typeof getTShirtById === "function") {
         item = getTShirtById(itemId);
         isShirt = !!item;
@@ -20656,6 +20869,9 @@ function buyMarketplaceItem(itemId) {
                 ? " (tax-free for creator)"
                 : (" (creator +" + formatCoins(split.seller) + ", Azora +" + formatCoins(split.fee) + ")");
         }
+    } else if (isAturiusItem && price > 0) {
+        try { creditOfficialCatalogSale(price, buyerName, item.name || itemId); } catch (eAt) {}
+        splitNote = " (Aturius marketplace → Azora)";
     } else if (price > 0) {
         // Official catalog By Azora → 100% to Azora pending
         creditOfficialCatalogSale(price, buyerName, item.name || itemId);
@@ -20727,7 +20943,38 @@ function equipInventoryItem(itemId) {
 }
 
 
+var _marketplaceTab = "market"; // market | shop | aturius
+
+function setMarketplaceTab(tab) {
+    _marketplaceTab = tab || "market";
+    var tM = document.getElementById("marketTabMarket");
+    var tS = document.getElementById("marketTabShop");
+    var tA = document.getElementById("marketTabAturius");
+    if (tM) tM.classList.toggle("active", _marketplaceTab === "market");
+    if (tS) tS.classList.toggle("active", _marketplaceTab === "shop");
+    if (tA) tA.classList.toggle("active", _marketplaceTab === "aturius");
+    var mainF = document.getElementById("marketMainFilters");
+    var atF = document.getElementById("aturiusMarketFilters");
+    var hint = document.getElementById("aturiusMarketHint");
+    if (mainF) mainF.style.display = (_marketplaceTab === "aturius") ? "none" : "flex";
+    if (atF) atF.style.display = (_marketplaceTab === "aturius") ? "flex" : "none";
+    if (hint) hint.style.display = (_marketplaceTab === "aturius") ? "block" : "none";
+    if (_marketplaceTab === "shop") {
+        var cat = document.getElementById("marketCategory");
+        if (cat) cat.value = "shirts";
+    } else if (_marketplaceTab === "market") {
+        var cat2 = document.getElementById("marketCategory");
+        if (cat2 && cat2.value === "shirts") cat2.value = "hair";
+    }
+    renderMarketplace();
+}
+window.setMarketplaceTab = setMarketplaceTab;
+
 function getMarketCategory() {
+    if (_marketplaceTab === "aturius") {
+        var a = document.getElementById("aturiusMarketCategory");
+        return (a && a.value) ? a.value : "aturius_hats";
+    }
     var el = document.getElementById("marketCategory");
     return (el && el.value) ? el.value : "hair";
 }
@@ -20968,7 +21215,27 @@ function renderMarketplace() {
     var uploadBtn = document.getElementById("uploadTShirtBtn");
     if (uploadBtn) uploadBtn.style.display = (category === "shirts") ? "" : "none";
 
-    if (category === "faces") {
+    if (category === "aturius_hats" || category === "aturius_faces" || category === "aturius_colors") {
+        var wantType = category === "aturius_hats" ? "aturius_hat" : (category === "aturius_faces" ? "aturius_face" : "aturius_color");
+        ATURIUS_MARKET_CATALOG.forEach(function (item) {
+            if (item.type !== wantType) return;
+            var owned = ownsItem(item.id) || isOwner;
+            var canBuy = !owned && !isOwner && (item.price === 0 || coins >= item.price);
+            var priceLabel = item.price === 0 ? "Free" : (formatCoins(item.price) + " 🪙");
+            html += '<div class="market-card' + (owned ? " owned" : "") + '">';
+            if (item.color) {
+                html += '<div style="width:36px;height:36px;border-radius:50%;background:' + item.color + ';border:2px solid #fff;margin-bottom:6px;"></div>';
+            }
+            html += '<div class="market-card-title">' + item.name + '</div>';
+            html += '<div class="market-card-meta">Aturius · <span class="by-creator">By Azora</span></div>';
+            html += '<div class="market-card-desc">' + (item.desc || "") + '</div>';
+            html += '<div class="market-card-footer"><span class="market-price">' + priceLabel + '</span>';
+            if (owned) html += ownedBtn();
+            else if (canBuy) html += buyBtn(item.id);
+            else html += '<button type="button" class="market-btn disabled" disabled>Buy</button>';
+            html += '</div></div>';
+        });
+    } else if (category === "faces") {
         AZORA_FACE_CATALOG.forEach(function (item) {
             var owned = ownsItem(item.id) || isOwner;
             var canBuy = !owned && !isOwner && (item.price === 0 || coins >= item.price);

@@ -6485,3 +6485,34 @@ html[data-theme="dark"] .azora-bg-wave { background: transparent; }
     font-size: 11px;
 }
 .aturius-train-row-text { flex: 1; line-height: 1.35; }
+
+/* Marketplace tabs */
+.market-tabs {
+    display: flex;
+    gap: 6px;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-bottom: 4px;
+}
+.market-tab {
+    border: none;
+    border-radius: 999px;
+    padding: 8px 14px;
+    font-weight: 800;
+    font-size: 12px;
+    cursor: pointer;
+    background: rgba(255,255,255,0.12);
+    color: #e2e8f0;
+}
+.market-tab.active {
+    background: linear-gradient(180deg, #a78bfa, #7c3aed);
+    color: #fff;
+    box-shadow: 0 0 12px rgba(124, 58, 237, 0.45);
+}
+.aturius-equip-block {
+    margin-top: 14px;
+    padding: 12px;
+    border-radius: 14px;
+    background: rgba(99, 102, 241, 0.12);
+    border: 1px solid rgba(165, 180, 252, 0.35);
+}
