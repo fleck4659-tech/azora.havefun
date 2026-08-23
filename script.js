@@ -9601,6 +9601,11 @@ function setActiveAIChat(id) {
     currentAIChatId = id;
     saveAIChatStore(store);
 }
+var ATURIUS_TAB_COLORS = [
+    "#fbbf24", "#34d399", "#38bdf8", "#a78bfa", "#f472b6",
+    "#fb7185", "#2dd4bf", "#818cf8", "#f59e0b", "#94a3b8"
+];
+
 function startNewAIChat() {
     var store = getAIChatStore();
     var n = store.chats.length + 1;
@@ -9609,40 +9614,67 @@ function startNewAIChat() {
         id: id,
         title: "Chat " + n,
         messages: [{ from: AZORA_AI_ID, text: ATURIUS_INTRO, at: Date.now(), isAI: true }],
-        updatedAt: Date.now()
+        updatedAt: Date.now(),
+        tabColor: ATURIUS_TAB_COLORS[(n - 1) % ATURIUS_TAB_COLORS.length]
     });
     store.activeId = id;
     currentAIChatId = id;
     saveAIChatStore(store);
     currentChatFriend = AZORA_AI_ID;
     try { renderAturiusMessages(); } catch (e) {}
+    try { renderAturiusHistoryList(); } catch (eH) {}
     try { renderAIChatHistoryList(); } catch (e2) {}
 }
 function deleteAIChat(id, ev) {
-    if (ev) ev.stopPropagation();
+    if (ev) {
+        try { ev.preventDefault(); ev.stopPropagation(); } catch (e) {}
+    }
     var store = getAIChatStore();
+    if (!store.chats || !store.chats.length) return;
     if (store.chats.length <= 1) {
-        // reset the only chat
-        store.chats[0].messages = [];
+        // Only one chat left → clear it instead of removing the tab
+        store.chats[0].messages = [{ from: AZORA_AI_ID, text: ATURIUS_INTRO, at: Date.now(), isAI: true }];
         store.chats[0].title = "Chat 1";
         store.chats[0].updatedAt = Date.now();
         saveAIChatStore(store);
-        if (isAIChat()) renderChatMessages();
-        renderAIChatHistoryList();
+        try { if (isAIChat()) renderChatMessages(); } catch (e1) {}
+        try { renderAIChatHistoryList(); } catch (e2) {}
+        try { renderAturiusMessages(); } catch (e3) {}
+        try { renderAturiusHistoryList(); } catch (e4) {}
         return;
     }
     store.chats = store.chats.filter(function (c) { return c.id !== id; });
     if (store.activeId === id) store.activeId = store.chats[0].id;
     currentAIChatId = store.activeId;
     saveAIChatStore(store);
-    if (isAIChat()) {
-        renderChatMessages();
-        var ai = getAICompanion();
-        var chat = getActiveAIChat();
-        document.getElementById("chatWithLabel").textContent = "Chat with " + ai.name + " — " + (chat.title || "AI");
-    }
-    renderAIChatHistoryList();
+    try {
+        if (isAIChat()) {
+            renderChatMessages();
+            var ai = getAICompanion();
+            var chat = getActiveAIChat();
+            var lab = document.getElementById("chatWithLabel");
+            if (lab) lab.textContent = "Chat with " + ai.name + " — " + (chat.title || "AI");
+        }
+    } catch (e5) {}
+    try { renderAIChatHistoryList(); } catch (e6) {}
+    try { renderAturiusMessages(); } catch (e7) {}
+    try { renderAturiusHistoryList(); } catch (e8) {}
 }
+function setAturiusChatTabColor(chatId, color, ev) {
+    if (ev) {
+        try { ev.preventDefault(); ev.stopPropagation(); } catch (e) {}
+    }
+    var store = getAIChatStore();
+    for (var i = 0; i < store.chats.length; i++) {
+        if (store.chats[i].id === chatId) {
+            store.chats[i].tabColor = color;
+            break;
+        }
+    }
+    saveAIChatStore(store);
+    try { renderAturiusHistoryList(); } catch (e2) {}
+}
+window.setAturiusChatTabColor = setAturiusChatTabColor;
 function renderAIChatHistoryList() {
     var box = document.getElementById("aiChatHistoryList");
     if (!box) return;
@@ -10915,6 +10947,39 @@ function generateAIReply(userText, attachment) {
         ]);
     }
 
+    // ===== EXTRA SMART TOPICS =====
+    if (/\b(miss you|i miss|love this|i like talking)\b/.test(t)) {
+        return pickRandom([
+            "Aww haha thanks. I'm here whenever you want to chat.",
+            "Yeah I like talking too. What's on your mind today?",
+            "Oh that's nice. Want a joke or just keep hanging out here?"
+        ]);
+    }
+    if (/\b(what time|good morning|good night|good afternoon)\b/.test(t)) {
+        var d = new Date();
+        var hrs = d.getHours();
+        var part = hrs < 12 ? "morning" : (hrs < 18 ? "afternoon" : "evening");
+        return "On your device it's around " + hrs + ":" + (d.getMinutes() < 10 ? "0" : "") + d.getMinutes() + " — kind of " + part + " for you. What do you want to do?";
+    }
+    if (/\b(studio|creator|build mode|baseplate)\b/.test(t)) {
+        return "Creator Studio is for 3D builds — parts on a grid, materials, sky. Publish to Norm Games when ready. Want a simple build tip?";
+    }
+    if (/\b(idk|i don't know|dont know|not sure)\b/.test(t)) {
+        return pickRandom([
+            "That's okay. Want me to pick: joke, story, or a game idea?",
+            "No rush. Easy options — a tip, a silly story, or \"suggest a game\"."
+        ]);
+    }
+    if (/\b(yes|yeah) .{0,40}\b(game|play)\b/.test(t)) {
+        return "Bet — say \"suggest a game\" or \"make me a game about …\" and I'll lock in.";
+    }
+    if (/\b(delete chat|remove chat|clear chat)\b/.test(t)) {
+        return "Yep — on the left chat list, hit the ✕ on a tab to delete it. Only one chat left? It clears messages instead of vanishing.";
+    }
+    if (/\b(tab color|chat color|recolor|color the tab)\b/.test(t)) {
+        return "Tap the little color dot on a chat tab to cycle colors. Rounded corners and all — organize however you like.";
+    }
+
     // ===== CONTEXT-AWARE DEFAULT =====
     var snippet = (userText || "").trim();
     if (snippet.length > 70) snippet = snippet.slice(0, 67) + "...";
@@ -10927,7 +10992,8 @@ function generateAIReply(userText, attachment) {
         opener + " I'm with you. Games, friends, feelings, random stuff — your call.",
         "Mhm yeah. " + (snippet ? "About \"" + snippet + "\" — " : "") + "want ideas or just a listener?",
         "Oh wait that tracks. Haha alright — what should we do next?",
-        "Yeah! If you're bored I can do a joke, a story, or generate a mini-game."
+        "Yeah! If you're bored I can do a joke, a story, or generate a mini-game.",
+        "Fair. You can also delete old chats on the left, or recolor the tabs if you want them organized."
     ]);
 }
 
@@ -11608,24 +11674,78 @@ function renderAturiusHistoryList() {
         box.innerHTML = "<p class=\"aturius-hist-empty\">No chats yet</p>";
         return;
     }
-    chats.forEach(function (c) {
-        var item = document.createElement("button");
-        item.type = "button";
+    chats.forEach(function (c, idx) {
+        if (!c.tabColor) {
+            c.tabColor = ATURIUS_TAB_COLORS[idx % ATURIUS_TAB_COLORS.length];
+        }
+        var item = document.createElement("div");
         item.className = "aturius-hist-item" + (c.id === store.activeId ? " active" : "");
+        item.style.setProperty("--tab-color", c.tabColor || "#fbbf24");
+        item.style.borderColor = c.tabColor || "rgba(255,255,255,0.15)";
+        item.style.background = "linear-gradient(135deg, " + (c.tabColor || "#fbbf24") + "33, rgba(0,0,0,0.25))";
+
+        var topRow = document.createElement("div");
+        topRow.className = "aturius-hist-top";
+
+        var titleEl = document.createElement("span");
+        titleEl.className = "aturius-hist-title";
         var title = c.title || "Chat";
         if (c.messages && c.messages.length) {
             var last = c.messages[c.messages.length - 1];
-            if (last && last.text) title = String(last.text).replace(/\s+/g, " ").slice(0, 32);
+            if (last && last.text) title = String(last.text).replace(/\s+/g, " ").slice(0, 28);
             else if (last && last.attachment) title = "📎 " + (last.attachment.name || "file");
         }
-        var titleEl = document.createElement("span");
-        titleEl.className = "aturius-hist-title";
         titleEl.textContent = title;
+        titleEl.title = title;
+
+        var actions = document.createElement("div");
+        actions.className = "aturius-hist-actions";
+
+        // Color cycle button
+        var colorBtn = document.createElement("button");
+        colorBtn.type = "button";
+        colorBtn.className = "aturius-hist-color";
+        colorBtn.title = "Change tab color";
+        colorBtn.style.background = c.tabColor || "#fbbf24";
+        colorBtn.onclick = function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            var cur = c.tabColor || ATURIUS_TAB_COLORS[0];
+            var ix = ATURIUS_TAB_COLORS.indexOf(cur);
+            var next = ATURIUS_TAB_COLORS[(ix + 1) % ATURIUS_TAB_COLORS.length];
+            setAturiusChatTabColor(c.id, next, e);
+        };
+
+        // Delete chat button
+        var delBtn = document.createElement("button");
+        delBtn.type = "button";
+        delBtn.className = "aturius-hist-del";
+        delBtn.title = "Delete this chat";
+        delBtn.textContent = "✕";
+        delBtn.onclick = function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            if (store.chats.length <= 1) {
+                if (confirm("This is your only chat. Clear all messages in it?")) {
+                    deleteAIChat(c.id, e);
+                }
+            } else if (confirm("Delete this chat? You can't undo this.")) {
+                deleteAIChat(c.id, e);
+            }
+        };
+
+        actions.appendChild(colorBtn);
+        actions.appendChild(delBtn);
+        topRow.appendChild(titleEl);
+        topRow.appendChild(actions);
+
         var timeEl = document.createElement("small");
         timeEl.className = "aturius-hist-time";
         timeEl.textContent = "Last modified " + formatAturiusChatTime(c.updatedAt);
-        item.appendChild(titleEl);
+
+        item.appendChild(topRow);
         item.appendChild(timeEl);
+
         item.onclick = function () {
             setActiveAIChat(c.id);
             currentChatFriend = AZORA_AI_ID;
@@ -11636,6 +11756,8 @@ function renderAturiusHistoryList() {
         };
         box.appendChild(item);
     });
+    // Persist any auto-assigned colors
+    try { saveAIChatStore(store); } catch (eS) {}
 }
 
 /** Pending file/image attachment for next Aturius message (test feature) */
