@@ -11677,6 +11677,31 @@ function getAturiusTraining() {
 function saveAturiusTraining(arr) {
     localStorage.setItem("azoraAturiusTraining", JSON.stringify(arr || []));
 }
+/**
+ * Replace training tokens in a reply.
+ * ~username~ (any capitalization) → the current player's username
+ */
+function applyAturiusTrainingTemplates(replyText) {
+    var text = String(replyText || "");
+    if (!text) return text;
+    var uname = "Player";
+    try {
+        if (typeof getMyUsername === "function") {
+            var u = getMyUsername();
+            if (u && String(u).trim()) uname = String(u).trim();
+        }
+        if (!uname || uname === "Player") {
+            var acc = JSON.parse(localStorage.getItem("azoraAccount") || "null");
+            if (acc && acc.username) uname = String(acc.username).trim();
+            else if (localStorage.getItem("loggedIn") === "guest") uname = "Guest";
+        }
+    } catch (e) {}
+    // ~username~ with any mix of capital letters
+    text = text.replace(/~username~/gi, uname);
+    return text;
+}
+window.applyAturiusTrainingTemplates = applyAturiusTrainingTemplates;
+
 function matchAturiusTraining(userText) {
     var t = String(userText || "").toLowerCase().trim();
     if (!t) return null;
@@ -11713,7 +11738,8 @@ function matchAturiusTraining(userText) {
             }
         }
     }
-    return best;
+    if (best) return applyAturiusTrainingTemplates(best);
+    return null;
 }
 function addAturiusTrainingExample() {
     if (typeof isAzoraOwner === "function" && !isAzoraOwner()) {
