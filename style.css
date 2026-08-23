@@ -6382,3 +6382,47 @@ html[data-theme="dark"] .azora-bg-wave { background: transparent; }
 .aturius-msg-text {
     line-height: 1.45;
 }
+
+/* Aturius training (Azora owner) */
+.aturius-train-block {
+    margin-top: 16px;
+    padding: 14px;
+    background: rgba(251, 191, 36, 0.1);
+    border: 1px solid rgba(251, 191, 36, 0.35);
+    border-radius: 14px;
+    text-align: left;
+}
+.aturius-train-title {
+    margin: 0 0 6px;
+    color: #fbbf24;
+    font-size: 15px;
+}
+.aturius-train-area {
+    width: 100%;
+    box-sizing: border-box;
+    border-radius: 10px;
+    border: 1px solid rgba(255,255,255,0.2);
+    background: rgba(0,0,0,0.35);
+    color: #fff;
+    padding: 10px;
+    font-size: 13px;
+    resize: vertical;
+    margin-bottom: 8px;
+}
+.aturius-train-list {
+    max-height: 180px;
+    overflow-y: auto;
+    margin-top: 8px;
+}
+.aturius-train-row {
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+    background: rgba(0,0,0,0.25);
+    border-radius: 10px;
+    padding: 8px;
+    margin-bottom: 6px;
+    color: #e2e8f0;
+    font-size: 11px;
+}
+.aturius-train-row-text { flex: 1; line-height: 1.35; }

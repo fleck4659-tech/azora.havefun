@@ -10411,6 +10411,12 @@ function generateAIReply(userText, attachment) {
         return ATURIUS_INTRO;
     }
 
+    // ===== TRAINED REPLIES (Azora-fed examples) =====
+    try {
+        var trainedHit = matchAturiusTraining(userText);
+        if (trainedHit) return trainedHit;
+    } catch (eTrain) {}
+
     // ===== GENERATE A GAME FROM PROMPT =====
     if (/\b(generate|create|make|build)\b/.test(t) && /\b(game|mini\s*game|level)\b/.test(t) ||
         /^generate\s+a?\s*game\b/.test(t) ||
@@ -11610,12 +11616,12 @@ function setAturiusTab(tab) {
         if (tChat) tChat.classList.remove("active");
         if (tSet) tSet.classList.add("active");
         try { loadAturiusVoiceUI(); } catch (e) {}
+        try { refreshAturiusTrainUI(); } catch (eT) {}
     } else {
         if (chatPane) chatPane.style.display = "flex";
         if (setPane) setPane.style.display = "none";
         if (tChat) tChat.classList.add("active");
         if (tSet) tSet.classList.remove("active");
-        // Refresh face from saved mood when returning to chat
         try {
             _aturiusFeeling = getAturiusFeeling();
             setAturiusFeeling(_aturiusFeeling);
@@ -11623,6 +11629,206 @@ function setAturiusTab(tab) {
         } catch (e2) {}
     }
 }
+
+// ============================================================
+// Aturius TRAINING (official Azora account only)
+// ============================================================
+function getAturiusTraining() {
+    try {
+        // Prefer exported pack if present (site-wide trained brain)
+        if (window.ATURIUS_TRAINING_PACK && Array.isArray(window.ATURIUS_TRAINING_PACK) && window.ATURIUS_TRAINING_PACK.length) {
+            var local = [];
+            try { local = JSON.parse(localStorage.getItem("azoraAturiusTraining") || "[]"); } catch (e0) {}
+            // Local (newer owner training) first, then pack
+            if (Array.isArray(local) && local.length) return local.concat(window.ATURIUS_TRAINING_PACK);
+            return window.ATURIUS_TRAINING_PACK.slice();
+        }
+        var arr = JSON.parse(localStorage.getItem("azoraAturiusTraining") || "[]");
+        return Array.isArray(arr) ? arr : [];
+    } catch (e) { return []; }
+}
+function saveAturiusTraining(arr) {
+    localStorage.setItem("azoraAturiusTraining", JSON.stringify(arr || []));
+}
+function matchAturiusTraining(userText) {
+    var t = String(userText || "").toLowerCase().trim();
+    if (!t) return null;
+    var list = getAturiusTraining();
+    if (!list.length) return null;
+    var best = null;
+    var bestScore = 0;
+    for (var i = 0; i < list.length; i++) {
+        var ex = list[i];
+        if (!ex || !ex.reply) continue;
+        var triggers = ex.triggers || [];
+        for (var j = 0; j < triggers.length; j++) {
+            var trig = String(triggers[j] || "").toLowerCase().trim();
+            if (!trig) continue;
+            // Exact / contains
+            if (t === trig || t.indexOf(trig) !== -1 || trig.indexOf(t) !== -1) {
+                var score = trig.length + 50;
+                if (score > bestScore) { bestScore = score; best = ex.reply; }
+                continue;
+            }
+            // Word overlap
+            var tw = t.split(/\s+/);
+            var gw = trig.split(/\s+/);
+            var hit = 0;
+            for (var a = 0; a < gw.length; a++) {
+                if (gw[a].length < 2) continue;
+                for (var b = 0; b < tw.length; b++) {
+                    if (tw[b] === gw[a]) hit++;
+                }
+            }
+            if (hit > 0 && gw.length > 0) {
+                var sc = (hit / gw.length) * 40 + hit * 5;
+                if (sc >= 20 && sc > bestScore) { bestScore = sc; best = ex.reply; }
+            }
+        }
+    }
+    return best;
+}
+function addAturiusTrainingExample() {
+    if (typeof isAzoraOwner === "function" && !isAzoraOwner()) {
+        alert("Only the official Azora account can train Aturius.");
+        return;
+    }
+    var trigEl = document.getElementById("aturiusTrainTriggers");
+    var repEl = document.getElementById("aturiusTrainReply");
+    var rawTrig = (trigEl && trigEl.value) || "";
+    var reply = ((repEl && repEl.value) || "").trim();
+    var triggers = rawTrig.split(/\n+/).map(function (s) { return s.trim(); }).filter(Boolean);
+    if (!triggers.length || !reply) {
+        alert("Add at least one trigger phrase and a reply.");
+        return;
+    }
+    var list = getAturiusTraining();
+    list.unshift({
+        id: "tr_" + Date.now(),
+        triggers: triggers,
+        reply: reply,
+        at: Date.now()
+    });
+    if (list.length > 200) list = list.slice(0, 200);
+    saveAturiusTraining(list);
+    if (trigEl) trigEl.value = "";
+    if (repEl) repEl.value = "";
+    refreshAturiusTrainUI();
+    var note = document.getElementById("aturiusTrainNote");
+    if (note) note.textContent = "Saved! Aturius can use this on this device now. Export files to update the whole site.";
+}
+function removeAturiusTrainingExample(id) {
+    if (typeof isAzoraOwner === "function" && !isAzoraOwner()) return;
+    var list = getAturiusTraining().filter(function (x) { return x && x.id !== id; });
+    saveAturiusTraining(list);
+    refreshAturiusTrainUI();
+}
+function refreshAturiusTrainUI() {
+    var block = document.getElementById("aturiusTrainBlock");
+    if (!block) return;
+    var owner = false;
+    try { owner = typeof isAzoraOwner === "function" && isAzoraOwner(); } catch (e) {}
+    block.style.display = owner ? "block" : "none";
+    if (!owner) return;
+    var list = getAturiusTraining();
+    var note = document.getElementById("aturiusTrainNote");
+    if (note) note.textContent = list.length ? (list.length + " training example(s) saved.") : "No examples yet.";
+    var box = document.getElementById("aturiusTrainList");
+    if (!box) return;
+    box.innerHTML = "";
+    list.forEach(function (ex) {
+        var row = document.createElement("div");
+        row.className = "aturius-train-row";
+        var left = document.createElement("div");
+        left.className = "aturius-train-row-text";
+        left.innerHTML = "<strong>When:</strong> " + (ex.triggers || []).map(function (t) {
+            return String(t).replace(/</g, "&lt;");
+        }).join(" · ") + "<br><strong>Reply:</strong> " + String(ex.reply || "").replace(/</g, "&lt;").slice(0, 120);
+        var del = document.createElement("button");
+        del.type = "button";
+        del.className = "aturius-hist-del";
+        del.textContent = "✕";
+        del.title = "Remove example";
+        del.onclick = function () { removeAturiusTrainingExample(ex.id); };
+        row.appendChild(left);
+        row.appendChild(del);
+        box.appendChild(row);
+    });
+}
+function aturiusDownloadTextFile(filename, text) {
+    var blob = new Blob([text], { type: "text/plain;charset=utf-8" });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(function () {
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }, 200);
+}
+function exportAturiusTrainingFiles() {
+    if (typeof isAzoraOwner === "function" && !isAzoraOwner()) {
+        alert("Only the official Azora account can export training files.");
+        return;
+    }
+    var list = getAturiusTraining();
+    if (!list.length) {
+        alert("Add at least one training example first.");
+        return;
+    }
+    var dataJson = JSON.stringify(list, null, 2);
+
+    // File 1: training data only (easy to re-import)
+    aturiusDownloadTextFile("aturius-training-data.json", dataJson);
+
+    // File 2: drop-in JS that defines global training + matcher (include before script.js or paste)
+    var jsFile =
+        "/* Aturius training pack — generated " + new Date().toISOString() + " */\n" +
+        "/* Put this file in your Azora folder and add in index.html BEFORE script.js:\n" +
+        "   <script src=\"aturius-training-pack.js\"></script>\n" +
+        "*/\n" +
+        "window.ATURIUS_TRAINING_PACK = " + dataJson + ";\n" +
+        "window.getAturiusTraining = function () {\n" +
+        "  try {\n" +
+        "    if (window.ATURIUS_TRAINING_PACK && window.ATURIUS_TRAINING_PACK.length) return window.ATURIUS_TRAINING_PACK.slice();\n" +
+        "    return JSON.parse(localStorage.getItem(\"azoraAturiusTraining\") || \"[]\");\n" +
+        "  } catch (e) { return []; }\n" +
+        "};\n";
+    aturiusDownloadTextFile("aturius-training-pack.js", jsFile);
+
+    // File 3: short install readme
+    var readme =
+        "Aturius Training Export\n" +
+        "======================\n\n" +
+        "1. Download completed: aturius-training-data.json + aturius-training-pack.js\n" +
+        "2. Drag aturius-training-pack.js into the same folder as index.html and script.js\n" +
+        "3. Open index.html and add this line ABOVE script.js:\n\n" +
+        "   <script src=\"aturius-training-pack.js\"></script>\n\n" +
+        "4. Upload/replace files on GitHub (or your host) and hard-refresh the site.\n\n" +
+        "On this device, training already works from Settings without exporting.\n" +
+        "Export is for updating the public site for everyone.\n";
+    aturiusDownloadTextFile("ATURIUS_TRAINING_README.txt", readme);
+
+    // Also merge pack into localStorage so live site keeps it
+    try {
+        if (window.ATURIUS_TRAINING_PACK) {
+            /* keep both */
+        }
+        saveAturiusTraining(list);
+    } catch (e) {}
+
+    var note = document.getElementById("aturiusTrainNote");
+    if (note) note.textContent = "Exported 3 files. Drag the .js into your project folder and link it in index.html (see README).";
+    alert("Downloaded 3 files:\n• aturius-training-data.json\n• aturius-training-pack.js\n• ATURIUS_TRAINING_README.txt");
+}
+window.addAturiusTrainingExample = addAturiusTrainingExample;
+window.removeAturiusTrainingExample = removeAturiusTrainingExample;
+window.exportAturiusTrainingFiles = exportAturiusTrainingFiles;
+window.refreshAturiusTrainUI = refreshAturiusTrainUI;
+window.getAturiusTraining = getAturiusTraining;
+window.matchAturiusTraining = matchAturiusTraining;
 
 /** Turn *like this* into bold+tiny action/story spans (no visible asterisks) */
 function aturiusFillStyledText(container, text) {

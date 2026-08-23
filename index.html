@@ -909,6 +909,22 @@
                 <p class="aturius-settings-note" id="aturiusVoiceNote">Drag the slider, tap Test to preview, then OK to save.</p>
             </div>
 
+            <!-- Azora owner only: train Aturius -->
+            <div class="aturius-train-block" id="aturiusTrainBlock" style="display:none;">
+                <h4 class="aturius-train-title">Train Aturius (Azora only)</h4>
+                <p class="aturius-settings-note">Feed example sentences. When someone says something similar, Aturius can use your reply. Then export files to put in your project folder.</p>
+                <label class="aturius-field-label" for="aturiusTrainTriggers"><strong>When player says</strong> (one phrase per line)</label>
+                <textarea id="aturiusTrainTriggers" class="aturius-train-area" rows="3" placeholder="hello there&#10;what is azora&#10;how do i make friends"></textarea>
+                <label class="aturius-field-label" for="aturiusTrainReply"><strong>Aturius should answer</strong></label>
+                <textarea id="aturiusTrainReply" class="aturius-train-area" rows="3" placeholder="Oh hey! Yeah so…"></textarea>
+                <div class="aturius-voice-actions">
+                    <button type="button" class="aturius-ok-btn" onclick="addAturiusTrainingExample()">Add training</button>
+                    <button type="button" class="aturius-test-btn" onclick="exportAturiusTrainingFiles()">Export code files</button>
+                </div>
+                <p class="aturius-settings-note" id="aturiusTrainNote">No examples yet.</p>
+                <div id="aturiusTrainList" class="aturius-train-list"></div>
+            </div>
+
             <button type="button" class="secondary" onclick="setAturiusTab('chat')" style="margin-top:14px;">Back to chat</button>
         </div>
     </div>
@@ -1211,7 +1227,9 @@
     </div>
 </div>
 
-<script src="script.js?v=70.2"></script>
+<!-- Optional: trained Aturius brain (export from Azora account → Settings → Export code files) -->
+<script src="aturius-training-pack.js"></script>
+<script src="script.js?v=71.16"></script>
 <script>
 // Register Azora as installable app (not the staff website)
 if ("serviceWorker" in navigator) {
