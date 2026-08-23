@@ -10651,8 +10651,13 @@ function generateAIReply(userText, attachment) {
     }
 
 
-    if (/\b(coin|currency|bucks|money)\b/.test(t)) {
-        return "AzoraCoins are the fun currency on the platform. Some staff tools can grant coins on a device for testing. Spend them on future cosmetic features as Azora grows!";
+    // coins? matches coin OR coins (old \bcoin\b missed "coins")
+    if (/\b(coins?|azoracoins?|currency|bucks|money)\b/.test(t) || /\bhow do coins\b/.test(t)) {
+        return pickRandom([
+            "AzoraCoins are the platform currency. You can claim a daily reward when you log in, get coins from gifts/donations (they sit in Pending first), buy shop items, and creators earn from T-shirt sales (with the split rules). Don't spend more than your balance!",
+            "How coins work: daily claim → optional shop buys → Pending for transfers/sales before they hit your balance. Shop is under the top bar. Guests usually can't keep a full wallet the same way accounts do.",
+            "AzoraCoins = fun money on Azora. Earn from daily login and activity, spend in the marketplace (hair, faces, T-shirts, Aturius items). Check Pending if someone sent you coins — it takes a bit before it lands in your balance."
+        ]);
     }
     if (/\b(delete (my )?game|remove (my )?game)\b/.test(t)) {
         return "If you published a game, creators can delete their own game. It disappears for you right away; the public Feed may take a short time to stop showing it.";
@@ -10720,10 +10725,11 @@ function generateAIReply(userText, attachment) {
 
     // ===== TIPS (specific, expandable) =====
     if (/\b(tip|tips|advice|how do i|how to|help me with|guide|tutorial|what should i)\b/.test(t)) {
-        if (/\b(coin|currency|money|shop|buy)\b/.test(t)) {
+        if (/\b(coins?|azoracoins?|currency|money|shop|buy)\b/.test(t)) {
             return pickRandom([
                 "AzoraCoins tip: claim your daily reward when you log in, play games for fun, and check Pending if someone sent you coins. Don't spend more than you have!",
-                "Shop tip: start with cheaper cosmetics. T-shirts can be free to upload; hair and faces are Azora catalog items. Check prices before you buy."
+                "Shop tip: start with cheaper cosmetics. T-shirts can be free to upload; hair and faces are Azora catalog items. Check prices before you buy.",
+                "How coins work: daily claim, gifts go to Pending first, shop spends from your balance, creator sales use the tax-free / 90-10 rules depending on price."
             ]);
         }
         if (/\b(avatar|customize|character|look)\b/.test(t)) {
@@ -10999,8 +11005,11 @@ function generateAIReply(userText, attachment) {
 
     // ===== SMARTER QUESTIONS (keyword → topic before generic) =====
     if (/\?/.test(t)) {
-        if (/\b(coin|azoracoin|currency)\b/.test(t)) {
-            return "AzoraCoins are the platform currency — daily claim, shop, donations, creator sales (with the split rules). Want a tip on earning or spending?";
+        if (/\b(coins?|azoracoins?|currency)\b/.test(t) || /\bhow do coins\b/.test(t)) {
+            return pickRandom([
+                "AzoraCoins are the platform currency — daily claim, shop, donations, creator sales (with the split rules). Want a tip on earning or spending?",
+                "How coins work: claim daily, spend in Shop/Marketplace, Pending holds transfers for a bit, then they add to your balance. Don't overspend!"
+            ]);
         }
         if (/\b(friend|add|follow)\b/.test(t)) {
             return isGuest
