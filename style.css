@@ -5942,7 +5942,18 @@ html[data-theme="dark"] .azora-bg-wave { background: transparent; }
     min-height: 0;
     gap: 12px;
     padding: 12px;
+    padding-bottom: 28px;
     flex-wrap: wrap;
+    align-content: flex-start;
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+}
+/* Full overlay must allow the layout region to scroll */
+.aturius-overlay.azafn-overlay {
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
 }
 .aturius-stage {
     width: min(300px, 100%);
@@ -6017,12 +6028,20 @@ html[data-theme="dark"] .azora-bg-wave { background: transparent; }
     flex: 1;
 }
 .aturius-settings-pane {
-    flex: 1;
+    flex: 1 1 320px;
     min-width: min(280px, 100%);
+    max-height: calc(100vh - 72px);
     color: #fff;
     background: rgba(0,0,0,0.2);
     border-radius: 14px;
-    padding: 16px;
+    padding: 16px 16px 40px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+}
+.aturius-train-block {
+    margin-bottom: 24px;
 }
 .aturius-settings-hint, .aturius-settings-note {
     color: rgba(255,255,255,0.75);

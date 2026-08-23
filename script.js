@@ -11632,6 +11632,18 @@ function setAturiusTab(tab) {
         if (tSet) tSet.classList.add("active");
         try { loadAturiusVoiceUI(); } catch (e) {}
         try { refreshAturiusTrainUI(); } catch (eT) {}
+        // Make sure Train Aturius is reachable (settings + layout scroll)
+        try {
+            setTimeout(function () {
+                var layout = document.querySelector("#aturiusOverlay .aturius-layout");
+                if (layout) layout.scrollTop = 80;
+                if (setPane) {
+                    setPane.scrollTop = 0;
+                    var train = document.getElementById("aturiusTrainBlock");
+                    if (train) train.scrollIntoView({ block: "nearest", behavior: "smooth" });
+                }
+            }, 60);
+        } catch (eScr) {}
     } else {
         if (chatPane) chatPane.style.display = "flex";
         if (setPane) setPane.style.display = "none";
