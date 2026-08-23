@@ -12718,18 +12718,37 @@ function paintAturiusFace() {
     ctx.lineCap = "round";
     ctx.lineJoin = "round";
 
-    // ---- EYES (shift slightly by look direction) ----
+    // ---- EYES (clean cartoon ovals — no big shiny dots) ----
+    // Even spacing; same size; soft look so they don't feel "googly"
     var lookShiftX = 0, lookShiftY = 0;
-    if (_aturiusLookDir === "left") lookShiftX = -w * 0.04;
-    else if (_aturiusLookDir === "right") lookShiftX = w * 0.04;
-    else if (_aturiusLookDir === "up") lookShiftY = -h * 0.035;
-    else if (_aturiusLookDir === "down") lookShiftY = h * 0.03;
+    if (_aturiusLookDir === "left") lookShiftX = -w * 0.03;
+    else if (_aturiusLookDir === "right") lookShiftX = w * 0.03;
+    else if (_aturiusLookDir === "up") lookShiftY = -h * 0.028;
+    else if (_aturiusLookDir === "down") lookShiftY = h * 0.022;
 
-    var lx = w * 0.34 + lookShiftX, rx = w * 0.66 + lookShiftX, eyeY = h * 0.38 + lookShiftY;
-    var eyeRx = w * 0.085, eyeRy = h * 0.095;
+    // Slightly closer together + a bit smaller = less uncanny
+    var lx = w * 0.36 + lookShiftX;
+    var rx = w * 0.64 + lookShiftX;
+    var eyeY = h * 0.40 + lookShiftY;
+    var eyeRx = w * 0.072;
+    var eyeRy = h * 0.082;
+
+    function drawSolidEye(ex, ey, rxE, ryE, tilt) {
+        ctx.fillStyle = "#111111";
+        ctx.beginPath();
+        ctx.ellipse(ex, ey, rxE, ryE, tilt || 0, 0, Math.PI * 2);
+        ctx.fill();
+        // Tiny soft highlight (very small — not big "googly" dots)
+        ctx.fillStyle = "rgba(255,255,255,0.55)";
+        ctx.beginPath();
+        ctx.ellipse(ex - rxE * 0.28, ey - ryE * 0.32, rxE * 0.22, ryE * 0.22, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = "#111111";
+    }
 
     if (blinking) {
-        ctx.lineWidth = Math.max(5, w * 0.032);
+        ctx.strokeStyle = "#111111";
+        ctx.lineWidth = Math.max(5, w * 0.028);
         ctx.beginPath();
         ctx.moveTo(lx - eyeRx, eyeY);
         ctx.lineTo(lx + eyeRx, eyeY);
@@ -12737,59 +12756,42 @@ function paintAturiusFace() {
         ctx.lineTo(rx + eyeRx, eyeY);
         ctx.stroke();
     } else if (eyeStyle === "happy") {
-        ctx.lineWidth = Math.max(6, w * 0.04);
+        // Closed happy arcs (no filled dots)
+        ctx.strokeStyle = "#111111";
+        ctx.lineWidth = Math.max(6, w * 0.038);
         ctx.beginPath();
-        ctx.moveTo(lx - eyeRx, eyeY);
-        ctx.quadraticCurveTo(lx, eyeY - eyeRy * 1.15, lx + eyeRx, eyeY);
-        ctx.moveTo(rx - eyeRx, eyeY);
-        ctx.quadraticCurveTo(rx, eyeY - eyeRy * 1.15, rx + eyeRx, eyeY);
+        ctx.moveTo(lx - eyeRx, eyeY + eyeRy * 0.15);
+        ctx.quadraticCurveTo(lx, eyeY - eyeRy * 1.05, lx + eyeRx, eyeY + eyeRy * 0.15);
+        ctx.moveTo(rx - eyeRx, eyeY + eyeRy * 0.15);
+        ctx.quadraticCurveTo(rx, eyeY - eyeRy * 1.05, rx + eyeRx, eyeY + eyeRy * 0.15);
         ctx.stroke();
     } else if (eyeStyle === "curious" || eyeStyle === "lookUp") {
-        // Wider / raised ovals
-        ctx.beginPath();
-        ctx.ellipse(lx, eyeY - h * 0.01, eyeRx * 1.05, eyeRy * 1.15, 0, 0, Math.PI * 2);
-        ctx.ellipse(rx, eyeY - h * 0.01, eyeRx * 1.05, eyeRy * 1.15, 0, 0, Math.PI * 2);
-        ctx.fill();
-        // Small highlight dots
-        ctx.fillStyle = "#ffffff";
-        ctx.beginPath();
-        ctx.arc(lx - eyeRx * 0.25, eyeY - h * 0.03, w * 0.018, 0, Math.PI * 2);
-        ctx.arc(rx - eyeRx * 0.25, eyeY - h * 0.03, w * 0.018, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.fillStyle = "#111111";
+        drawSolidEye(lx, eyeY - h * 0.012, eyeRx * 1.02, eyeRy * 1.12, 0);
+        drawSolidEye(rx, eyeY - h * 0.012, eyeRx * 1.02, eyeRy * 1.12, 0);
     } else if (eyeStyle === "lookLeft") {
-        ctx.beginPath();
-        ctx.ellipse(lx - w * 0.02, eyeY, eyeRx, eyeRy, 0, 0, Math.PI * 2);
-        ctx.ellipse(rx - w * 0.02, eyeY, eyeRx, eyeRy, 0, 0, Math.PI * 2);
-        ctx.fill();
+        drawSolidEye(lx - w * 0.015, eyeY, eyeRx, eyeRy, 0);
+        drawSolidEye(rx - w * 0.015, eyeY, eyeRx, eyeRy, 0);
     } else if (eyeStyle === "lookRight") {
-        ctx.beginPath();
-        ctx.ellipse(lx + w * 0.02, eyeY, eyeRx, eyeRy, 0, 0, Math.PI * 2);
-        ctx.ellipse(rx + w * 0.02, eyeY, eyeRx, eyeRy, 0, 0, Math.PI * 2);
-        ctx.fill();
+        drawSolidEye(lx + w * 0.015, eyeY, eyeRx, eyeRy, 0);
+        drawSolidEye(rx + w * 0.015, eyeY, eyeRx, eyeRy, 0);
     } else if (eyeStyle === "sad") {
-        ctx.beginPath();
-        ctx.ellipse(lx, eyeY + h * 0.01, eyeRx * 0.75, eyeRy * 1.05, 0.35, 0, Math.PI * 2);
-        ctx.ellipse(rx, eyeY + h * 0.01, eyeRx * 0.75, eyeRy * 1.05, -0.35, 0, Math.PI * 2);
-        ctx.fill();
+        drawSolidEye(lx, eyeY + h * 0.008, eyeRx * 0.85, eyeRy * 1.0, 0.28);
+        drawSolidEye(rx, eyeY + h * 0.008, eyeRx * 0.85, eyeRy * 1.0, -0.28);
     } else if (eyeStyle === "mad") {
+        drawSolidEye(lx, eyeY, eyeRx * 0.85, eyeRy * 1.0, 0.32);
+        drawSolidEye(rx, eyeY, eyeRx * 0.85, eyeRy * 1.0, -0.32);
+        ctx.strokeStyle = "#111111";
+        ctx.lineWidth = Math.max(5, w * 0.028);
         ctx.beginPath();
-        ctx.ellipse(lx, eyeY, eyeRx * 0.75, eyeRy * 1.05, 0.4, 0, Math.PI * 2);
-        ctx.ellipse(rx, eyeY, eyeRx * 0.75, eyeRy * 1.05, -0.4, 0, Math.PI * 2);
-        ctx.fill();
-        // Angry brows
-        ctx.lineWidth = Math.max(5, w * 0.03);
-        ctx.beginPath();
-        ctx.moveTo(lx - eyeRx, eyeY - eyeRy * 1.2);
-        ctx.lineTo(lx + eyeRx * 0.6, eyeY - eyeRy * 0.5);
-        ctx.moveTo(rx + eyeRx, eyeY - eyeRy * 1.2);
-        ctx.lineTo(rx - eyeRx * 0.6, eyeY - eyeRy * 0.5);
+        ctx.moveTo(lx - eyeRx, eyeY - eyeRy * 1.15);
+        ctx.lineTo(lx + eyeRx * 0.55, eyeY - eyeRy * 0.45);
+        ctx.moveTo(rx + eyeRx, eyeY - eyeRy * 1.15);
+        ctx.lineTo(rx - eyeRx * 0.55, eyeY - eyeRy * 0.45);
         ctx.stroke();
     } else {
-        ctx.beginPath();
-        ctx.ellipse(lx, eyeY, eyeRx, eyeRy, 0, 0, Math.PI * 2);
-        ctx.ellipse(rx, eyeY, eyeRx, eyeRy, 0, 0, Math.PI * 2);
-        ctx.fill();
+        // Default calm eyes — matching pair, soft highlight
+        drawSolidEye(lx, eyeY, eyeRx, eyeRy, 0);
+        drawSolidEye(rx, eyeY, eyeRx, eyeRy, 0);
     }
 
     // ---- MOUTH ----
