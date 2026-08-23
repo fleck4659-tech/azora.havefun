@@ -6909,29 +6909,34 @@ window.loadBrowserAppearance = loadBrowserAppearance;
 
 
 // ============================================================
-// LOADING SCREEN — rotating Earth + internet check (3s)
+// LOADING SCREEN — rotating Earth (earth.png map) + internet check
 // ============================================================
 var _azoraLoadingTimer = null;
 var _azoraLoadingRaf = null;
 var _azoraLoadingState = null;
 var _azoraLoadingOnDone = null;
 var _azoraEarthAngle = 0;
+var _azoraEarthImg = null;
+var _azoraEarthImgReady = false;
 
-/** Simple stylized continents (lon/lat boxes) drawn as white on ocean */
-var AZORA_EARTH_LAND = [
-    // Americas rough blobs
-    { lon: -100, lat: 40, w: 35, h: 28 },
-    { lon: -60, lat: -15, w: 28, h: 40 },
-    // Europe / Africa
-    { lon: 15, lat: 50, w: 25, h: 18 },
-    { lon: 20, lat: 5, w: 30, h: 45 },
-    // Asia
-    { lon: 90, lat: 45, w: 55, h: 30 },
-    { lon: 100, lat: 15, w: 40, h: 25 },
-    // Australia
-    { lon: 135, lat: -25, w: 28, h: 18 }
-];
+(function preloadAzoraEarthMap() {
+    try {
+        var img = new Image();
+        img.onload = function () {
+            _azoraEarthImg = img;
+            _azoraEarthImgReady = true;
+        };
+        img.onerror = function () {
+            _azoraEarthImgReady = false;
+        };
+        img.src = "earth.png";
+    } catch (e) {}
+})();
 
+/**
+ * Draw rotating globe using earth.png (equirectangular B/W map).
+ * Map scrolls horizontally inside a circular clip = spin.
+ */
 function drawAzoraEarthFrame(canvas, angleDeg) {
     if (!canvas) return;
     var ctx = canvas.getContext("2d");
@@ -6944,46 +6949,63 @@ function drawAzoraEarthFrame(canvas, angleDeg) {
 
     ctx.clearRect(0, 0, W, H);
 
-    // Soft shadow
+    // Soft shadow under the ball
     ctx.beginPath();
     ctx.arc(cx + 4, cy + 6, R, 0, Math.PI * 2);
     ctx.fillStyle = "rgba(0,0,0,0.35)";
     ctx.fill();
 
-    // Ocean disc (stylized — light blue fill under white outline)
+    // Base disc (ocean-ish dark) so edges never look empty
     ctx.beginPath();
     ctx.arc(cx, cy, R, 0, Math.PI * 2);
-    var ocean = ctx.createRadialGradient(cx - R * 0.3, cy - R * 0.3, R * 0.1, cx, cy, R);
-    ocean.addColorStop(0, "rgba(56, 189, 248, 0.55)");
-    ocean.addColorStop(0.6, "rgba(14, 116, 144, 0.45)");
-    ocean.addColorStop(1, "rgba(15, 23, 42, 0.35)");
-    ctx.fillStyle = ocean;
+    ctx.fillStyle = "#0a1628";
     ctx.fill();
 
-    // White continents (projected, rotated by angle)
+    // Clip to sphere
     ctx.save();
     ctx.beginPath();
-    ctx.arc(cx, cy, R - 1, 0, Math.PI * 2);
+    ctx.arc(cx, cy, R - 0.5, 0, Math.PI * 2);
     ctx.clip();
 
-    var rot = (angleDeg || 0) * Math.PI / 180;
-    AZORA_EARTH_LAND.forEach(function (land) {
-        var lon = (land.lon * Math.PI / 180) + rot;
-        var lat = land.lat * Math.PI / 180;
-        // Visible if on front hemisphere
-        var cosLon = Math.cos(lon);
-        if (cosLon < -0.05) return;
-        var x = cx + Math.sin(lon) * Math.cos(lat) * R * 0.92;
-        var y = cy - Math.sin(lat) * R * 0.92;
-        var sx = (land.w / 90) * R * (0.35 + 0.65 * cosLon);
-        var sy = (land.h / 90) * R;
-        ctx.beginPath();
-        ctx.ellipse(x, y, Math.max(4, sx), Math.max(4, sy), 0, 0, Math.PI * 2);
-        ctx.fillStyle = "#ffffff";
-        ctx.globalAlpha = 0.75 + 0.25 * cosLon;
-        ctx.fill();
-        ctx.globalAlpha = 1;
-    });
+    if (_azoraEarthImgReady && _azoraEarthImg) {
+        var img = _azoraEarthImg;
+        var iw = img.naturalWidth || img.width;
+        var ih = img.naturalHeight || img.height;
+        if (iw > 0 && ih > 0) {
+            // Equirectangular strip: width covers full longitude; height ≈ sphere diameter
+            var drawH = R * 2;
+            var drawW = drawH * (iw / ih); // preserve aspect (map is wide)
+            // Angle → horizontal offset (one full turn = one map width)
+            var shift = ((angleDeg || 0) / 360) * drawW;
+            // Draw map twice so the seam wraps cleanly
+            var x0 = cx - drawW / 2 - (shift % drawW);
+            // Slight vertical crop so poles sit near the circle edge
+            var y0 = cy - drawH / 2;
+            ctx.imageSmoothingEnabled = true;
+            ctx.drawImage(img, x0, y0, drawW, drawH);
+            ctx.drawImage(img, x0 + drawW, y0, drawW, drawH);
+            ctx.drawImage(img, x0 - drawW, y0, drawW, drawH);
+
+            // Soft limb shading (3D ball feel without hiding the map)
+            var shade = ctx.createRadialGradient(cx - R * 0.25, cy - R * 0.3, R * 0.15, cx, cy, R);
+            shade.addColorStop(0, "rgba(255,255,255,0.08)");
+            shade.addColorStop(0.55, "rgba(0,0,0,0)");
+            shade.addColorStop(1, "rgba(0,0,0,0.45)");
+            ctx.beginPath();
+            ctx.arc(cx, cy, R, 0, Math.PI * 2);
+            ctx.fillStyle = shade;
+            ctx.fill();
+        }
+    } else {
+        // Fallback while image loads — simple spinning arcs
+        ctx.strokeStyle = "rgba(255,255,255,0.35)";
+        ctx.lineWidth = 2;
+        for (var i = 0; i < 5; i++) {
+            ctx.beginPath();
+            ctx.ellipse(cx, cy, R * (0.3 + i * 0.12), R * 0.85, ((angleDeg || 0) + i * 18) * Math.PI / 180, 0, Math.PI * 2);
+            ctx.stroke();
+        }
+    }
     ctx.restore();
 
     // White outline (ball edge)
@@ -6993,10 +7015,10 @@ function drawAzoraEarthFrame(canvas, angleDeg) {
     ctx.lineWidth = 3;
     ctx.stroke();
 
-    // Subtle highlight (2D-looking)
+    // Soft specular highlight
     ctx.beginPath();
-    ctx.ellipse(cx - R * 0.25, cy - R * 0.3, R * 0.35, R * 0.2, -0.4, 0, Math.PI * 2);
-    ctx.fillStyle = "rgba(255,255,255,0.12)";
+    ctx.ellipse(cx - R * 0.25, cy - R * 0.3, R * 0.32, R * 0.18, -0.4, 0, Math.PI * 2);
+    ctx.fillStyle = "rgba(255,255,255,0.14)";
     ctx.fill();
 }
 
