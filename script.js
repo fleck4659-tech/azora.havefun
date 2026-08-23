@@ -6909,16 +6909,95 @@ window.loadBrowserAppearance = loadBrowserAppearance;
 
 
 // ============================================================
-// LOADING SCREEN — spinning "A" from top-left → center, click to boost → purple flash
+// LOADING SCREEN — rotating Earth + internet check (3s)
 // ============================================================
 var _azoraLoadingTimer = null;
 var _azoraLoadingRaf = null;
 var _azoraLoadingState = null;
 var _azoraLoadingOnDone = null;
-var _azoraLoadingClickBound = false;
+var _azoraEarthAngle = 0;
 
-function _azoraLoadingEaseOutCubic(t) {
-    return 1 - Math.pow(1 - t, 3);
+/** Simple stylized continents (lon/lat boxes) drawn as white on ocean */
+var AZORA_EARTH_LAND = [
+    // Americas rough blobs
+    { lon: -100, lat: 40, w: 35, h: 28 },
+    { lon: -60, lat: -15, w: 28, h: 40 },
+    // Europe / Africa
+    { lon: 15, lat: 50, w: 25, h: 18 },
+    { lon: 20, lat: 5, w: 30, h: 45 },
+    // Asia
+    { lon: 90, lat: 45, w: 55, h: 30 },
+    { lon: 100, lat: 15, w: 40, h: 25 },
+    // Australia
+    { lon: 135, lat: -25, w: 28, h: 18 }
+];
+
+function drawAzoraEarthFrame(canvas, angleDeg) {
+    if (!canvas) return;
+    var ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    var W = canvas.width;
+    var H = canvas.height;
+    var cx = W / 2;
+    var cy = H / 2;
+    var R = Math.min(W, H) * 0.42;
+
+    ctx.clearRect(0, 0, W, H);
+
+    // Soft shadow
+    ctx.beginPath();
+    ctx.arc(cx + 4, cy + 6, R, 0, Math.PI * 2);
+    ctx.fillStyle = "rgba(0,0,0,0.35)";
+    ctx.fill();
+
+    // Ocean disc (stylized — light blue fill under white outline)
+    ctx.beginPath();
+    ctx.arc(cx, cy, R, 0, Math.PI * 2);
+    var ocean = ctx.createRadialGradient(cx - R * 0.3, cy - R * 0.3, R * 0.1, cx, cy, R);
+    ocean.addColorStop(0, "rgba(56, 189, 248, 0.55)");
+    ocean.addColorStop(0.6, "rgba(14, 116, 144, 0.45)");
+    ocean.addColorStop(1, "rgba(15, 23, 42, 0.35)");
+    ctx.fillStyle = ocean;
+    ctx.fill();
+
+    // White continents (projected, rotated by angle)
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(cx, cy, R - 1, 0, Math.PI * 2);
+    ctx.clip();
+
+    var rot = (angleDeg || 0) * Math.PI / 180;
+    AZORA_EARTH_LAND.forEach(function (land) {
+        var lon = (land.lon * Math.PI / 180) + rot;
+        var lat = land.lat * Math.PI / 180;
+        // Visible if on front hemisphere
+        var cosLon = Math.cos(lon);
+        if (cosLon < -0.05) return;
+        var x = cx + Math.sin(lon) * Math.cos(lat) * R * 0.92;
+        var y = cy - Math.sin(lat) * R * 0.92;
+        var sx = (land.w / 90) * R * (0.35 + 0.65 * cosLon);
+        var sy = (land.h / 90) * R;
+        ctx.beginPath();
+        ctx.ellipse(x, y, Math.max(4, sx), Math.max(4, sy), 0, 0, Math.PI * 2);
+        ctx.fillStyle = "#ffffff";
+        ctx.globalAlpha = 0.75 + 0.25 * cosLon;
+        ctx.fill();
+        ctx.globalAlpha = 1;
+    });
+    ctx.restore();
+
+    // White outline (ball edge)
+    ctx.beginPath();
+    ctx.arc(cx, cy, R, 0, Math.PI * 2);
+    ctx.strokeStyle = "#ffffff";
+    ctx.lineWidth = 3;
+    ctx.stroke();
+
+    // Subtle highlight (2D-looking)
+    ctx.beginPath();
+    ctx.ellipse(cx - R * 0.25, cy - R * 0.3, R * 0.35, R * 0.2, -0.4, 0, Math.PI * 2);
+    ctx.fillStyle = "rgba(255,255,255,0.12)";
+    ctx.fill();
 }
 
 function showAzoraLoadingScreen() {
@@ -6928,178 +7007,43 @@ function showAzoraLoadingScreen() {
     el.style.display = "flex";
     el.setAttribute("aria-hidden", "false");
 
-    var letterBtn = document.getElementById("azoraLoadingA");
-    var letterSpan = document.getElementById("azoraLoadingALetter");
+    var status = document.getElementById("azoraLoadingStatus");
     var hint = document.getElementById("azoraLoadingHint");
-    var flash = document.getElementById("azoraLoadingFlash");
-    if (flash) {
-        flash.classList.remove("burst");
-        flash.style.opacity = "";
-    }
+    var err = document.getElementById("azoraOfflineError");
+    var canvas = document.getElementById("azoraEarthCanvas");
+    if (status) status.textContent = "Checking internet connection...";
+    if (status) status.style.display = "";
     if (hint) {
         hint.textContent = "";
         hint.classList.remove("show");
     }
-    if (letterBtn) {
-        letterBtn.classList.remove("centered", "boost");
-        letterBtn.style.opacity = "1";
-        letterBtn.style.transform = "translate3d(0px,0px,0) scale(0.85)";
-    }
-    // JS-driven spin (CSS animation-duration changes every frame were killing the spin)
-    if (letterSpan) {
-        letterSpan.style.animation = "none";
-        letterSpan.style.webkitAnimation = "none";
-        letterSpan.style.transform = "rotate(0deg)";
-        letterSpan.style.willChange = "transform";
-    }
+    if (err) err.style.display = "none";
+    if (canvas) canvas.style.display = "block";
 
-    var vw = window.innerWidth || 800;
-    var vh = window.innerHeight || 600;
-    var size = 96;
-    var startX = vw * 0.04;
-    var startY = vh * 0.06;
-    var endX = (vw - size) / 2;
-    var endY = (vh - size) / 2;
-
+    _azoraEarthAngle = 0;
     _azoraLoadingState = {
-        phase: "fly",
+        phase: "check",
         startTime: performance.now(),
-        flyDuration: 2800,
-        // seconds per full rotation — lower = faster spin
-        spinPeriod: 0.28,
-        minSpinPeriod: 1.6,
-        boostSpinPeriod: 0.28,
-        angle: 0,
-        startX: startX,
-        startY: startY,
-        endX: endX,
-        endY: endY,
-        clicked: false,
         _last: performance.now()
     };
-
-    if (!_azoraLoadingClickBound && letterBtn) {
-        _azoraLoadingClickBound = true;
-        var onTap = function (ev) {
-            try { ev.preventDefault(); } catch (e) {}
-            try { ev.stopPropagation(); } catch (e2) {}
-            onAzoraLoadingAClick();
-        };
-        letterBtn.addEventListener("click", onTap);
-        letterBtn.addEventListener("touchend", onTap, { passive: false });
-    }
 
     if (_azoraLoadingRaf) cancelAnimationFrame(_azoraLoadingRaf);
     _azoraLoadingRaf = requestAnimationFrame(_azoraLoadingTick);
 }
 
-function onAzoraLoadingAClick() {
-    var st = _azoraLoadingState;
-    if (!st) return;
-    if (st.phase !== "idle" && st.phase !== "fly") return;
-    if (st.phase === "fly") {
-        var t = Math.min(1, (performance.now() - st.startTime) / st.flyDuration);
-        // Allow click a bit earlier so it feels responsive
-        if (t < 0.45) return;
-        st.phase = "idle";
-        var letterBtnEarly = document.getElementById("azoraLoadingA");
-        if (letterBtnEarly) letterBtnEarly.classList.add("centered");
-    }
-    st.phase = "boost";
-    st.boostSpinPeriod = Math.max(0.12, st.spinPeriod);
-    st.clicked = true;
-    var letterBtn = document.getElementById("azoraLoadingA");
-    if (letterBtn) letterBtn.classList.add("boost");
-    var hint = document.getElementById("azoraLoadingHint");
-    if (hint) {
-        hint.textContent = "Spinning up…";
-        hint.classList.add("show");
-    }
-}
-
 function _azoraLoadingTick(now) {
     var st = _azoraLoadingState;
-    var letterBtn = document.getElementById("azoraLoadingA");
-    var letterSpan = document.getElementById("azoraLoadingALetter");
-    if (!st || !letterBtn) return;
+    if (!st || st.phase === "done") return;
 
     var dt = Math.min(0.05, (now - (st._last || now)) / 1000);
     if (!(dt > 0)) dt = 0.016;
     st._last = now;
 
-    // Always spin the letter with JS so it never freezes
-    var period = st.spinPeriod || 0.5;
-    if (st.phase === "boost") period = Math.max(0.04, st.boostSpinPeriod || 0.1);
-    else if (st.phase === "idle") period = st.minSpinPeriod || 1.6;
-    st.angle = (st.angle || 0) + (360 / period) * dt;
-    if (st.angle > 360000) st.angle = st.angle % 360;
-    if (letterSpan) {
-        letterSpan.style.transform = "rotate(" + st.angle.toFixed(1) + "deg)";
-    }
+    // Rotate Earth — visible frame-by-frame
+    _azoraEarthAngle = (_azoraEarthAngle + 28 * dt) % 360;
+    try { drawAzoraEarthFrame(document.getElementById("azoraEarthCanvas"), _azoraEarthAngle); } catch (e) {}
 
-    if (st.phase === "fly") {
-        var u = Math.min(1, (now - st.startTime) / st.flyDuration);
-        var e = _azoraLoadingEaseOutCubic(u);
-        var x = st.startX + (st.endX - st.startX) * e;
-        var y = st.startY + (st.endY - st.startY) * e;
-        var sc = 0.85 + 0.15 * e;
-        letterBtn.style.transform = "translate3d(" + x.toFixed(1) + "px," + y.toFixed(1) + "px,0) scale(" + sc.toFixed(3) + ")";
-        // Slow spin as we approach center
-        st.spinPeriod = 0.28 + ((st.minSpinPeriod || 1.6) - 0.28) * e;
-        if (u >= 1) {
-            st.phase = "idle";
-            st.spinPeriod = st.minSpinPeriod || 1.6;
-            letterBtn.classList.add("centered");
-            letterBtn.style.transform = "translate3d(" + st.endX.toFixed(1) + "px," + st.endY.toFixed(1) + "px,0) scale(1)";
-            var hint = document.getElementById("azoraLoadingHint");
-            if (hint) {
-                hint.textContent = "Click the A!";
-                hint.classList.add("show");
-            }
-        }
-    } else if (st.phase === "idle") {
-        letterBtn.style.transform = "translate3d(" + st.endX.toFixed(1) + "px," + st.endY.toFixed(1) + "px,0) scale(1)";
-    } else if (st.phase === "boost") {
-        // Accelerate spin (shorter period = faster)
-        st.boostSpinPeriod = Math.max(0.04, (st.boostSpinPeriod || 0.2) - dt * 0.55);
-        var sc2 = 1 + Math.min(0.28, (0.28 - st.boostSpinPeriod) * 0.9);
-        letterBtn.style.transform = "translate3d(" + st.endX.toFixed(1) + "px," + st.endY.toFixed(1) + "px,0) scale(" + sc2.toFixed(3) + ")";
-        if (st.boostSpinPeriod <= 0.055) {
-            st.phase = "flash";
-            st.flashStart = now;
-            var flash = document.getElementById("azoraLoadingFlash");
-            if (flash) {
-                flash.classList.remove("burst");
-                void flash.offsetWidth;
-                flash.classList.add("burst");
-            }
-            var hint2 = document.getElementById("azoraLoadingHint");
-            if (hint2) hint2.classList.remove("show");
-            letterBtn.style.opacity = "0";
-        }
-    } else if (st.phase === "flash") {
-        if (now - st.flashStart > 6200) {
-            st.phase = "done";
-            hideAzoraLoadingScreen();
-            setTimeout(function () {
-                try {
-                    if (typeof _azoraLoadingOnDone === "function") _azoraLoadingOnDone();
-                } catch (e) {}
-                _azoraLoadingOnDone = null;
-                try {
-                    var li = localStorage.getItem("loggedIn");
-                    if ((li === "true" || li === "guest") && typeof checkDailyLoginReward === "function") {
-                        setTimeout(function () { checkDailyLoginReward(); }, 600);
-                    }
-                } catch (eDaily2) {}
-            }, 180);
-            return;
-        }
-    }
-
-    if (st.phase !== "done") {
-        _azoraLoadingRaf = requestAnimationFrame(_azoraLoadingTick);
-    }
+    _azoraLoadingRaf = requestAnimationFrame(_azoraLoadingTick);
 }
 
 function hideAzoraLoadingScreen() {
@@ -7109,34 +7053,73 @@ function hideAzoraLoadingScreen() {
         cancelAnimationFrame(_azoraLoadingRaf);
         _azoraLoadingRaf = null;
     }
+    _azoraLoadingState = _azoraLoadingState || {};
+    _azoraLoadingState.phase = "done";
     el.classList.remove("show");
     el.style.display = "none";
     el.setAttribute("aria-hidden", "true");
-    var flash = document.getElementById("azoraLoadingFlash");
-    if (flash) flash.classList.remove("burst");
-    var letterBtn = document.getElementById("azoraLoadingA");
-    if (letterBtn) {
-        letterBtn.classList.remove("centered", "boost");
-        letterBtn.style.opacity = "1";
-    }
+}
+
+function azoraHasInternet() {
+    try {
+        if (typeof navigator !== "undefined" && navigator.onLine === false) return false;
+    } catch (e) {}
+    return true;
+}
+
+function showAzoraOfflineError() {
+    var status = document.getElementById("azoraLoadingStatus");
+    var err = document.getElementById("azoraOfflineError");
+    var canvas = document.getElementById("azoraEarthCanvas");
+    if (status) status.textContent = "Connection check failed";
+    if (err) err.style.display = "block";
+    // Keep earth spinning in background
+    if (canvas) canvas.style.opacity = "0.45";
+}
+
+function retryAzoraInternetCheck() {
+    var canvas = document.getElementById("azoraEarthCanvas");
+    if (canvas) canvas.style.opacity = "1";
+    var err = document.getElementById("azoraOfflineError");
+    if (err) err.style.display = "none";
+    var status = document.getElementById("azoraLoadingStatus");
+    if (status) status.textContent = "Checking internet connection...";
+    runAzoraLoadingThen(_azoraLoadingOnDone);
+}
+window.retryAzoraInternetCheck = retryAzoraInternetCheck;
+
+function onAzoraLoadingAClick() {
+    /* legacy no-op — Earth loading no longer uses the A */
 }
 
 /**
- * Show the spinning-A loading screen, then run onDone after the purple flash.
- * User can click the A (once centered) to trigger the finish sequence.
- * Auto-boosts after a few seconds if they don't click.
+ * Earth loading: rotate globe + "Checking internet..." for 3s.
+ * Online → continue. Offline → error with Retry.
  */
 function runAzoraLoadingThen(onDone) {
     _azoraLoadingOnDone = onDone;
     showAzoraLoadingScreen();
     if (_azoraLoadingTimer) clearTimeout(_azoraLoadingTimer);
     _azoraLoadingTimer = setTimeout(function () {
-        var st = _azoraLoadingState;
-        if (st && (st.phase === "idle" || st.phase === "fly") && !st.clicked) {
-            st.phase = "idle";
-            onAzoraLoadingAClick();
+        if (!azoraHasInternet()) {
+            showAzoraOfflineError();
+            return;
         }
-    }, 5500);
+        hideAzoraLoadingScreen();
+        setTimeout(function () {
+            try {
+                if (typeof _azoraLoadingOnDone === "function") _azoraLoadingOnDone();
+            } catch (e) {}
+            var doneFn = _azoraLoadingOnDone;
+            _azoraLoadingOnDone = null;
+            try {
+                var li = localStorage.getItem("loggedIn");
+                if ((li === "true" || li === "guest") && typeof checkDailyLoginReward === "function") {
+                    setTimeout(function () { checkDailyLoginReward(); }, 600);
+                }
+            } catch (eDaily2) {}
+        }, 120);
+    }, 3000);
 }
 
 window.showAzoraLoadingScreen = showAzoraLoadingScreen;
@@ -7198,9 +7181,10 @@ window.addEventListener("DOMContentLoaded", function () {
         // First visit / logged out: Welcome → loading → join popup
         splash.style.display = "flex";
         splash.style.opacity = "1";
+        // Welcome text stays ~3 seconds, then loading (Earth + internet check)
         setTimeout(function () {
             dismissIntroSplash(true);
-        }, 6500);
+        }, 3000);
         setTimeout(function () {
             if (splash && splash.style.display !== "none") {
                 splash.style.opacity = "0";
@@ -7210,7 +7194,7 @@ window.addEventListener("DOMContentLoaded", function () {
                     try { if (typeof openCreateAccount === "function") openCreateAccount(); } catch (e) {}
                 });
             }
-        }, 9000);
+        }, 3800);
     }
 
     try {
@@ -9860,6 +9844,43 @@ function saveAturiusJoinSetting(on) {
     if (note) note.innerHTML = "Joins are <strong>" + (on ? "ON" : "OFF") + "</strong>.";
 }
 
+function getAturiusExtraSettings() {
+    try {
+        return JSON.parse(localStorage.getItem("azoraAturiusExtra") || "{}") || {};
+    } catch (e) { return {}; }
+}
+function saveAturiusExtraSetting(key, value) {
+    var s = getAturiusExtraSettings();
+    s[key] = value;
+    localStorage.setItem("azoraAturiusExtra", JSON.stringify(s));
+    applyAturiusExtraSettings();
+}
+function applyAturiusExtraSettings() {
+    var s = getAturiusExtraSettings();
+    var stage = document.querySelector("#aturiusOverlay .aturius-stage");
+    if (stage) stage.style.display = (s.showSphere === false) ? "none" : "";
+    var ar = document.getElementById("aturiusAutoReadToggle");
+    if (ar) ar.checked = !!s.autoRead;
+    var sp = document.getElementById("aturiusShowSphereToggle");
+    if (sp) sp.checked = s.showSphere !== false;
+    var fr = document.getElementById("aturiusFastReplyToggle");
+    if (fr) fr.checked = !!s.fastReply;
+}
+function resetAturiusMoodToHappy() {
+    try {
+        setAturiusFeeling("happy");
+        setAturiusMood("idle");
+        _aturiusEyeStyle = "happy";
+        _aturiusTopicEye = "happy";
+        paintAturiusFace();
+        var lab = document.getElementById("aturiusMoodLabel");
+        if (lab) lab.textContent = "Happy";
+    } catch (e) {}
+}
+window.saveAturiusExtraSetting = saveAturiusExtraSetting;
+window.resetAturiusMoodToHappy = resetAturiusMoodToHappy;
+window.applyAturiusExtraSettings = applyAturiusExtraSettings;
+
 function isAIChat() {
     return currentChatFriend === AZORA_AI_ID;
 }
@@ -11244,6 +11265,10 @@ function scheduleAIReply(userText, aiChatId, attachment) {
 
     var delay = aiReplyDelayMs(userText || (attachment && attachment.name) || "");
     if (attachment) delay = Math.min(5000, delay + 800);
+    try {
+        var xs = getAturiusExtraSettings();
+        if (xs.fastReply) delay = Math.max(400, Math.floor(delay * 0.45));
+    } catch (eFast) {}
     chatAiReplyTimer = setTimeout(function () {
         chatAiReplyTimer = null;
         try { showAturiusTyping(false); } catch (eT2) {}
@@ -11276,6 +11301,12 @@ function scheduleAIReply(userText, aiChatId, attachment) {
         try { renderAturiusHistoryList(); } catch (eH2) {}
         try { if (typeof renderChatMessages === "function" && currentChatFriend === AZORA_AI_ID) renderChatMessages(); } catch (eR2) {}
         try { if (typeof renderAIChatHistoryList === "function") renderAIChatHistoryList(); } catch (eH) {}
+        try {
+            var xs2 = getAturiusExtraSettings();
+            if (xs2.autoRead && typeof aturiusReadLastMessage === "function") {
+                setTimeout(function () { aturiusReadLastMessage(); }, 200);
+            }
+        } catch (eAR) {}
     }, delay);
 }
 
@@ -11631,6 +11662,7 @@ function setAturiusTab(tab) {
         if (tChat) tChat.classList.remove("active");
         if (tSet) tSet.classList.add("active");
         try { loadAturiusVoiceUI(); } catch (e) {}
+        try { applyAturiusExtraSettings(); } catch (eX) {}
         try { refreshAturiusTrainUI(); } catch (eT) {}
         // Make sure Train Aturius is reachable (settings + layout scroll)
         try {

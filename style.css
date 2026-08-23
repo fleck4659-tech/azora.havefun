@@ -776,61 +776,35 @@ input:checked + .slider:before {
     text-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
 }
 
-/* "Welcome to" - 0.2s enter + ~5s slow hold in center + 1s exit = 6.2s total */
+/* Welcome text ~3 seconds on screen total */
 .text-welcome {
     font-size: 2.8rem;
     color: #ffffff;
     opacity: 0;
     text-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
-    animation: slideWelcome 6.2s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+    animation: slideWelcome 3s cubic-bezier(0.25, 1, 0.5, 1) forwards;
 }
 
-/* "Azora" - Cyan removed, changed to bright royal blue (#1e60ff) */
 .text-azora {
     font-size: 5.2rem;
-    color: #7c3aed; /* Changed from cyan to blue */
+    color: #7c3aed;
     text-shadow: 0 0 20px rgba(30, 96, 255, 0.8), 0 4px 10px rgba(0, 0, 0, 0.5);
     opacity: 0;
-    animation: slideAzora 5.9s cubic-bezier(0.25, 1, 0.5, 1) 0.3s forwards;
+    animation: slideAzora 2.85s cubic-bezier(0.25, 1, 0.5, 1) 0.15s forwards;
 }
 
-/* Keyframe timing adjustments to hold in the center longer */
 @keyframes slideWelcome {
-    0% {
-        transform: translateX(-150vw);
-        opacity: 0;
-    }
-    15% {
-        transform: translateX(-15px);
-        opacity: 1;
-    }
-    85% {
-        transform: translateX(15px);
-        opacity: 1;
-    }
-    100% {
-        transform: translateX(150vw);
-        opacity: 0;
-    }
+    0% { transform: translateX(-150vw); opacity: 0; }
+    18% { transform: translateX(0); opacity: 1; }
+    72% { transform: translateX(0); opacity: 1; }
+    100% { transform: translateX(150vw); opacity: 0; }
 }
 
 @keyframes slideAzora {
-    0% {
-        transform: translateX(150vw); /* Starts off-screen RIGHT */
-        opacity: 0;
-    }
-    18% {
-        transform: translateX(15px);
-        opacity: 1;
-    }
-    82% {
-        transform: translateX(-15px);
-        opacity: 1;
-    }
-    100% {
-        transform: translateX(-150vw); /* Changed from 150vw to -150vw (exits LEFT) */
-        opacity: 0;
-    }
+    0% { transform: translateX(150vw); opacity: 0; }
+    20% { transform: translateX(0); opacity: 1; }
+    70% { transform: translateX(0); opacity: 1; }
+    100% { transform: translateX(-150vw); opacity: 0; }
 }
 
 /* Smooth fade out overlay when done */
@@ -2237,7 +2211,7 @@ html[data-azora-shell="app"] #installAppBtn {
     display: none;
     align-items: center;
     justify-content: center;
-    background: linear-gradient(160deg, #0b1220 0%, #1e1b4b 40%, #4c1d95 100%);
+    background: radial-gradient(circle at 50% 40%, #0f172a 0%, #020617 70%);
     color: #fff;
     pointer-events: all;
     overflow: hidden;
@@ -2246,9 +2220,58 @@ html[data-azora-shell="app"] #installAppBtn {
     display: flex !important;
 }
 .azora-loading-stage {
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 18px;
+    pointer-events: auto;
+    padding: 24px;
+}
+.azora-loading-status {
+    margin: 0;
+    font-size: 1.05rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    color: rgba(255,255,255,0.92);
+    text-align: center;
+}
+.azora-earth-canvas {
+    width: min(280px, 70vw);
+    height: min(280px, 70vw);
+    border-radius: 50%;
+    background: transparent;
+    display: block;
+}
+.azora-offline-error {
+    max-width: 320px;
+    text-align: center;
+    background: rgba(15, 23, 42, 0.9);
+    border: 2px solid rgba(248, 113, 113, 0.7);
+    border-radius: 16px;
+    padding: 16px 18px;
+    color: #fecaca;
+}
+.azora-offline-error strong {
+    display: block;
+    font-size: 1.1rem;
+    margin-bottom: 8px;
+    color: #fff;
+}
+.azora-offline-error p {
+    margin: 0 0 12px;
+    font-size: 0.92rem;
+    color: rgba(255,255,255,0.8);
+}
+.azora-offline-error button {
+    border: none;
+    border-radius: 10px;
+    padding: 10px 18px;
+    font-weight: 700;
+    cursor: pointer;
+    background: linear-gradient(180deg, #38bdf8, #0284c7);
+    color: #fff;
 }
 /* Outer button only MOVES (GPU translate) — no paint-heavy shadows */
 .azora-loading-a {
@@ -5942,21 +5965,20 @@ html[data-theme="dark"] .azora-bg-wave { background: transparent; }
     min-height: 0;
     gap: 12px;
     padding: 12px;
-    padding-bottom: 28px;
-    flex-wrap: wrap;
-    align-content: flex-start;
-    overflow-y: auto;
-    overflow-x: hidden;
-    -webkit-overflow-scrolling: touch;
+    padding-bottom: 16px;
+    flex-wrap: nowrap;
+    align-items: stretch;
+    overflow: hidden;
 }
-/* Full overlay must allow the layout region to scroll */
 .aturius-overlay.azafn-overlay {
     overflow: hidden;
     display: flex;
     flex-direction: column;
+    height: 100%;
 }
 .aturius-stage {
-    width: min(300px, 100%);
+    width: min(260px, 32vw);
+    flex-shrink: 0;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -5964,6 +5986,24 @@ html[data-theme="dark"] .azora-bg-wave { background: transparent; }
     background: radial-gradient(circle at 50% 40%, #1e293b, #0f172a 70%);
     border-radius: 18px;
     padding: 12px;
+    align-self: stretch;
+}
+.aturius-main {
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    height: 100%;
+}
+.aturius-messages {
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+}
+@media (max-width: 900px) {
+    .aturius-layout { flex-wrap: wrap; overflow-y: auto; }
+    .aturius-stage { width: 100%; max-height: 220px; }
 }
 #aturiusCanvas {
     width: 100%;

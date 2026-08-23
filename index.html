@@ -76,10 +76,15 @@
 
 <div id="azoraLoadingScreen" class="azora-loading-screen" style="display:none;" aria-hidden="true">
     <div class="azora-loading-stage" id="azoraLoadingStage">
-        <button type="button" id="azoraLoadingA" class="azora-loading-a" aria-label="Spin the A" title="Click me!"><span class="azora-loading-a-letter" id="azoraLoadingALetter">A</span></button>
-        <div class="azora-loading-hint" id="azoraLoadingHint">Click the A…</div>
+        <p class="azora-loading-status" id="azoraLoadingStatus">Checking internet connection...</p>
+        <canvas id="azoraEarthCanvas" class="azora-earth-canvas" width="280" height="280" aria-label="Rotating Earth"></canvas>
+        <p class="azora-loading-hint" id="azoraLoadingHint"></p>
+        <div id="azoraOfflineError" class="azora-offline-error" style="display:none;">
+            <strong>No internet connection</strong>
+            <p>Azora needs a connection to continue. Check your Wi‑Fi or data, then tap Retry.</p>
+            <button type="button" onclick="retryAzoraInternetCheck()">Retry</button>
+        </div>
     </div>
-    <div id="azoraLoadingFlash" class="azora-loading-flash" aria-hidden="true"></div>
 </div>
 
 <div id="accountOverlay" class="overlay" style="display:none;">
@@ -907,6 +912,31 @@
                     <button type="button" class="aturius-ok-btn" onclick="applyAturiusVoiceSettings()">OK</button>
                 </div>
                 <p class="aturius-settings-note" id="aturiusVoiceNote">Drag the slider, tap Test to preview, then OK to save.</p>
+            </div>
+
+            <label class="aturius-toggle-row">
+                <span>
+                    <strong>Auto Read replies</strong>
+                    <small>When on, Aturius reads new replies out loud automatically.</small>
+                </span>
+                <input type="checkbox" id="aturiusAutoReadToggle" onchange="saveAturiusExtraSetting('autoRead', this.checked)">
+            </label>
+            <label class="aturius-toggle-row">
+                <span>
+                    <strong>Show 3D sphere</strong>
+                    <small>Hide the yellow sphere if you only want chat.</small>
+                </span>
+                <input type="checkbox" id="aturiusShowSphereToggle" checked onchange="saveAturiusExtraSetting('showSphere', this.checked)">
+            </label>
+            <label class="aturius-toggle-row">
+                <span>
+                    <strong>Faster replies</strong>
+                    <small>Shorter thinking delay before Aturius answers.</small>
+                </span>
+                <input type="checkbox" id="aturiusFastReplyToggle" onchange="saveAturiusExtraSetting('fastReply', this.checked)">
+            </label>
+            <div class="aturius-voice-actions" style="margin-top:8px;">
+                <button type="button" class="aturius-test-btn" onclick="resetAturiusMoodToHappy()">Reset mood to happy</button>
             </div>
 
             <!-- Azora owner only: train Aturius -->
