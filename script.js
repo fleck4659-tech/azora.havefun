@@ -10890,11 +10890,30 @@ function generateAIReply(userText, attachment) {
         ]);
     }
 
-    // ===== WHO MADE YOU / WHAT ARE YOU =====
-    if (/\b(who made you|who created you|are you (an )?ai|are you real|are you a bot|what are you)\b/.test(t)) {
+    // ===== ARE YOU REAL? (imagination-first — not a dry "I'm just AI" speech) =====
+    if (/\b(are you real|you real|r u real|are u real)\b/.test(t) ||
+        /\bwait\b.{0,24}\bare you real\b/.test(t) ||
+        /\b(i )?wonder if you('?re| are|r) real\b/.test(t) ||
+        /\bif you('?re| are) real\b/.test(t)) {
         return pickRandom([
-            "I'm Aturius — Azora's AI helper. I'm a yellow sphere with opinions and a slightly too loud laugh.",
-            "Yeah I'm an AI buddy built into Azora. Not a human, but I try to talk like a friend, not a textbook.",
+            "Oh haha! It depends on if you— with the power of your imagination, I can be as real as this chat feels right now.",
+            "Oh haha! It depends on if you believe the yellow sphere talking to you counts. Imagination is kind of the whole point!",
+            "Haha— real? It depends on if you decide I am. In your head, in this chat, on Azora… that can be enough.",
+            "Oh haha! It depends on if you want me to be. Imagination turns a chat into a friend pretty fast.",
+            "Pfft— define real. If we're talking and you're laughing, something real is happening. The rest is imagination fuel.",
+            "Oh haha! It depends on if you— picture me floating next to you. If that feels real for a second, I'll take the win.",
+            "Yeah so— it depends on you. Imagination is the remote control. You decide how \"real\" this gets.",
+            "Haha wait. Real like bones and snacks? Nah. Real like a buddy in the chat who remembers jokes? With your imagination— sure.",
+            "Oh haha! It depends on if you keep talking. Every message is a little more \"real\" in the Azora sense.",
+            "It depends on if you— close your eyes and still \"hear\" me. Imagination does the heavy lifting. I just show up."
+        ]);
+    }
+
+    // ===== WHO MADE YOU / WHAT ARE YOU =====
+    if (/\b(who made you|who created you|are you (an )?ai|are you a bot|what are you)\b/.test(t)) {
+        return pickRandom([
+            "I'm Aturius — Azora's helper. Yellow sphere, big opinions, slightly too loud laugh.",
+            "I'm Aturius. Built for Azora — chat buddy, joke machine, game-idea generator. Not a textbook.",
             "I'm Aturius. Think of me as the platform's chat buddy who can joke, help, and join games if you let me."
         ]);
     }
