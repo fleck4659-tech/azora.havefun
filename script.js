@@ -11,7 +11,24 @@
 })();
 var AZORA_DEV_STAGE = "mid-alpha";
 var AZORA_DEV_STAGE_LABEL = "Mid Alpha";
-var AZORA_APP_VERSION = "72.3";
+var AZORA_APP_VERSION = "72.4";
+var AZORA_WHATS_NEW = [
+    "Mid Alpha stage shown in Settings",
+    "Aturius training pack + learned replies",
+    "Space jumps only when you are not typing in chat",
+    "Staff user list includes local + cloud accounts",
+    "Error is hidden from player lists (system stays)",
+    "Shorter neck + grey Chat Voice Box on the front",
+    "Mute a player in your chat only",
+    "Invite friends into the world you are in",
+    "Emote bar: Wave, Sit, Dance",
+    "Guests can save avatar, set a password and email, but cannot change username"
+];
+
+function isAzoraHiddenAccountName(name) {
+    var n = String(name || "").trim().toLowerCase();
+    return n === "error";
+}
 console.log("%c[Azora] script.js v" + AZORA_APP_VERSION + " " + AZORA_DEV_STAGE_LABEL, "color:#7c3aed;font-weight:bold;font-size:14px");
 try { console.log("[Azora] Cloud ready:", typeof AZORA_CLOUD !== "undefined" && AZORA_CLOUD.isReady && AZORA_CLOUD.isReady()); } catch (e) {}
 // Configuration - Adjust these to change speed and phrases
@@ -1433,6 +1450,37 @@ window.stopFallingPhrasesForGame = stopFallingPhrasesForGame;
 // startFallingPhrases();
 
 // --- Settings Logic ---
+function saveGuestLoginExtras() {
+    try {
+        var acc = JSON.parse(localStorage.getItem("azoraAccount") || "null");
+        if (!acc || !acc.isGuest) {
+            alert("This is only for guest profiles.");
+            return;
+        }
+        var em = ((document.getElementById("guestEmailInput") || {}).value || "").trim();
+        var pw = ((document.getElementById("guestPasswordInput") || {}).value || "");
+        if (em) acc.email = em;
+        if (pw) acc.password = pw;
+        localStorage.setItem("azoraAccount", JSON.stringify(acc));
+        var map = typeof getSavedAccounts === "function" ? getSavedAccounts() : {};
+        var key = acc.username || acc.guestId;
+        if (key) map[key] = acc;
+        if (typeof saveSavedAccounts === "function") saveSavedAccounts(map);
+        var msg = document.getElementById("guestAccountSettingsMsg");
+        if (msg) msg.textContent = "Saved. Log in later with your guest name" + (em ? " or email" : "") + " and password.";
+    } catch (e) {
+        alert("Could not save guest login extras.");
+    }
+}
+window.saveGuestLoginExtras = saveGuestLoginExtras;
+
+function aturiusAskShortcut(text) {
+    var input = document.getElementById("aturiusInput");
+    if (input) input.value = text;
+    if (typeof sendAturiusMessage === "function") sendAturiusMessage();
+}
+window.aturiusAskShortcut = aturiusAskShortcut;
+
 function fillAzoraStageSettings() {
     try {
         var pill = document.getElementById("azoraStagePill");
@@ -1447,6 +1495,25 @@ function fillAzoraStageSettings() {
             copy.textContent = "The main features are playable. Cloud accounts, IDs, and some site flags are still being made extra solid. Next stops: Late Alpha, then Early Beta.";
         }
         if (meta) meta.textContent = "App version " + ver;
+        var ul = document.getElementById("azoraWhatsNewList");
+        if (ul && typeof AZORA_WHATS_NEW !== "undefined") {
+            ul.innerHTML = "";
+            AZORA_WHATS_NEW.forEach(function (line) {
+                var li = document.createElement("li");
+                li.textContent = line;
+                ul.appendChild(li);
+            });
+        }
+        var guestBox = document.getElementById("guestAccountSettingsSection");
+        if (guestBox) {
+            var accG = JSON.parse(localStorage.getItem("azoraAccount") || "null");
+            var showG = !!(accG && accG.isGuest);
+            guestBox.style.display = showG ? "block" : "none";
+            if (showG) {
+                var ge = document.getElementById("guestEmailInput");
+                if (ge) ge.value = accG.email || "";
+            }
+        }
     } catch (e) {}
 }
 window.fillAzoraStageSettings = fillAzoraStageSettings;
@@ -1641,6 +1708,27 @@ function setProfileUserIdDisplay(userId, isGuest, joinedAt) {
 }
 
 function continueAsGuest() {
+    try {
+        var existing = JSON.parse(localStorage.getItem("azoraAccount") || "null");
+        if (existing && existing.isGuest && (existing.guestId || existing.username)) {
+            localStorage.setItem("loggedIn", "guest");
+            setLoggedInAccount(existing);
+            alert("Welcome back, " + (existing.displayName || existing.username || "Guest") + "!\nYour guest profile was restored. You can set a password and email in Settings.");
+            location.reload();
+            return;
+        }
+        var mapG = typeof getSavedAccounts === "function" ? getSavedAccounts() : {};
+        var gKeys = Object.keys(mapG || {});
+        for (var gi = 0; gi < gKeys.length; gi++) {
+            if (mapG[gKeys[gi]] && mapG[gKeys[gi]].isGuest) {
+                setLoggedInAccount(mapG[gKeys[gi]]);
+                localStorage.setItem("loggedIn", "guest");
+                alert("Welcome back, " + (mapG[gKeys[gi]].displayName || mapG[gKeys[gi]].username || "Guest") + "!");
+                location.reload();
+                return;
+            }
+        }
+    } catch (eRe) {}
     var sessionId = "guest_" + Date.now() + "_" + Math.random().toString(36).slice(2, 6);
 
     // Guests also get a public User ID — never Aza: 0 (reserved for owner Azora)
@@ -1658,20 +1746,24 @@ function continueAsGuest() {
             gender: "boy"
         };
 
+    var guestName = "Guest_" + String(sessionId).slice(-4);
     var account = {
         isGuest: true,
-        username: "",
-        displayName: "Guest",
+        username: guestName,
+        displayName: guestName,
         guestId: sessionId,
         userId: userId,
         gender: gender,
-        avatar: avatar
+        avatar: avatar,
+        password: "",
+        email: "",
+        createdAt: Date.now()
     };
 
     registry.push({
         userId: userId,
-        username: "",
-        displayName: "Guest",
+        username: guestName,
+        displayName: guestName,
         isGuest: true,
         createdAt: Date.now()
     });
@@ -1679,7 +1771,13 @@ function continueAsGuest() {
     localStorage.setItem("azoraAccount", JSON.stringify(account));
     localStorage.setItem("loggedIn", "guest");
 
-    alert("Welcome, Guest!\n\nYour public User ID is " + userId + "\n\n• No username or password\n• Avatar cannot be saved\n• Progress is not saved\n\nCreate an account anytime to unlock everything.");
+    try {
+        var mapNew = typeof getSavedAccounts === "function" ? getSavedAccounts() : {};
+        mapNew[guestName] = account;
+        if (typeof saveSavedAccounts === "function") saveSavedAccounts(mapNew);
+        else localStorage.setItem("azoraAccounts", JSON.stringify(mapNew));
+    } catch (eSaveG) {}
+    alert("Welcome, " + guestName + "!\n\nYour public User ID is " + userId + "\n\n• Guest name cannot be changed\n• You can set a password and email in Settings\n• Avatar can be saved on this device");
     location.reload();
 }
 
@@ -3414,10 +3512,18 @@ function findAccountByUsername(username) {
     // Exact key first
     if (map[username]) return map[username];
     // Case-insensitive username match (password still exact)
-    var lower = username.toLowerCase();
+    var lower = String(username || "").toLowerCase();
     var keys = Object.keys(map);
     for (var i = 0; i < keys.length; i++) {
         if (keys[i].toLowerCase() === lower) return map[keys[i]];
+    }
+    // Email or guest display name
+    for (var j = 0; j < keys.length; j++) {
+        var acc = map[keys[j]];
+        if (!acc) continue;
+        if (acc.email && String(acc.email).toLowerCase() === lower) return acc;
+        if (acc.displayName && String(acc.displayName).toLowerCase() === lower) return acc;
+        if (acc.guestId && String(acc.guestId).toLowerCase() === lower) return acc;
     }
     return null;
 }
@@ -3464,7 +3570,7 @@ function loginAccount() {
     var account = findAccountByUsername(username);
 
     if (!account) {
-        showAccountError("No account found with that username. Create an account first.");
+        showAccountError("No account found with that username, guest name, or email.");
         return;
     }
 
@@ -4015,19 +4121,22 @@ function buildBlockyAvatarMeshes(gender, colors) {
     torsoMesh.position.y = 0.42;
     avatarCharacterGroup.add(torsoMesh);
 
-    neckMesh = makeBox(0.22, 0.18, 0.22, headC);
+    // Short neck — mostly hidden under the head, a sliver still shows
+    var torsoTopY = 0.42 + 0.56;
+    var neckH = 0.07;
+    neckMesh = makeBox(0.20, neckH, 0.20, headC);
     neckMesh.name = "neck";
-    neckMesh.position.y = 1.07;
+    neckMesh.position.y = torsoTopY + neckH / 2;
     avatarCharacterGroup.add(neckMesh);
 
-    var cvbBox = makeBox(0.05, 0.04, 0.05, "#6b7280");
+    var cvbBox = makeBox(0.07, 0.05, 0.06, "#6b7280");
     cvbBox.name = "cvbVoiceBox";
-    cvbBox.position.y = 1.07;
-    cvbBox.position.z = 0;
+    cvbBox.position.y = neckMesh.position.y;
+    cvbBox.position.z = 0.14;
     try {
         if (cvbBox.material) {
-            cvbBox.material.transparent = true;
-            cvbBox.material.opacity = 0.35;
+            cvbBox.material.transparent = false;
+            cvbBox.material.opacity = 1;
         }
     } catch (eCvbM) {}
     avatarCharacterGroup.add(cvbBox);
@@ -4036,11 +4145,11 @@ function buildBlockyAvatarMeshes(gender, colors) {
 
     headMesh = makeBox(0.52, 0.52, 0.52, headC);
     headMesh.name = "head";
-    headMesh.position.y = 1.42;
+    headMesh.position.y = torsoTopY + 0.05 + 0.26;
     avatarCharacterGroup.add(headMesh);
 
     faceGroup = buildAvatarFace(headC, gender);
-    faceGroup.position.y = 1.42;
+    faceGroup.position.y = headMesh.position.y;
     avatarCharacterGroup.add(faceGroup);
 
     leftArmMesh = makeBox(0.30, 1.08, 0.30, laC);
@@ -5193,7 +5302,8 @@ function applyGuestAvatarLock(locked) {
 }
 
 function isAvatarUnlocked() {
-    return localStorage.getItem("loggedIn") === "true";
+    var flag = localStorage.getItem("loggedIn");
+    return flag === "true" || flag === "guest";
 }
 
 function refreshAvatarLock() {
@@ -10245,14 +10355,6 @@ function renderFriendsList() {
     try { renderChatFriendRequests(); } catch (eR) {}
     try { updateChatBadge(); } catch (eB) {}
 
-    if (isGuest) {
-        if (noMsg) {
-            noMsg.style.display = "block";
-            noMsg.textContent = "Guests can chat with their AI above. Create an account to add friends!";
-        }
-        return;
-    }
-
     var data = getSocialData();
     var myData = ensureUserSocial(data, me);
     if (!myData.friends || myData.friends.length === 0) {
@@ -14786,15 +14888,16 @@ function changePassword() {
         }
     }
 
-    if (localStorage.getItem("loggedIn") !== "true") {
-        fail("You must be logged in with a full account to change your password.");
+    var loggedFlag = localStorage.getItem("loggedIn");
+    if (loggedFlag !== "true" && loggedFlag !== "guest") {
+        fail("You must be logged in to set a password.");
         return;
     }
 
     var acc = {};
     try { acc = JSON.parse(localStorage.getItem("azoraAccount") || "{}"); } catch (e) {}
-    if (!acc.username || acc.isGuest) {
-        fail("Guests cannot change a password. Create an account first.");
+    if (!acc || (!acc.username && !acc.guestId)) {
+        fail("No profile found on this device.");
         return;
     }
 
@@ -14802,8 +14905,8 @@ function changePassword() {
     var next = document.getElementById("newPassword").value;
     var confirm = document.getElementById("confirmNewPassword").value;
 
-    // Current password must match 100%
-    if (typeof acc.password !== "string" || acc.password !== current) {
+    // Current password must match 100% unless this guest has never set one
+    if (acc.password && (typeof acc.password !== "string" || acc.password !== current)) {
         fail("The password is incorrect. Please type the correct password");
         document.getElementById("currentPassword").value = "";
         document.getElementById("currentPassword").focus();
@@ -15621,6 +15724,33 @@ function animateGameAvatar(mesh, isMoving, dt, opts) {
         mesh.userData.waveUntil = 0;
     }
 
+    var emoteUntil = mesh.userData.emoteUntil || 0;
+    var emote = mesh.userData.emote || "";
+    if (emoteUntil && performance.now() < emoteUntil) {
+        if (emote === "sit") {
+            setRot(L.leftArm, 0.15, 0, -0.2);
+            setRot(L.rightArm, 0.15, 0, 0.2);
+            setRot(L.leftLeg, -1.15, 0, 0.08);
+            setRot(L.rightLeg, -1.15, 0, -0.08);
+            if (L.torso) { L.torso.rotation.x = 0.18; }
+            if (L.head) { L.head.rotation.x = 0.04; }
+            return;
+        }
+        if (emote === "dance") {
+            var d = Math.sin(performance.now() * 0.012);
+            setRot(L.leftArm, -0.6 + d * 0.4, 0, -0.8);
+            setRot(L.rightArm, -0.6 - d * 0.4, 0, 0.8);
+            setRot(L.leftLeg, d * 0.25, 0, 0);
+            setRot(L.rightLeg, -d * 0.25, 0, 0);
+            if (L.torso) { L.torso.rotation.y = d * 0.2; L.torso.rotation.x = 0; }
+            if (L.head) { L.head.rotation.y = d * 0.15; }
+            return;
+        }
+    } else if (emoteUntil) {
+        mesh.userData.emoteUntil = 0;
+        mesh.userData.emote = "";
+    }
+
     // —— JUMP / AIR ——
     // Arms raised UP and OUT (never across the torso). Legs kick back slightly.
     if (inAir) {
@@ -15719,28 +15849,29 @@ function makeNormAvatar(colors) {
     torso.name = "torso";
     g.add(torso);
 
-    var neckH = 0.18;
-    var neck = box(0.22, neckH, 0.22, colors.head);
+    var neckH = 0.07;
+    var torsoTop = legH + torsoH;
+    var neck = box(0.20, neckH, 0.20, colors.head);
     neck.name = "neck";
-    neck.position.y = legH + torsoH + neckH / 2;
+    neck.position.y = torsoTop + neckH / 2;
     g.add(neck);
 
-    var voiceBox = box(0.05, 0.04, 0.05, "#6b7280");
+    var voiceBox = box(0.07, 0.05, 0.06, "#6b7280");
     voiceBox.name = "cvbVoiceBox";
     voiceBox.position.y = neck.position.y;
-    voiceBox.position.z = 0;
+    voiceBox.position.z = 0.14;
     try {
         if (voiceBox.material) {
-            voiceBox.material.transparent = true;
-            voiceBox.material.opacity = 0.35;
+            voiceBox.material.transparent = false;
+            voiceBox.material.opacity = 1;
         }
     } catch (eVbMat) {}
     g.add(voiceBox);
     g.userData.cvbVoiceBox = voiceBox;
 
-    // Head sits on the neck
+    // Head sits almost on the torso; a sliver of neck stays visible
     var head = box(girlDefault ? headS * 0.95 : headS, girlDefault ? headS * 0.95 : headS, girlDefault ? headS * 0.95 : headS, colors.head);
-    head.position.y = legH + torsoH + neckH + headS / 2;
+    head.position.y = torsoTop + 0.05 + headS / 2;
     head.name = "head";
     g.add(head);
 
@@ -15781,7 +15912,7 @@ function makeNormAvatar(colors) {
     try {
         var hs = colors.hairStyle || "";
         if (hs && hs !== "hair_boy_none" && hs !== "none" && hs !== "hair_girl_default") {
-            var hairY = legH + torsoH + neckH + headS / 2;
+            var hairY = head.position.y;
             var hair = makeAvatarHair(colors.hair || "#4a3728", hairY, headS, hs);
             if (hair) g.add(hair);
         }
@@ -15838,13 +15969,13 @@ function makeNormCatAvatar(colors) {
     catNeck.name = "neck";
     catNeck.position.set(0, 0.86, 0.28);
     g.add(catNeck);
-    var catVb = box(0.05, 0.04, 0.05, "#6b7280");
+    var catVb = box(0.07, 0.05, 0.06, "#6b7280");
     catVb.name = "cvbVoiceBox";
-    catVb.position.set(0, 0.86, 0.28);
+    catVb.position.set(0, 0.86, 0.42);
     try {
         if (catVb.material) {
-            catVb.material.transparent = true;
-            catVb.material.opacity = 0.35;
+            catVb.material.transparent = false;
+            catVb.material.opacity = 1;
         }
     } catch (eCatVb) {}
     g.add(catVb);
@@ -18741,7 +18872,13 @@ function startNormGameWorld(def) {
 
 function updateNormHudCount() {
     var hud = document.getElementById("normHudPlayers");
-    if (hud) hud.textContent = "Players: " + _normPlayers.length;
+    if (hud) {
+        var worldName = (_normSession && (_normSession.title || _normSession.id)) || "World";
+        var n = (_normPlayers || []).filter(function (p) {
+            return p && String(p.name || "").toLowerCase() !== "error";
+        }).length;
+        hud.textContent = worldName + " · " + n + (n === 1 ? " player" : " players");
+    }
     // Empire moneys line
     try {
         if (_normSession && _normSession.id === "planet-empire" && typeof updateEmpireHud === "function") {
@@ -18768,6 +18905,7 @@ function renderNormPlayerList() {
         return;
     }
     _normPlayers.forEach(function (p) {
+        if (p && String(p.name || "").toLowerCase() === "error") return;
         var row = document.createElement("div");
         row.className = "norm-player-row";
         var label = document.createElement("span");
@@ -18788,6 +18926,17 @@ function renderNormPlayerList() {
                 }
             };
             act.appendChild(btn);
+            var muteBtn = document.createElement("button");
+            muteBtn.type = "button";
+            muteBtn.textContent = isPlayerMuted(p.name) ? "Unmute" : "Mute";
+            muteBtn.onclick = function () {
+                var nowMuted = toggleMutePlayer(p.name);
+                muteBtn.textContent = nowMuted ? "Unmute" : "Mute";
+                alert(nowMuted
+                    ? ("Muted " + p.name + " in your chat only. Other players can still see them.")
+                    : ("Unmuted " + p.name + "."));
+            };
+            act.appendChild(muteBtn);
             row.appendChild(act);
         } else if (!p.isMe && (p.isGuest || p.name === "___")) {
             var tip = document.createElement("span");
@@ -18806,6 +18955,7 @@ function appendNormChat(user, text, isSystem) {
     if (!box) return;
     // Hide messages from blocked users (not system lines)
     if (!isSystem && user && typeof isUserBlocked === "function" && isUserBlocked(user)) return;
+    if (!isSystem && user && typeof isPlayerMuted === "function" && isPlayerMuted(user)) return;
     var line = document.createElement("div");
     line.className = "norm-chat-line";
     var u = document.createElement("span");
@@ -19145,6 +19295,103 @@ var _normClones = [];
 var _normSessionParts = []; // parts attached this session (not yet saved)
 var _normInvOpen = false;
 
+
+function getMutedPlayers() {
+    try {
+        var arr = JSON.parse(localStorage.getItem("azoraMutedPlayers") || "[]");
+        return Array.isArray(arr) ? arr : [];
+    } catch (e) { return []; }
+}
+function isPlayerMuted(name) {
+    var n = String(name || "").toLowerCase();
+    if (!n) return false;
+    return getMutedPlayers().some(function (x) { return String(x).toLowerCase() === n; });
+}
+function toggleMutePlayer(name) {
+    name = String(name || "").trim();
+    if (!name) return false;
+    var list = getMutedPlayers();
+    var lower = name.toLowerCase();
+    var next = list.filter(function (x) { return String(x).toLowerCase() !== lower; });
+    var nowMuted;
+    if (next.length === list.length) {
+        next.push(name);
+        nowMuted = true;
+    } else {
+        nowMuted = false;
+    }
+    localStorage.setItem("azoraMutedPlayers", JSON.stringify(next));
+    return nowMuted;
+}
+window.toggleMutePlayer = toggleMutePlayer;
+window.isPlayerMuted = isPlayerMuted;
+
+function playNormEmote(kind) {
+    if (!_normLocalMesh) return;
+    kind = String(kind || "wave").toLowerCase();
+    var mesh = _normLocalMesh;
+    var now = performance.now();
+    if (kind === "wave") {
+        playAvatarWave(mesh, 1200);
+        try { appendNormChat(getNormDisplayName(), "👋 (waved)"); } catch (e) {}
+        return;
+    }
+    if (kind === "sit") {
+        mesh.userData.emote = "sit";
+        mesh.userData.emoteUntil = now + 4000;
+        try { appendNormChat(getNormDisplayName(), "🪑 (sat down)"); } catch (e) {}
+        return;
+    }
+    if (kind === "dance") {
+        mesh.userData.emote = "dance";
+        mesh.userData.emoteUntil = now + 3500;
+        try { appendNormChat(getNormDisplayName(), "💃 (danced)"); } catch (e) {}
+        return;
+    }
+}
+window.playNormEmote = playNormEmote;
+
+function openNormInviteFriends() {
+    var friends = [];
+    try {
+        var me = typeof getMyUsername === "function" ? getMyUsername() : "";
+        var data = typeof getSocialData === "function" ? getSocialData() : {};
+        friends = (data[me] && data[me].friends) ? data[me].friends.slice() : [];
+    } catch (e) {}
+    friends = friends.filter(function (n) { return n && String(n).toLowerCase() !== "error"; });
+    var world = (_normSession && (_normSession.title || _normSession.id)) || "this world";
+    if (!friends.length) {
+        alert("No friends to invite yet. Add friends from Search or a profile first.");
+        return;
+    }
+    var pick = prompt("Invite a friend to " + world + "?\n\nFriends:\n" + friends.join("\n") + "\n\nType their username:");
+    if (!pick) return;
+    pick = pick.trim();
+    var hit = friends.filter(function (f) { return String(f).toLowerCase() === pick.toLowerCase(); })[0];
+    if (!hit) {
+        alert("That name is not on your friends list.");
+        return;
+    }
+    try {
+        var inv = JSON.parse(localStorage.getItem("azoraGameInvites") || "[]");
+        if (!Array.isArray(inv)) inv = [];
+        inv.unshift({
+            to: hit,
+            from: (typeof getMyUsername === "function" ? getMyUsername() : "Player"),
+            world: world,
+            worldId: _normSession && _normSession.id,
+            at: Date.now()
+        });
+        localStorage.setItem("azoraGameInvites", JSON.stringify(inv.slice(0, 40)));
+    } catch (e2) {}
+    try {
+        if (typeof addNotification === "function") {
+            addNotification("Invite sent to " + hit + " for " + world);
+        }
+    } catch (e3) {}
+    alert("Invite sent to " + hit + ". They will see it next time they open Azora on this shared device list, and you can also tell them in Chat.");
+}
+window.openNormInviteFriends = openNormInviteFriends;
 
 /** Trigger a short hi/bye wave on a game avatar mesh. */
 function playAvatarWave(mesh, ms) {
@@ -23390,6 +23637,7 @@ function getPublicUserId_systemPatch(username) {
                 } catch (eE) { return; }
             }
             var key = String(name).toLowerCase();
+            if (key === "error") return;
             var prev = map[key] || {};
             map[key] = {
                 username: name,

@@ -13,7 +13,7 @@
     <link rel="manifest" href="manifest-azora.json">
     <link rel="apple-touch-icon" href="logo.jpg?v=70.2">
     <link rel="icon" href="logo.jpg?v=70.2">
-    <link rel="stylesheet" href="style.css?v=72.3">
+    <link rel="stylesheet" href="style.css?v=72.4">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 </head>
 <body>
@@ -128,7 +128,7 @@
         <button type="button" id="guestContinueBtn" class="guest-main-btn" onclick="continueAsGuest()">
             👤 Continue as Guest
         </button>
-        <p class="guest-hint">No username · No password · No email<br>Avatar &amp; progress will <strong>not</strong> be saved</p>
+        <p class="guest-hint">Guest accounts can save your avatar and set a password + email.<br>You keep a Guest name you cannot change.</p>
 
         <p>Already have an account? <a href="#" id="switchMode">Log In</a>
            &nbsp;·&nbsp; <a href="#" onclick="continueAsGuest();return false;" style="color:#64748b;font-weight:bold;">Continue as Guest</a></p>
@@ -238,6 +238,21 @@
                 <p class="settings-hint" style="margin-top:0;">Check if a newer version of Azora is available. Updating closes the app and reopens the latest version.</p>
                 <button type="button" id="checkForUpdatesBtn" class="azora-update-btn" style="width:100%;margin:8px 0 0;" onclick="checkForAzoraUpdates(true)">Check for updates</button>
                 <p id="checkForUpdatesStatus" class="settings-hint" style="margin-top:8px;"></p>
+            </div>
+
+            <div class="settings-section" id="azoraWhatsNewSection">
+                <label class="settings-label">What's new</label>
+                <p class="settings-hint" style="margin-top:0;">Latest Mid Alpha notes on this device.</p>
+                <ul class="azora-whats-new-list" id="azoraWhatsNewList"></ul>
+            </div>
+
+            <div class="settings-section" id="guestAccountSettingsSection" style="display:none;">
+                <label class="settings-label">Guest login extras</label>
+                <p class="settings-hint" style="margin-top:0;">Guests keep a Guest name they cannot change. You can add a password and email so you can log back in.</p>
+                <input id="guestEmailInput" type="email" class="settings-input" placeholder="Email (optional)" autocomplete="off">
+                <input id="guestPasswordInput" type="password" class="settings-input" placeholder="Set a password" style="margin-top:8px;">
+                <button type="button" onclick="saveGuestLoginExtras()" style="width:100%;margin-top:8px;">Save guest password / email</button>
+                <p id="guestAccountSettingsMsg" class="settings-hint" style="margin-top:8px;"></p>
             </div>
 
             <div class="settings-section" id="azoraStageSettingsSection">
@@ -511,10 +526,7 @@
         <button type="button" id="resetDefaultAvatarBtn" class="reset-default-avatar-btn" onclick="resetToDefaultAvatar()" title="Reset to Azora's default avatar">↺ Reset to default avatar</button>
         <button onclick="saveAvatar()" id="saveAvatarBtn">Save Avatar</button>
         <p id="guestAvatarLock" style="display:none;color:#ffcc00;font-size:12px;font-weight:bold;text-align:center;margin-top:8px;">
-            🔒 Log in or create an account to customize your avatar.<br>
-            <a href="#" onclick="openCreateAccount();return false;" style="color:#fff;text-decoration:underline;">Create Account</a>
-            &nbsp;·&nbsp;
-            <a href="#" onclick="openLogin();return false;" style="color:#fff;text-decoration:underline;">Log In</a>
+            Guest profiles can customize and save. Your Guest name cannot be changed.
         </p>
         <p id="modWarning" style="color:#ff3b30;display:none;font-size:11px;font-weight:bold;margin-top:5px;text-align:center;">
             ⚠️ Single-tone avatar restricted! Torso updated.
@@ -906,6 +918,14 @@
         </div>
         <div class="aturius-main" id="aturiusChatPane">
             <div class="aturius-with" id="aturiusWithLabel">Chat with Aturius</div>
+            <div class="aturius-howdoi" id="aturiusHowDoI">
+                <span>How do I…</span>
+                <button type="button" onclick="aturiusAskShortcut('How do I add friends?')">add friends</button>
+                <button type="button" onclick="aturiusAskShortcut('How do I play Norm Games?')">play games</button>
+                <button type="button" onclick="aturiusAskShortcut('How do coins work?')">get coins</button>
+                <button type="button" onclick="aturiusAskShortcut('How do I customize my avatar?')">customize</button>
+                <button type="button" onclick="aturiusAskShortcut('What are the rules of Azora?')">see rules</button>
+            </div>
             <div class="chat-messages aturius-messages" id="aturiusMessages"></div>
             <div class="aturius-actions">
                 <button type="button" class="aturius-read-btn" id="aturiusReadBtn" onclick="aturiusReadLastMessage()">🔊 Read to me</button>
@@ -1131,7 +1151,11 @@
                     <button type="button" id="normJumpBtn" class="norm-jump-btn" aria-label="Jump">JUMP</button>
                 </div>
                 <div class="norm-game-hud">
-                    <span id="normHudPlayers">Players: 1</span>
+                    <span id="normHudPlayers">World · 1 player</span>
+                    <button type="button" class="norm-inv-btn" onclick="openNormInviteFriends()">Invite</button>
+                    <button type="button" class="norm-inv-btn" onclick="playNormEmote('wave')">Wave</button>
+                    <button type="button" class="norm-inv-btn" onclick="playNormEmote('sit')">Sit</button>
+                    <button type="button" class="norm-inv-btn" onclick="playNormEmote('dance')">Dance</button>
                     <span id="normHudEmpire" style="display:none;">Moneys: $0</span>
                     <span id="normHudHint">W forward · S reverse · A/D turn · Space jump (not while typing in chat) · Camera locked behind</span>
                     <button type="button" id="normInvBtn" class="norm-inv-btn" onclick="toggleNormInventory()">Inventory</button>
@@ -1331,12 +1355,12 @@
 
 <!-- Optional: trained Aturius brain (export from Azora account → Settings → Export code files) -->
 <script src="aturius-training-pack.js"></script>
-<script src="script.js?v=72.3"></script>
+<script src="script.js?v=72.4"></script>
 <script>
 // Register Azora as installable app (not the staff website)
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", function () {
-    navigator.serviceWorker.register("./sw-azora.js?v=72.3").then(function (reg) {
+    navigator.serviceWorker.register("./sw-azora.js?v=72.4").then(function (reg) {
       try { if (typeof onAzoraServiceWorkerReady === "function") onAzoraServiceWorkerReady(reg); } catch (e) {}
     }).catch(function () {});
   });

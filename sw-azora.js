@@ -1,5 +1,5 @@
 /* Azora main app service worker — player ads */
-var CACHE = "azora-app-v72-3-stage-aturius";
+var CACHE = "azora-app-v72-4-social-neck";
 var ASSETS = [
   "./", "./index.html", "./checkout.html", "./style.css", "./script.js",
   "./logo.png", "./logo.jpg", "./logo-192.png", "./logo-512.png", "./manifest-azora.json", "./Smile.png", "./female_smile.png", "./cartoonish_smile.png", "./crying.png", "./greedy_smile.png", "./mysterious.png", "./red_mysterious.png", "./robotic.png", "./sad_tears.png", "./simple_smile.png", "./tears_of_joy.png", "./wide_mouth.png",

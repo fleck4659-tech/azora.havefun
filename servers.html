@@ -875,6 +875,7 @@ function readLocalUsers() {
         if (!u) return;
         var name = String(u.username || u.name || "").trim();
         if (!name || u.isGuest) return;
+        if (name.toLowerCase() === "error") return;
         var key = name.toLowerCase();
         var prev = by[key] || {};
         by[key] = {
