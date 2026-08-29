@@ -13,7 +13,7 @@
     <link rel="manifest" href="manifest-azora.json">
     <link rel="apple-touch-icon" href="logo.jpg?v=70.2">
     <link rel="icon" href="logo.jpg?v=70.2">
-    <link rel="stylesheet" href="style.css?v=72.0">
+    <link rel="stylesheet" href="style.css?v=71.30">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 </head>
 <body>
@@ -1125,28 +1125,6 @@
                     <span id="normHudEmpire" style="display:none;">Moneys: $0</span>
                     <span id="normHudHint">W forward · S reverse · A/D turn · Space jump · Camera locked behind</span>
                     <button type="button" id="normInvBtn" class="norm-inv-btn" onclick="toggleNormInventory()">Inventory</button>
-                    <button type="button" id="normGameSettingsBtn" class="norm-gear-btn" title="Game Settings" aria-label="Game Settings" onclick="toggleNormGameSettings(event)">
-                        <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M19.14 12.94c.04-.31.06-.63.06-.94s-.02-.63-.06-.94l2.03-1.58a.5.5 0 0 0 .12-.64l-1.92-3.32a.5.5 0 0 0-.6-.22l-2.39.96a7.03 7.03 0 0 0-1.63-.94l-.36-2.54A.5.5 0 0 0 13.9 2h-3.8a.5.5 0 0 0-.5.42l-.36 2.54c-.59.22-1.14.53-1.63.94l-2.39-.96a.5.5 0 0 0-.6.22L2.8 8.48a.5.5 0 0 0 .12.64l2.03 1.58c-.04.31-.06.63-.06.94s.02.63.06.94L2.92 14.16a.5.5 0 0 0-.12.64l1.92 3.32c.13.22.4.31.6.22l2.39-.96c.49.41 1.04.72 1.63.94l.36 2.54c.05.24.26.42.5.42h3.8c.24 0 .45-.18.5-.42l.36-2.54c.59-.22 1.14-.53 1.63-.94l2.39.96c.22.09.47 0 .6-.22l1.92-3.32a.5.5 0 0 0-.12-.64l-2.03-1.58zM12 15.5A3.5 3.5 0 1 1 12 8.5a3.5 3.5 0 0 1 0 7z"/></svg>
-                    </button>
-                </div>
-                <div id="normGameSettingsPanel" class="norm-game-settings" style="display:none;" role="dialog" aria-label="Game Settings">
-                    <div class="norm-gs-head">
-                        <h3>Game Settings</h3>
-                        <button type="button" class="norm-gs-close" onclick="toggleNormGameSettings()" aria-label="Close">✕</button>
-                    </div>
-                    <label class="norm-gs-row">
-                        <span>Chat Voice Box (CVB)</span>
-                        <input type="checkbox" id="cvbEnabledToggle" checked onchange="saveNormCvbSettings()">
-                    </label>
-                    <p class="norm-gs-hint">When on, nearby players hear your chat out loud from the tiny box in your neck.</p>
-                    <label class="norm-gs-row">
-                        <span>Voice type</span>
-                        <select id="cvbVoiceType" onchange="saveNormCvbSettings()">
-                            <option value="light">Light / high pitch</option>
-                            <option value="dark">Dark / deep pitch</option>
-                        </select>
-                    </label>
-                    <button type="button" class="norm-gs-test" onclick="testNormCvbVoice()">Test voice</button>
                 </div>
                 <!-- In-game Inventory (only while in a Norm Game) -->
                 <div id="normInventoryPanel" class="norm-inv-panel" style="display:none;" aria-label="Game inventory">
@@ -1230,13 +1208,11 @@
                 <div class="norm-side-block norm-chat-block">
                     <h3>Server Chat</h3>
                     <div id="normChatMessages" class="norm-chat-messages"></div>
-                    <div id="normChatScanHint" class="norm-chat-scan-hint" style="display:none;"></div>
-                    <div id="normChatReview" class="norm-chat-review" style="display:none;"></div>
-                    <div class="norm-chat-input-row" id="normChatInputRow">
-                        <input type="text" id="normChatInput" maxlength="200" placeholder="Say something…" onkeydown="if(event.key==='Enter')sendNormChat()" autocomplete="off">
-                        <button type="button" id="normChatSendBtn" onclick="sendNormChat()">Send</button>
+                    <div class="norm-chat-input-row">
+                        <input type="text" id="normChatInput" maxlength="200" placeholder="Say something…" onkeydown="if(event.key==='Enter')sendNormChat()">
+                        <button type="button" onclick="sendNormChat()">Send</button>
                     </div>
-                    <p class="norm-chat-note">Messages are scanned for about 10 seconds before they go out. Friend requests work here. Guests show as ___.</p>
+                    <p class="norm-chat-note">Friend requests work here (Norm Games). Guests show as ___.</p>
                 </div>
             </aside>
         </div>
@@ -1321,12 +1297,12 @@
 
 <!-- Optional: trained Aturius brain (export from Azora account → Settings → Export code files) -->
 <script src="aturius-training-pack.js"></script>
-<script src="script.js?v=72.0"></script>
+<script src="script.js?v=71.30"></script>
 <script>
 // Register Azora as installable app (not the staff website)
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", function () {
-    navigator.serviceWorker.register("./sw-azora.js?v=72.0").then(function (reg) {
+    navigator.serviceWorker.register("./sw-azora.js?v=71.30").then(function (reg) {
       try { if (typeof onAzoraServiceWorkerReady === "function") onAzoraServiceWorkerReady(reg); } catch (e) {}
     }).catch(function () {});
   });

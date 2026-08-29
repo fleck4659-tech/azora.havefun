@@ -1439,7 +1439,7 @@ function setSearchTab(tab) {
     document.getElementById("searchInput").placeholder = tab === "users" ? "Search usernames..." : "Search games...";
     performSearch();
 }
-function performSearchLegacyStub() {
+function performSearch() {
     const query = document.getElementById("searchInput").value.trim().toLowerCase();
     const resultsContainer = document.getElementById("searchResultsContainer");
     resultsContainer.innerHTML = "";
@@ -3940,38 +3940,19 @@ function buildBlockyAvatarMeshes(gender, colors) {
     var llC = colors.leftLeg || "#334155";
     var rlC = colors.rightLeg || "#334155";
 
+    headMesh = makeBox(0.52, 0.52, 0.52, headC);
+    headMesh.name = "head";
+    headMesh.position.y = 1.28;
+    avatarCharacterGroup.add(headMesh);
+
+    faceGroup = buildAvatarFace(headC, gender);
+    faceGroup.position.y = 1.28;
+    avatarCharacterGroup.add(faceGroup);
+
     torsoMesh = makeBox(0.78, 1.12, 0.42, torsoC);
     torsoMesh.name = "torso";
     torsoMesh.position.y = 0.42;
     avatarCharacterGroup.add(torsoMesh);
-
-    neckMesh = makeBox(0.22, 0.18, 0.22, headC);
-    neckMesh.name = "neck";
-    neckMesh.position.y = 1.07;
-    avatarCharacterGroup.add(neckMesh);
-
-    var cvbBox = makeBox(0.05, 0.04, 0.05, "#6b7280");
-    cvbBox.name = "cvbVoiceBox";
-    cvbBox.position.y = 1.07;
-    cvbBox.position.z = 0;
-    try {
-        if (cvbBox.material) {
-            cvbBox.material.transparent = true;
-            cvbBox.material.opacity = 0.35;
-        }
-    } catch (eCvbM) {}
-    avatarCharacterGroup.add(cvbBox);
-    avatarCharacterGroup.userData = avatarCharacterGroup.userData || {};
-    avatarCharacterGroup.userData.cvbVoiceBox = cvbBox;
-
-    headMesh = makeBox(0.52, 0.52, 0.52, headC);
-    headMesh.name = "head";
-    headMesh.position.y = 1.42;
-    avatarCharacterGroup.add(headMesh);
-
-    faceGroup = buildAvatarFace(headC, gender);
-    faceGroup.position.y = 1.42;
-    avatarCharacterGroup.add(faceGroup);
 
     leftArmMesh = makeBox(0.30, 1.08, 0.30, laC);
     leftArmMesh.name = "leftArm";
@@ -5653,22 +5634,12 @@ function applyAvatarScales(scales) {
     try {
         headMesh.scale.set(h, h, h);
         // Keep head roughly stacked on torso
-        headMesh.position.y = 0.3 + 0.5 * t + 0.325 * h + 0.18;
+        headMesh.position.y = 0.3 + 0.5 * t + 0.325 * h;
 
         if (faceGroup) {
             faceGroup.scale.set(h, h, h);
             faceGroup.position.y = headMesh.position.y;
         }
-        if (typeof neckMesh !== "undefined" && neckMesh) {
-            neckMesh.scale.set(Math.min(h, t), 1, Math.min(h, t));
-            neckMesh.position.y = 0.3 + 0.5 * t + 0.09;
-        }
-        try {
-            if (avatarCharacterGroup) {
-                var vb = avatarCharacterGroup.getObjectByName("cvbVoiceBox");
-                if (vb) vb.position.y = 0.3 + 0.5 * t + 0.09;
-            }
-        } catch (eVb) {}
         // Hair follows head if present
         try {
             if (avatarCharacterGroup) {
@@ -15593,28 +15564,9 @@ function makeNormAvatar(colors) {
     torso.name = "torso";
     g.add(torso);
 
-    var neckH = 0.18;
-    var neck = box(0.22, neckH, 0.22, colors.head);
-    neck.name = "neck";
-    neck.position.y = legH + torsoH + neckH / 2;
-    g.add(neck);
-
-    var voiceBox = box(0.05, 0.04, 0.05, "#6b7280");
-    voiceBox.name = "cvbVoiceBox";
-    voiceBox.position.y = neck.position.y;
-    voiceBox.position.z = 0;
-    try {
-        if (voiceBox.material) {
-            voiceBox.material.transparent = true;
-            voiceBox.material.opacity = 0.35;
-        }
-    } catch (eVbMat) {}
-    g.add(voiceBox);
-    g.userData.cvbVoiceBox = voiceBox;
-
-    // Head sits on the neck
+    // Head
     var head = box(girlDefault ? headS * 0.95 : headS, girlDefault ? headS * 0.95 : headS, girlDefault ? headS * 0.95 : headS, colors.head);
-    head.position.y = legH + torsoH + neckH + headS / 2;
+    head.position.y = legH + torsoH + headS / 2;
     head.name = "head";
     g.add(head);
 
@@ -15655,7 +15607,7 @@ function makeNormAvatar(colors) {
     try {
         var hs = colors.hairStyle || "";
         if (hs && hs !== "hair_boy_none" && hs !== "none" && hs !== "hair_girl_default") {
-            var hairY = legH + torsoH + neckH + headS / 2;
+            var hairY = legH + torsoH + headS / 2;
             var hair = makeAvatarHair(colors.hair || "#4a3728", hairY, headS, hs);
             if (hair) g.add(hair);
         }
@@ -15704,25 +15656,9 @@ function makeNormCatAvatar(colors) {
 
     // Head
     var head = box(0.55, 0.5, 0.55, colors.head || "#feca57");
-    head.position.set(0, 1.08, 0.45);
+    head.position.set(0, 0.95, 0.45);
     head.name = "head";
     g.add(head);
-
-    var catNeck = box(0.22, 0.16, 0.22, colors.head || "#feca57");
-    catNeck.name = "neck";
-    catNeck.position.set(0, 0.86, 0.28);
-    g.add(catNeck);
-    var catVb = box(0.05, 0.04, 0.05, "#6b7280");
-    catVb.name = "cvbVoiceBox";
-    catVb.position.set(0, 0.86, 0.28);
-    try {
-        if (catVb.material) {
-            catVb.material.transparent = true;
-            catVb.material.opacity = 0.35;
-        }
-    } catch (eCatVb) {}
-    g.add(catVb);
-    g.userData.cvbVoiceBox = catVb;
 
     // Ears
     var earL = box(0.16, 0.28, 0.12, colors.head || "#feca57");
@@ -18245,9 +18181,8 @@ function startNormGameWorld(def) {
         if (container) {
             container.innerHTML = "<p style='color:#fff;padding:20px;text-align:center;'>3D needs Three.js. Chat and the player list still work.</p>";
         }
-    startNormPresence(def);
-    try { if (typeof startNormChatPoll === "function") startNormChatPoll(def); } catch (eCp) {}
-    return;
+        startNormPresence(def);
+        return;
     }
     while (container.firstChild) container.removeChild(container.firstChild);
 
@@ -18304,7 +18239,6 @@ function startNormGameWorld(def) {
 
 
     _normLocalMesh = makeNormAvatarForCurrentGame(getNormAvatarColors());
-    try { if (typeof loadNormCvbSettingsIntoUi === "function") loadNormCvbSettingsIntoUi(); } catch (eCvbUi) {}
     var _sp = (typeof getNormSpawnForWorld === "function")
         ? getNormSpawnForWorld((_normSession && _normSession.world) || "city")
         : { x: 0, z: 0 };
@@ -18379,7 +18313,6 @@ function startNormGameWorld(def) {
         if (_normSession && typeof _normSession.tickRemoteMeshes === "function") {
             _normSession.tickRemoteMeshes();
         }
-        try { if (typeof tickCvbVoiceBoxes === "function") tickCvbVoiceBoxes(); } catch (eCvb) {}
 
         // REAL_603blox Memorial proximity (quiet one-time note)
         try {
@@ -18638,21 +18571,76 @@ function appendNormChat(user, text, isSystem) {
 function sendNormChat() {
     var input = document.getElementById("normChatInput");
     if (!input) return;
-    if (input.dataset.cvbScanning === "1") return;
     var msg = (input.value || "").trim();
     if (!msg) return;
-
+    if (typeof azoraAutoModerate === "function") {
+        var mod = azoraAutoModerate(msg);
+        if (!mod.ok) {
+            alert(mod.reason || "Message blocked by moderation.");
+            return;
+        }
+    }
+    var name = getNormDisplayName();
+    // Chat commands — /c hi → short wave animation
     var cmd = msg.trim().toLowerCase();
-    var isCmd = (cmd === "/c hi" || cmd === "/chi" || cmd === "/hi" ||
-        cmd === "/c follow" || cmd === "/cfollow" ||
-        cmd === "/c unfollow" || cmd === "/cunfollow");
-
-    if (isCmd) {
-        finishSendNormChat(msg, true);
+    if (cmd === "/c hi" || cmd === "/chi" || cmd === "/hi") {
+        input.value = "";
+        appendNormChat(name, "👋 (waved hello)");
+        try {
+            if (typeof playAvatarWave === "function" && _normLocalMesh) {
+                playAvatarWave(_normLocalMesh, 1100);
+            }
+        } catch (eW) {}
+        // Still broadcast so others see the wave emote text
+        try {
+            if (_normSession && typeof AZORA_CLOUD !== "undefined" && AZORA_CLOUD.isReady && AZORA_CLOUD.isReady()) {
+                var baseW = (AZORA_CLOUD.firebaseUrl || "").replace(/\/$/, "");
+                var chatUrlW = baseW + "/azoraNormRooms/" + _normSession.id + "/chat.json";
+                fetch(chatUrlW, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ user: name, text: "👋 (waved hello)", at: Date.now(), cmd: "wave" })
+                }).catch(function () {});
+            }
+        } catch (eWB) {}
         return;
     }
-
-    beginNormChatScan(msg);
+    if (cmd === "/c follow" || cmd === "/cfollow") {
+        input.value = "";
+        if (!_aturiusInGame) {
+            appendNormChat("System", "Aturius isn't in this game yet. Wait for the join reminder, or turn joins on in Aturius Settings.", true);
+            return;
+        }
+        _aturiusFollow = true;
+        _aturiusExploreTarget = null;
+        appendNormChat("Aturius", "Following you now! I'll stick close.", true);
+        return;
+    }
+    if (cmd === "/c unfollow" || cmd === "/cunfollow") {
+        input.value = "";
+        if (!_aturiusInGame) {
+            appendNormChat("System", "Aturius isn't in this game yet.", true);
+            return;
+        }
+        _aturiusFollow = false;
+        _aturiusExploreTarget = null;
+        appendNormChat("Aturius", "Okay — I'll explore nearby. I won't go farther than about " + ATURIUS_MAX_DISTANCE + " units from you.", true);
+        return;
+    }
+    appendNormChat(name, msg);
+    input.value = "";
+    // Broadcast chat when cloud ready
+    try {
+        if (_normSession && typeof AZORA_CLOUD !== "undefined" && AZORA_CLOUD.isReady && AZORA_CLOUD.isReady()) {
+            var base = (AZORA_CLOUD.firebaseUrl || "").replace(/\/$/, "");
+            var chatUrl = base + "/azoraNormRooms/" + _normSession.id + "/chat.json";
+            fetch(chatUrl, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ user: name, text: msg, at: Date.now() })
+            }).catch(function () {});
+        }
+    } catch (e) {}
 }
 
 /** Real-time presence via Firebase (when configured). No fake players. */
@@ -18844,7 +18832,6 @@ function startNormPresence(def) {
             _normSession.tickRemoteMeshes();
         }
     }, 220);
-    try { if (typeof startNormChatPoll === "function") startNormChatPoll(def); } catch (eCp) {}
 }
 
 function stopNormPresence() {
@@ -18852,7 +18839,6 @@ function stopNormPresence() {
         clearInterval(_normPresenceTimer);
         _normPresenceTimer = null;
     }
-    try { if (typeof stopNormChatPoll === "function") stopNormChatPoll(); } catch (eSp) {}
     // Remove our presence node
     try {
         if (_normMyPresenceId && _normSession && typeof AZORA_CLOUD !== "undefined" && AZORA_CLOUD.isReady && AZORA_CLOUD.isReady()) {
@@ -18866,15 +18852,6 @@ function stopNormPresence() {
 
 function disposeNormWorld(keepSession) {
     try { if (typeof stopEmpireLoop === "function") stopEmpireLoop(); } catch (eEmp) {}
-
-    try {
-        if (_cvbScanTimer) { clearTimeout(_cvbScanTimer); _cvbScanTimer = null; }
-        if (_cvbScanHintTimer) { clearInterval(_cvbScanHintTimer); _cvbScanHintTimer = null; }
-        setNormChatScanning(false);
-        setNormChatRowState("");
-        if (window.speechSynthesis) window.speechSynthesis.cancel();
-        _normAudioListener = null;
-    } catch (eCvbStop) {}
 
     stopNormMusic();
     stopNormPresence();
@@ -26853,521 +26830,3 @@ window.onAzoraServiceWorkerReady = onAzoraServiceWorkerReady;
         setTimeout(bindAdForm, 400);
     }
 })();
-
-
-// ============================================================
-// Chat Voice Box (CVB) + 10-second teaching moderation scan
-// ============================================================
-// Hidden blocked-word line (not shown in the UI — the scanner reads this):
-var AZORA_HIDDEN_BLOCK_LINE = "kys|kill yourself|nigger|faggot|fuck|shit|bitch|asshole|porn|onlyfans|sexchat|nude|naked|suicide|die already|hate you|shut up idiot";
-
-var _cvbScanTimer = null;
-var _cvbScanHintTimer = null;
-var _cvbChatPollTimer = null;
-var _cvbFixIndex = 0;
-var _cvbLastHits = [];
-
-function getNormCvbSettings() {
-    var s = { enabled: true, voice: "light" };
-    try {
-        var raw = JSON.parse(localStorage.getItem("azoraCvbSettings") || "null");
-        if (raw && typeof raw === "object") {
-            s.enabled = raw.enabled !== false;
-            s.voice = (raw.voice === "dark") ? "dark" : "light";
-        }
-    } catch (e) {}
-    return s;
-}
-
-function saveNormCvbSettings() {
-    var en = document.getElementById("cvbEnabledToggle");
-    var vt = document.getElementById("cvbVoiceType");
-    var s = {
-        enabled: en ? !!en.checked : true,
-        voice: (vt && vt.value === "dark") ? "dark" : "light"
-    };
-    try { localStorage.setItem("azoraCvbSettings", JSON.stringify(s)); } catch (e) {}
-    return s;
-}
-
-function loadNormCvbSettingsIntoUi() {
-    var s = getNormCvbSettings();
-    var en = document.getElementById("cvbEnabledToggle");
-    var vt = document.getElementById("cvbVoiceType");
-    if (en) en.checked = s.enabled;
-    if (vt) vt.value = s.voice;
-}
-
-function toggleNormGameSettings(ev) {
-    if (ev && ev.stopPropagation) ev.stopPropagation();
-    var pan = document.getElementById("normGameSettingsPanel");
-    if (!pan) return;
-    var open = pan.style.display === "none" || !pan.style.display;
-    pan.style.display = open ? "block" : "none";
-    if (open) loadNormCvbSettingsIntoUi();
-}
-
-function testNormCvbVoice() {
-    saveNormCvbSettings();
-    playCvbSpeech("Hello! This is my Chat Voice Box.", _normLocalMesh, true);
-}
-
-function setNormChatRowState(state) {
-    var row = document.getElementById("normChatInputRow");
-    if (!row) return;
-    row.classList.remove("cvb-scan", "cvb-bad", "cvb-ok");
-    if (state) row.classList.add(state);
-}
-
-function setNormChatScanning(on) {
-    var input = document.getElementById("normChatInput");
-    var btn = document.getElementById("normChatSendBtn");
-    var hint = document.getElementById("normChatScanHint");
-    if (input) {
-        input.dataset.cvbScanning = on ? "1" : "0";
-        input.disabled = !!on;
-        if (on) input.placeholder = "Looking through the code for blocked words...";
-        else if (!input.placeholder || /Looking through|Checking this|Almost done/.test(input.placeholder)) {
-            input.placeholder = "Say something…";
-        }
-    }
-    if (btn) {
-        btn.disabled = !!on;
-        btn.textContent = on ? "Scanning…" : "Send";
-    }
-    if (hint) {
-        hint.style.display = on ? "block" : "none";
-        if (on) hint.textContent = "Looking through the code for blocked words...";
-    }
-    if (_cvbScanHintTimer) {
-        clearInterval(_cvbScanHintTimer);
-        _cvbScanHintTimer = null;
-    }
-    if (on) {
-        var lines = [
-            "Looking through the code for blocked words...",
-            "Checking this message against Azora's hidden word list...",
-            "Almost done scanning..."
-        ];
-        var i = 0;
-        _cvbScanHintTimer = setInterval(function () {
-            i = (i + 1) % lines.length;
-            if (input && input.dataset.cvbScanning === "1") input.placeholder = lines[i];
-            if (hint) hint.textContent = lines[i];
-        }, 2800);
-    }
-}
-
-function normalizeCvbToken(w) {
-    return String(w || "")
-        .toLowerCase()
-        .replace(/[^a-z0-9]/g, "")
-        .replace(/0/g, "o")
-        .replace(/1/g, "i")
-        .replace(/3/g, "e")
-        .replace(/4/g, "a")
-        .replace(/5/g, "s")
-        .replace(/7/g, "t")
-        .replace(/\$/g, "s");
-}
-
-function scanAzoraChatMessage(text) {
-    text = String(text || "");
-    var hits = [];
-    var tokens = String(AZORA_HIDDEN_BLOCK_LINE || "").split("|");
-    var tokenSet = {};
-    tokens.forEach(function (t) {
-        var n = normalizeCvbToken(t);
-        if (n) tokenSet[n] = t;
-    });
-    var re = /[A-Za-z0-9'@]+/g;
-    var m;
-    while ((m = re.exec(text))) {
-        var raw = m[0];
-        var norm = normalizeCvbToken(raw);
-        if (!norm) continue;
-        if (tokenSet[norm]) {
-            hits.push({ word: raw, start: m.index, end: m.index + raw.length });
-        }
-    }
-    // Phrase checks
-    var phrases = [
-        /kill\s*yourself/i,
-        /die\s*already/i,
-        /hate\s*you/i,
-        /shut\s*up/i
-    ];
-    phrases.forEach(function (rx) {
-        var pm = rx.exec(text);
-        if (pm) {
-            var already = hits.some(function (h) { return h.start === pm.index; });
-            if (!already) hits.push({ word: pm[0], start: pm.index, end: pm.index + pm[0].length });
-        }
-    });
-    hits.sort(function (a, b) { return a.start - b.start; });
-    return { ok: hits.length === 0, hits: hits, count: hits.length };
-}
-
-function showNormChatReview(text, hits) {
-    var box = document.getElementById("normChatReview");
-    if (!box) return;
-    _cvbLastHits = hits || [];
-    _cvbFixIndex = 0;
-    if (!_cvbLastHits.length) {
-        box.style.display = "none";
-        box.innerHTML = "";
-        return;
-    }
-    var pieces = [];
-    var cursor = 0;
-    _cvbLastHits.forEach(function (h, idx) {
-        if (h.start > cursor) pieces.push(escapeCvbHtml(text.slice(cursor, h.start)));
-        pieces.push('<button type="button" class="cvb-bad-word' + (idx === 0 ? " active" : "") + '" data-cvb-i="' + idx + '" onclick="focusCvbBadWord(' + idx + ')">' + escapeCvbHtml(h.word) + "</button>");
-        cursor = h.end;
-    });
-    if (cursor < text.length) pieces.push(escapeCvbHtml(text.slice(cursor)));
-    var n = _cvbLastHits.length;
-    box.innerHTML =
-        '<span class="cvb-count">Found ' + n + ' word' + (n === 1 ? "" : "s") + " that don't follow the rules.</span>" +
-        "<div>" + pieces.join("") + "</div>" +
-        '<div class="cvb-guide">No punishment — just fix them. Word 1 of ' + n +
-        ': change “' + escapeCvbHtml(_cvbLastHits[0].word) + '”, then Send again.</div>';
-    box.style.display = "block";
-}
-
-function escapeCvbHtml(s) {
-    return String(s || "").replace(/&/g, "&").replace(/</g, "<").replace(/>/g, ">");
-}
-
-function focusCvbBadWord(idx) {
-    var input = document.getElementById("normChatInput");
-    var hits = _cvbLastHits || [];
-    if (!input || !hits[idx]) return;
-    _cvbFixIndex = idx;
-    try {
-        input.focus();
-        input.setSelectionRange(hits[idx].start, hits[idx].end);
-    } catch (e) {}
-    var box = document.getElementById("normChatReview");
-    if (box) {
-        var btns = box.querySelectorAll(".cvb-bad-word");
-        for (var i = 0; i < btns.length; i++) {
-            if (Number(btns[i].getAttribute("data-cvb-i")) === idx) btns[i].classList.add("active");
-            else btns[i].classList.remove("active");
-        }
-        var g = box.querySelector(".cvb-guide");
-        if (g) {
-            g.textContent = "Fix word " + (idx + 1) + " of " + hits.length +
-                ': change “' + hits[idx].word + '”, then Send again.';
-        }
-    }
-}
-
-function beginNormChatScan(msg) {
-    var input = document.getElementById("normChatInput");
-    var review = document.getElementById("normChatReview");
-    if (review) review.style.display = "none";
-    setNormChatRowState("cvb-scan");
-    setNormChatScanning(true);
-    if (_cvbScanTimer) clearTimeout(_cvbScanTimer);
-    var wait = 9000 + Math.floor(Math.random() * 2500);
-    _cvbScanTimer = setTimeout(function () {
-        _cvbScanTimer = null;
-        setNormChatScanning(false);
-        var result = scanAzoraChatMessage(msg);
-        if (!result.ok) {
-            setNormChatRowState("cvb-bad");
-            showNormChatReview(msg, result.hits);
-            if (input) {
-                input.value = msg;
-                focusCvbBadWord(0);
-            }
-            return;
-        }
-        if (review) { review.style.display = "none"; review.innerHTML = ""; }
-        setNormChatRowState("cvb-ok");
-        setTimeout(function () { setNormChatRowState(""); }, 2800);
-        finishSendNormChat(msg, false);
-    }, wait);
-}
-
-function finishSendNormChat(msg, isCmd) {
-    var input = document.getElementById("normChatInput");
-    var name = (typeof getNormDisplayName === "function") ? getNormDisplayName() : "Player";
-    var cmd = String(msg || "").trim().toLowerCase();
-
-    if (cmd === "/c hi" || cmd === "/chi" || cmd === "/hi") {
-        if (input) input.value = "";
-        appendNormChat(name, "👋 (waved hello)");
-        try {
-            if (typeof playAvatarWave === "function" && _normLocalMesh) playAvatarWave(_normLocalMesh, 1100);
-        } catch (eW) {}
-        broadcastNormChat(name, "👋 (waved hello)", { cmd: "wave" });
-        return;
-    }
-    if (cmd === "/c follow" || cmd === "/cfollow") {
-        if (input) input.value = "";
-        if (!_aturiusInGame) {
-            appendNormChat("System", "Aturius isn't in this game yet. Wait for the join reminder, or turn joins on in Aturius Settings.", true);
-            return;
-        }
-        _aturiusFollow = true;
-        _aturiusExploreTarget = null;
-        appendNormChat("Aturius", "Following you now! I'll stick close.", true);
-        return;
-    }
-    if (cmd === "/c unfollow" || cmd === "/cunfollow") {
-        if (input) input.value = "";
-        if (!_aturiusInGame) {
-            appendNormChat("System", "Aturius isn't in this game yet.", true);
-            return;
-        }
-        _aturiusFollow = false;
-        _aturiusExploreTarget = null;
-        appendNormChat("Aturius", "Okay — I'll explore nearby. I won't go farther than about " + ATURIUS_MAX_DISTANCE + " units from you.", true);
-        return;
-    }
-
-    appendNormChat(name, msg);
-    if (input) input.value = "";
-    var voice = getNormCvbSettings().voice;
-    var stamp = Date.now();
-    broadcastNormChat(name, msg, { cvb: true, voice: voice, fromId: _normMyPresenceId, at: stamp });
-    if (_normSession) {
-        _normSession._seenChatKeys = _normSession._seenChatKeys || {};
-        _normSession._seenChatKeys[name + "|" + msg + "|" + stamp] = true;
-        _normSession._seenChatKeys[name + "|" + msg] = true;
-    }
-    setTimeout(function () {
-        playCvbSpeech(msg, _normLocalMesh, true);
-    }, 2000);
-}
-
-function broadcastNormChat(name, text, extra) {
-    extra = extra || {};
-    try {
-        if (_normSession && typeof AZORA_CLOUD !== "undefined" && AZORA_CLOUD.isReady && AZORA_CLOUD.isReady()) {
-            var base = (AZORA_CLOUD.firebaseUrl || "").replace(/\/$/, "");
-            var chatUrl = base + "/azoraNormRooms/" + _normSession.id + "/chat.json";
-            var body = {
-                user: name,
-                text: text,
-                at: extra.at || Date.now(),
-                cvb: extra.cvb !== false,
-                voice: extra.voice || getNormCvbSettings().voice,
-                fromId: extra.fromId || _normMyPresenceId || "",
-                cmd: extra.cmd || ""
-            };
-            fetch(chatUrl, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(body)
-            }).catch(function () {});
-        }
-    } catch (e) {}
-}
-
-function findNormMeshByName(name) {
-    if (!name) return null;
-    if (typeof getNormDisplayName === "function" && String(getNormDisplayName()) === String(name)) {
-        return _normLocalMesh;
-    }
-    if (!_normRemoteMeshes || !_normPlayers) return null;
-    for (var i = 0; i < _normPlayers.length; i++) {
-        var p = _normPlayers[i];
-        if (p && !p.isMe && String(p.name) === String(name) && _normRemoteMeshes[p.id]) {
-            return _normRemoteMeshes[p.id];
-        }
-    }
-    return null;
-}
-
-function cvbDistanceVolume(fromMesh) {
-    if (!fromMesh || !_normLocalMesh) return 1;
-    if (fromMesh === _normLocalMesh) return 1;
-    var dx = fromMesh.position.x - _normLocalMesh.position.x;
-    var dy = (fromMesh.position.y || 0) - (_normLocalMesh.position.y || 0);
-    var dz = fromMesh.position.z - _normLocalMesh.position.z;
-    var dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
-    var maxD = 32;
-    if (dist >= maxD) return 0;
-    return Math.max(0, 1 - dist / maxD);
-}
-
-function pulseCvbBox(mesh, ms) {
-    if (!mesh) return;
-    var box = mesh.userData && mesh.userData.cvbVoiceBox;
-    if (!box) {
-        try { box = mesh.getObjectByName("cvbVoiceBox"); } catch (e) {}
-    }
-    if (!box) return;
-    box.userData = box.userData || {};
-    box.userData.cvbPulseUntil = Date.now() + (ms || 1800);
-}
-
-function tickCvbVoiceBoxes() {
-    function pulseOne(mesh) {
-        if (!mesh) return;
-        var box = (mesh.userData && mesh.userData.cvbVoiceBox) || (mesh.getObjectByName && mesh.getObjectByName("cvbVoiceBox"));
-        if (!box) return;
-        var until = box.userData && box.userData.cvbPulseUntil;
-        if (until && Date.now() < until) {
-            var t = Date.now() / 90;
-            var s = 1 + Math.sin(t) * 0.35;
-            box.scale.set(s, s, s);
-            try {
-                if (box.material && box.material.emissive) {
-                    box.material.emissive.setHex(0x94a3b8);
-                    box.material.emissiveIntensity = 0.6;
-                } else if (box.material && box.material.color) {
-                    box.material.color.setHex(0x9ca3af);
-                }
-            } catch (e) {}
-        } else {
-            box.scale.set(1, 1, 1);
-        }
-    }
-    pulseOne(_normLocalMesh);
-    if (_normRemoteMeshes) {
-        Object.keys(_normRemoteMeshes).forEach(function (k) { pulseOne(_normRemoteMeshes[k]); });
-    }
-}
-
-function playCvbSpeech(text, sourceMesh, isLocal, voiceOverride) {
-    var s = getNormCvbSettings();
-    if (!s.enabled) return;
-    text = String(text || "").replace(/👋/g, "hello").trim();
-    if (!text) return;
-    var vol = isLocal ? 1 : cvbDistanceVolume(sourceMesh);
-    if (vol <= 0.02) return;
-    pulseCvbBox(sourceMesh || _normLocalMesh, Math.min(8000, 600 + text.length * 70));
-    var voiceKind = (voiceOverride === "dark" || voiceOverride === "light") ? voiceOverride : s.voice;
-    try { playCvbSpatialFromMesh(sourceMesh || _normLocalMesh, voiceKind, vol, Math.min(4000, 700 + text.length * 40)); } catch (eSp) {}
-    try {
-        if (!window.speechSynthesis) return;
-        window.speechSynthesis.cancel();
-        var u = new SpeechSynthesisUtterance(text);
-        u.volume = Math.max(0.12, Math.min(1, vol));
-        if (voiceKind === "dark") {
-            u.pitch = 0.62;
-            u.rate = 0.9;
-        } else {
-            u.pitch = 1.42;
-            u.rate = 1.06;
-        }
-        try {
-            var voices = window.speechSynthesis.getVoices() || [];
-            var pick = null;
-            for (var i = 0; i < voices.length; i++) {
-                var n = (voices[i].name || "").toLowerCase();
-                if (voiceKind === "dark" && /male|david|daniel|fred|alex/.test(n)) { pick = voices[i]; break; }
-                if (voiceKind === "light" && /female|samantha|karen|zira|victoria/.test(n)) { pick = voices[i]; break; }
-            }
-            if (pick) u.voice = pick;
-        } catch (eV) {}
-        window.speechSynthesis.speak(u);
-    } catch (e) {}
-}
-
-var _normAudioListener = null;
-function ensureNormAudioListener() {
-    if (typeof THREE === "undefined" || !_normCamera) return null;
-    try {
-        if (!_normAudioListener) {
-            _normAudioListener = new THREE.AudioListener();
-            _normCamera.add(_normAudioListener);
-        }
-        if (_normAudioListener.context && _normAudioListener.context.state === "suspended") {
-            _normAudioListener.context.resume().catch(function () {});
-        }
-    } catch (e) { return null; }
-    return _normAudioListener;
-}
-
-function playCvbSpatialFromMesh(mesh, voiceKind, vol, durMs) {
-    var listener = ensureNormAudioListener();
-    if (!listener || !mesh || typeof THREE === "undefined") return;
-    var box = (mesh.userData && mesh.userData.cvbVoiceBox) || mesh.getObjectByName("cvbVoiceBox") || mesh;
-    var ctx = listener.context;
-    if (!ctx) return;
-    var sound = new THREE.PositionalAudio(listener);
-    sound.setRefDistance(8);
-    sound.setRolloffFactor(1.6);
-    sound.setDistanceModel("inverse");
-    sound.setMaxDistance(32);
-    sound.setVolume(Math.max(0.05, Math.min(0.45, vol * 0.4)));
-    var osc = ctx.createOscillator();
-    var gain = ctx.createGain();
-    osc.type = "triangle";
-    osc.frequency.value = voiceKind === "dark" ? 118 : 240;
-    gain.gain.setValueAtTime(0.0001, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.12, ctx.currentTime + 0.05);
-    gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + Math.max(0.2, (durMs || 800) / 1000));
-    osc.connect(gain);
-    try { sound.setNodeSource(gain); } catch (eN) {
-        try { sound.setNodeSource(osc); } catch (eN2) {}
-    }
-    box.add(sound);
-    try { osc.start(); } catch (eS) {}
-    setTimeout(function () {
-        try { osc.stop(); } catch (eSt) {}
-        try { box.remove(sound); } catch (eRm) {}
-    }, (durMs || 800) + 80);
-}
-
-function startNormChatPoll(def) {
-    stopNormChatPoll();
-    if (!_normSession) return;
-    _normSession._seenChatKeys = _normSession._seenChatKeys || {};
-    _cvbChatPollTimer = setInterval(function () {
-        if (!_normSession || typeof AZORA_CLOUD === "undefined" || !AZORA_CLOUD.isReady || !AZORA_CLOUD.isReady()) return;
-        var base = (AZORA_CLOUD.firebaseUrl || "").replace(/\/$/, "");
-        var url = base + "/azoraNormRooms/" + _normSession.id + "/chat.json?ts=" + Date.now();
-        fetch(url, { cache: "no-store" })
-            .then(function (r) { return r.json(); })
-            .then(function (data) {
-                if (!data || typeof data !== "object") return;
-                var me = (typeof getNormDisplayName === "function") ? getNormDisplayName() : "";
-                Object.keys(data).forEach(function (k) {
-                    var row = data[k];
-                    if (!row || !row.text) return;
-                    var key = String(row.user || "") + "|" + String(row.text) + "|" + String(row.at || k);
-                    var loose = String(row.user || "") + "|" + String(row.text);
-                    if (_normSession._seenChatKeys[key] || _normSession._seenChatKeys[loose]) return;
-                    _normSession._seenChatKeys[key] = true;
-                    if (row.fromId && row.fromId === _normMyPresenceId) return;
-                    if (row.user && me && String(row.user) === String(me) && Date.now() - (row.at || 0) < 4000) return;
-                    appendNormChat(row.user || "___", row.text, false);
-                    if (row.cvb !== false && row.cmd !== "wave") {
-                        var mesh = findNormMeshByName(row.user);
-                        playCvbSpeech(row.text, mesh, false, row.voice);
-                    }
-                });
-            })
-            .catch(function () {});
-    }, 1400);
-}
-
-function stopNormChatPoll() {
-    if (_cvbChatPollTimer) {
-        clearInterval(_cvbChatPollTimer);
-        _cvbChatPollTimer = null;
-    }
-    if (window.speechSynthesis) {
-        try { window.speechSynthesis.cancel(); } catch (e) {}
-    }
-}
-
-window.toggleNormGameSettings = toggleNormGameSettings;
-window.saveNormCvbSettings = saveNormCvbSettings;
-window.testNormCvbVoice = testNormCvbVoice;
-window.focusCvbBadWord = focusCvbBadWord;
-window.beginNormChatScan = beginNormChatScan;
-window.playCvbSpeech = playCvbSpeech;
-window.tickCvbVoiceBoxes = tickCvbVoiceBoxes;
-window.startNormChatPoll = startNormChatPoll;
-window.stopNormChatPoll = stopNormChatPoll;
-window.scanAzoraChatMessage = scanAzoraChatMessage;
-window.finishSendNormChat = finishSendNormChat;
-window.loadNormCvbSettingsIntoUi = loadNormCvbSettingsIntoUi;
-
