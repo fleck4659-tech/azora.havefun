@@ -768,8 +768,9 @@ function fetchGlobalRegistry(callback) {
         })
         .then(function (data) {
             var list = [];
-            if (data && typeof data === "object") {
+            if (data && typeof data === "object" && !(data.error && !data.username)) {
                 Object.keys(data).forEach(function (k) {
+                    if (k === "error") return;
                     var u = data[k];
                     if (u && typeof u === "object" && u.username && !u.isGuest) {
                         var uname = String(u.username || "");
@@ -1256,23 +1257,46 @@ window.seedCloudSystemElement = seedCloudSystemElement;
 
 
 // --- Global server flags (from Staff Console / Firebase) ---
+function isFirebaseErrorNode(v) {
+    return !!(v && typeof v === "object" && !Array.isArray(v) && typeof v.error === "string" && v.username == null && v.userId == null);
+}
+
+function isMaintenanceFlagOn(v) {
+    // Only an explicit ON value shows the banner. Error objects, null, "false", {} stay OFF.
+    if (v === true || v === 1) return true;
+    if (typeof v === "string") {
+        var s = v.trim().toLowerCase();
+        return s === "true" || s === "on" || s === "1" || s === "yes";
+    }
+    return false;
+}
+
+function sanitizeBroadcastFlag(v) {
+    if (v == null || v === false) return "";
+    if (typeof v === "string") return v;
+    if (isFirebaseErrorNode(v)) return "";
+    if (typeof v === "object") return "";
+    return String(v);
+}
+
 function applyServerFlags(flags) {
     if (!flags || typeof flags !== "object") return;
     var banner = document.getElementById("serverMessage");
+    var maintOn = isMaintenanceFlagOn(flags.maintenance);
+    var broadcast = sanitizeBroadcastFlag(flags.broadcast);
     if (banner) {
-        if (flags.maintenance) {
+        if (maintOn) {
             banner.style.display = "block";
             banner.innerHTML = "⚠️ Azora is in <strong>maintenance mode</strong>. Some features may be limited.<br>Please check back soon.";
-        } else if (flags.broadcast) {
+            banner.setAttribute("data-dynamic", "1");
+        } else if (broadcast) {
             banner.style.display = "block";
-            banner.textContent = String(flags.broadcast);
+            banner.textContent = broadcast;
+            banner.setAttribute("data-dynamic", "1");
         } else {
-            // only hide if it was our dynamic message
-            if (banner.getAttribute("data-dynamic") === "1" || flags.broadcast === "" || flags.maintenance === false) {
-                if (!flags.maintenance && !flags.broadcast) banner.style.display = "none";
-            }
+            banner.style.display = "none";
+            banner.removeAttribute("data-dynamic");
         }
-        if (flags.maintenance || flags.broadcast) banner.setAttribute("data-dynamic", "1");
     }
     if (flags.event) {
         document.documentElement.setAttribute("data-azora-event", String(flags.event));
@@ -1304,21 +1328,45 @@ function loadServerFlags() {
         } catch (e) {}
     }
 
+    function fetchMetaNode(path) {
+        return fetch(path + "?ts=" + Date.now(), { cache: "no-store" })
+            .then(function (r) {
+                if (!r.ok) return null;
+                return r.json();
+            })
+            .then(function (v) {
+                if (isFirebaseErrorNode(v)) return null;
+                return v;
+            })
+            .catch(function () { return null; });
+    }
+
     if (typeof AZORA_CLOUD === "undefined" || !AZORA_CLOUD.isReady()) {
         fromLocal();
         return;
     }
     var base = cloudBase();
     Promise.all([
-        fetch(base + "/azoraMeta/broadcast.json").then(function (r) { return r.json(); }).catch(function () { return null; }),
-        fetch(base + "/azoraMeta/maintenance.json").then(function (r) { return r.json(); }).catch(function () { return null; }),
-        fetch(base + "/azoraMeta/event.json").then(function (r) { return r.json(); }).catch(function () { return null; })
+        fetchMetaNode(base + "/azoraMeta/broadcast.json"),
+        fetchMetaNode(base + "/azoraMeta/maintenance.json"),
+        fetchMetaNode(base + "/azoraMeta/event.json")
     ]).then(function (vals) {
+        var maintOn = isMaintenanceFlagOn(vals[1]);
         applyServerFlags({
             broadcast: vals[0],
-            maintenance: vals[1],
-            event: vals[2]
+            maintenance: maintOn,
+            event: (isFirebaseErrorNode(vals[2]) ? null : vals[2])
         });
+        // Cloud said OFF or missing — don't keep a leftover local ON flag
+        if (!maintOn) {
+            try {
+                var flags = JSON.parse(localStorage.getItem("azoraServerFlags") || "{}");
+                if (flags && flags.maintenance) {
+                    flags.maintenance = false;
+                    localStorage.setItem("azoraServerFlags", JSON.stringify(flags));
+                }
+            } catch (eClr) {}
+        }
     }).catch(fromLocal);
 }
 

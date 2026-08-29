@@ -346,6 +346,7 @@ footer {
 }
 
 .server-message {
+    display: none;
     background: #ffffff;
     color: #7c3aed;
     text-align: center;

@@ -258,10 +258,11 @@
     <!-- USERS -->
     <div class="tab-panel panel-card" id="panel-users">
         <h2>User Registry</h2>
-        <p class="muted">Global list when Firebase is connected. Guests never appear here. Click a user to message them or donate from the official Azora balance (daily limit · pending 1 min).</p>
+        <p class="muted">Shows cloud accounts plus real accounts saved in this browser. Guests never appear here. Click a user to message them or donate from the official Azora balance (daily limit · pending 1 min).</p>
         <div class="row">
             <input type="text" id="userSearch" placeholder="Filter by username or ID…" oninput="renderUsers()">
             <button class="btn-ghost" style="flex:0.35" onclick="refreshUsers()">Reload users</button>
+            <button class="btn-ok" style="flex:0.45" onclick="publishLocalUsersToCloud()">Publish local users to cloud</button>
         </div>
         <div class="table-wrap">
             <table>
@@ -495,6 +496,17 @@ function writeMeta(key, value) {
     });
 }
 
+function isFirebaseErrorNode(v) {
+    return !!(v && typeof v === "object" && !Array.isArray(v) && typeof v.error === "string" && v.username == null && v.userId == null);
+}
+function isMaintenanceFlagOn(v) {
+    if (v === true || v === 1) return true;
+    if (typeof v === "string") {
+        var s = v.trim().toLowerCase();
+        return s === "true" || s === "on" || s === "1" || s === "yes";
+    }
+    return false;
+}
 function readMeta(key) {
     if (!cloudReady()) {
         try {
@@ -502,7 +514,16 @@ function readMeta(key) {
             return Promise.resolve(flags[key]);
         } catch (e) { return Promise.resolve(null); }
     }
-    return fetch(metaUrl(key)).then(function (r) { return r.json(); }).catch(function () { return null; });
+    return fetch(metaUrl(key) + "?ts=" + Date.now(), { cache: "no-store" })
+        .then(function (r) {
+            if (!r.ok) return null;
+            return r.json();
+        })
+        .then(function (v) {
+            if (isFirebaseErrorNode(v)) return null;
+            return v;
+        })
+        .catch(function () { return null; });
 }
 
 var STAFF_EMAIL_FULL = "fleck4659@gmail.com";
@@ -799,8 +820,16 @@ function clearBroadcast() {
     publishBroadcast();
 }
 function setMaintenance(on) {
-    writeMeta("maintenance", !!on).then(function () {
-        alert("Maintenance " + (on ? "ON" : "OFF"));
+    var value = !!on;
+    try {
+        var flags = {};
+        try { flags = JSON.parse(localStorage.getItem("azoraServerFlags") || "{}"); } catch (eF) {}
+        flags.maintenance = value;
+        flags.updatedAt = Date.now();
+        localStorage.setItem("azoraServerFlags", JSON.stringify(flags));
+    } catch (eL) {}
+    writeMeta("maintenance", value).then(function () {
+        alert("Maintenance " + (value ? "ON" : "OFF"));
         refreshBroadcastStatus();
     });
 }
@@ -809,10 +838,10 @@ function refreshBroadcastStatus() {
     if (!el) return;
     Promise.all([readMeta("broadcast"), readMeta("maintenance"), readMeta("event")]).then(function (vals) {
         var b = vals[0], m = vals[1], e = vals[2];
-        document.getElementById("broadcastText").value = (typeof b === "string") ? b : (b || "");
-        el.textContent = "Status: maintenance=" + (m ? "ON" : "OFF") +
-            " · event=" + (e || "none") +
-            " · broadcast=" + (b ? "set" : "empty") +
+        document.getElementById("broadcastText").value = (typeof b === "string") ? b : "";
+        el.textContent = "Status: maintenance=" + (isMaintenanceFlagOn(m) ? "ON" : "OFF") +
+            " · event=" + ((typeof e === "string" && e) ? e : "none") +
+            " · broadcast=" + ((typeof b === "string" && b) ? "set" : "empty") +
             (cloudReady() ? " · cloud" : " · local only");
     });
 }
@@ -841,65 +870,145 @@ function testFirebase() {
 }
 
 function readLocalUsers() {
-    var registry = [];
-    try { registry = JSON.parse(localStorage.getItem("azoraUserRegistry") || "[]"); } catch (e) {}
-    return (registry || []).filter(function (u) { return u && !u.isGuest && u.username; });
+    var by = {};
+    function addU(u) {
+        if (!u) return;
+        var name = String(u.username || u.name || "").trim();
+        if (!name || u.isGuest) return;
+        var key = name.toLowerCase();
+        var prev = by[key] || {};
+        by[key] = {
+            username: name,
+            userId: u.userId || prev.userId || "",
+            isGuest: false,
+            isSystemElement: !!(u.isSystemElement || prev.isSystemElement || key === "system"),
+            isOwner: !!(u.isOwner || prev.isOwner || key === "azora"),
+            createdAt: u.createdAt || prev.createdAt || 0,
+            source: u.source || prev.source || "local"
+        };
+    }
+    try {
+        var registry = JSON.parse(localStorage.getItem("azoraUserRegistry") || "[]");
+        if (Array.isArray(registry)) registry.forEach(addU);
+    } catch (e) {}
+    try {
+        var map = JSON.parse(localStorage.getItem("azoraAccounts") || "{}");
+        Object.keys(map || {}).forEach(function (k) {
+            var a = map[k];
+            if (!a || a.isGuest) return;
+            addU({
+                username: a.username || k,
+                userId: a.userId,
+                createdAt: a.createdAt,
+                isOwner: !!a.isOwner
+            });
+        });
+    } catch (e2) {}
+    try {
+        var cur = JSON.parse(localStorage.getItem("azoraAccount") || "null");
+        if (cur && !cur.isGuest && cur.username) addU(cur);
+    } catch (e3) {}
+    addU({ username: "Azora", userId: "Aza: 0", isOwner: true, createdAt: 0 });
+    addU({ username: "system", userId: "Aza: 2", isSystemElement: true, createdAt: 0 });
+    return Object.keys(by).map(function (k) { return by[k]; });
+}
+
+function mergeUserLists(cloudList, localList) {
+    var by = {};
+    function addU(u, source) {
+        if (!u || !u.username || u.isGuest) return;
+        var key = String(u.username).toLowerCase();
+        var prev = by[key] || {};
+        by[key] = {
+            username: u.username || prev.username,
+            userId: u.userId || prev.userId || "",
+            isGuest: false,
+            isSystemElement: !!(u.isSystemElement || prev.isSystemElement || key === "system"),
+            isOwner: !!(u.isOwner || prev.isOwner || key === "azora"),
+            createdAt: u.createdAt || prev.createdAt || 0,
+            source: source || u.source || prev.source || ""
+        };
+    }
+    (localList || []).forEach(function (u) { addU(u, "local"); });
+    (cloudList || []).forEach(function (u) { addU(u, "cloud"); });
+    return Object.keys(by).map(function (k) { return by[k]; });
 }
 
 function refreshUsers() {
     var local = readLocalUsers();
     document.getElementById("statLocal").textContent = local.length;
 
-    if (!cloudReady()) {
-        cachedUsers = local;
-        if (!cachedUsers.some(function (u) { return u && String(u.username || "").toLowerCase() === "system"; })) {
-            cachedUsers.push({ username: "system", userId: "Aza: 2", isSystemElement: true, createdAt: 0 });
-        }
+    function finish(cloudList) {
+        cloudList = cloudList || [];
+        var merged = mergeUserLists(cloudList, local);
+        merged.sort(function (a, b) { return (a.createdAt || 0) - (b.createdAt || 0); });
+        cachedUsers = merged;
+        var maxN = 1;
+        merged.forEach(function (u) {
+            var m = String(u.userId || "").match(/Aza:\s*(\d+)/i);
+            if (m) maxN = Math.max(maxN, parseInt(m[1], 10) + 1);
+        });
+        document.getElementById("statGlobal").textContent = cloudList.length;
+        document.getElementById("statNext").textContent = "Aza: " + maxN;
         renderUsers();
-        document.getElementById("statGlobal").textContent = local.length;
-        document.getElementById("statNext").textContent = "Aza: " + local.length;
+    }
+
+    if (!cloudReady()) {
+        finish([]);
         return;
     }
-    fetch(getFirebaseUrl() + "/azoraRegistry.json")
-        .then(function (r) { return r.json(); })
+    fetch(getFirebaseUrl() + "/azoraRegistry.json?ts=" + Date.now(), { cache: "no-store" })
+        .then(function (r) {
+            if (!r.ok) return null;
+            return r.json();
+        })
         .then(function (data) {
             var list = [];
-            if (data && typeof data === "object") {
+            if (data && typeof data === "object" && !isFirebaseErrorNode(data)) {
                 Object.keys(data).forEach(function (k) {
+                    if (k === "error") return;
                     var u = data[k];
-                    if (u && u.username && !u.isGuest) list.push(u);
+                    if (u && typeof u === "object" && u.username && !u.isGuest) list.push(u);
                 });
             }
-            list.sort(function (a, b) { return (a.createdAt || 0) - (b.createdAt || 0); });
-            cachedUsers = list;
-            // Ensure System Element always appears
-            (function injectSystemElement() {
-                var has = cachedUsers.some(function (u) {
-                    return u && (String(u.username || "").toLowerCase() === "system" || u.userId === "Aza: 2");
-                });
-                if (!has) {
-                    cachedUsers.push({
-                        username: "system",
-                        userId: "Aza: 2",
-                        isSystemElement: true,
-                        createdAt: 0
-                    });
-                }
-            })();
-            var maxN = list.length;
-            list.forEach(function (u) {
-                var m = String(u.userId || "").match(/Aza:\s*(\d+)/i);
-                if (m) maxN = Math.max(maxN, parseInt(m[1], 10) + 1);
-            });
-            document.getElementById("statGlobal").textContent = list.length;
-            document.getElementById("statNext").textContent = "Aza: " + maxN;
-            renderUsers();
+            finish(list);
         })
         .catch(function () {
-            cachedUsers = local;
-            document.getElementById("statGlobal").textContent = local.length;
-            renderUsers();
+            finish([]);
         });
+}
+
+function publishLocalUsersToCloud() {
+    if (!cloudReady()) {
+        alert("Connect Firebase in Setup first.");
+        return;
+    }
+    var local = readLocalUsers();
+    var base = getFirebaseUrl();
+    var writes = local.map(function (u) {
+        var uname = String(u.username || "");
+        if (!uname) return Promise.resolve();
+        var safeKey = encodeURIComponent(uname.toLowerCase().replace(/[.#$\/\[\]]/g, "_"));
+        var entry = {
+            username: uname,
+            userId: u.userId || "",
+            isGuest: false,
+            isSystemElement: !!u.isSystemElement,
+            isOwner: !!u.isOwner || uname.toLowerCase() === "azora",
+            createdAt: u.createdAt || Date.now()
+        };
+        return fetch(base + "/azoraRegistry/" + safeKey + ".json", {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(entry)
+        }).then(function (r) { return r.ok; }).catch(function () { return false; });
+    });
+    Promise.all(writes).then(function (oks) {
+        var okN = oks.filter(Boolean).length;
+        logStaff("Published " + okN + "/" + local.length + " local users to cloud");
+        alert("Published " + okN + " of " + local.length + " local users to the cloud registry.");
+        refreshUsers();
+    });
 }
 
 function renderUsers() {
