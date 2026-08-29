@@ -11,7 +11,7 @@
 })();
 var AZORA_DEV_STAGE = "mid-alpha";
 var AZORA_DEV_STAGE_LABEL = "Mid Alpha";
-var AZORA_APP_VERSION = "72.4";
+var AZORA_APP_VERSION = "72.6";
 var AZORA_WHATS_NEW = [
     "Mid Alpha stage shown in Settings",
     "Aturius training pack + learned replies",
@@ -22,7 +22,8 @@ var AZORA_WHATS_NEW = [
     "Mute a player in your chat only",
     "Invite friends into the world you are in",
     "Emote bar: Wave, Sit, Dance",
-    "Guests can save avatar, set a password and email, but cannot change username"
+    "Guests can save avatar, set a password and email, but cannot change username",
+    "Living Lands: countries, flags, cities for military, box or server"
 ];
 
 function isAzoraHiddenAccountName(name) {
@@ -52,7 +53,8 @@ const database = {
         { title: "Parkour Plains", author: "Azora", link: "#", type: "norm" },
         { title: "Cozy Cafe", author: "Azora", link: "#", type: "norm" },
         { title: "Sky Islands", author: "Azora", link: "#", type: "norm" },
-        { title: "Planet Empire", author: "Azora", link: "#", type: "norm" }
+        { title: "Planet Empire", author: "Azora", link: "#", type: "norm" },
+        { title: "Living Lands", author: "Azora", link: "#", type: "map" }
     ]
 };
 

@@ -6981,3 +6981,73 @@ html[data-theme="dark"] .azora-bg-wave { background: transparent; }
     .azora-ad-card, .azora-ads-create-btn { transition: none; }
 }
 
+/* Living Lands */
+.ll-overlay {
+    position: fixed; inset: 0; z-index: 24000;
+    background: #071018; display: flex; flex-direction: column;
+}
+.ll-shell { display: flex; flex-direction: column; height: 100%; color: #e8eef6; }
+.ll-top {
+    display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+    padding: 8px 12px; background: #0e1a28; border-bottom: 1px solid #1e3a52;
+}
+.ll-brand { font-weight: 800; letter-spacing: 0.02em; }
+.ll-res { display: flex; flex-wrap: wrap; gap: 10px; font-size: 13px; flex: 1; }
+.ll-top-actions button {
+    margin-left: 6px; border: 0; border-radius: 8px; padding: 6px 10px; cursor: pointer;
+}
+.ll-leave { background: #ef4444; color: #fff; }
+.ll-body { display: flex; flex: 1; min-height: 0; }
+.ll-stage { flex: 1; position: relative; min-width: 0; background: #0b1b2e; }
+.ll-stage canvas { width: 100%; height: 100%; display: block; }
+.ll-hint {
+    position: absolute; left: 10px; bottom: 8px; margin: 0;
+    font-size: 11px; opacity: 0.7;
+}
+.ll-side {
+    width: 300px; max-width: 42vw; overflow: auto;
+    background: #101c2b; padding: 12px; border-left: 1px solid #1e3a52;
+}
+.ll-side h3 { margin: 12px 0 6px; font-size: 14px; }
+.ll-note, .ll-upkeep, .ll-selected, .ll-log { font-size: 12px; line-height: 1.4; }
+.ll-selected { background: #162536; padding: 8px; border-radius: 8px; margin: 8px 0; }
+.ll-claim, .ll-build {
+    width: 100%; text-align: left; margin: 6px 0 0; padding: 8px 10px;
+    border-radius: 10px; border: 1px solid #2a4a66; background: #173049;
+    color: #fff; cursor: pointer;
+}
+.ll-build small { opacity: 0.7; margin-left: 6px; }
+.ll-price { display: block; font-size: 11px; opacity: 0.8; margin-top: 3px; }
+.ll-cant { opacity: 0.45; }
+.ll-log { margin-top: 12px; color: #fde68a; }
+.ll-setup {
+    flex: 1; display: flex; align-items: center; justify-content: center;
+    padding: 20px;
+}
+.ll-setup-card {
+    width: min(520px, 100%); background: #122033; border: 1px solid #2a4a66;
+    border-radius: 16px; padding: 20px;
+}
+.ll-setup-card h2 { margin-top: 0; }
+.ll-setup-card label { display: block; margin: 10px 0; font-size: 13px; }
+.ll-setup-card input, .ll-setup-card select {
+    width: 100%; margin-top: 4px; padding: 8px; border-radius: 8px; border: 0;
+}
+.ll-setup-row { display: flex; gap: 10px; flex-wrap: wrap; }
+.ll-setup-row label { flex: 1; min-width: 120px; }
+.ll-setup-actions { display: flex; flex-direction: column; gap: 8px; margin-top: 14px; }
+.ll-setup-actions button, .ll-setup-leave {
+    border: 0; border-radius: 10px; padding: 10px; cursor: pointer; font-weight: 700;
+}
+.ll-setup-actions button { background: #2563eb; color: #fff; }
+.ll-setup-leave { width: 100%; margin-top: 8px; background: #334155; color: #fff; }
+.ll-setup-hint { font-size: 12px; opacity: 0.75; }
+.ll-nations { margin: 8px 0; font-size: 12px; }
+.ll-nation-row { display: flex; gap: 6px; align-items: center; margin: 4px 0; }
+.ll-nation-row i { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+.ll-nation-row em { margin-left: auto; opacity: 0.75; font-style: normal; }
+.ll-contest {
+    width: 100%; margin-top: 6px; padding: 8px 10px; border-radius: 10px;
+    border: 1px solid #7c2d12; background: #3b1d12; color: #fed7aa; cursor: pointer;
+}
+
