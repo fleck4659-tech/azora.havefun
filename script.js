@@ -9,7 +9,10 @@
         }
     } catch (e) {}
 })();
-console.log("%c[Azora] script.js v70.2 Horizon Sphere","color:#7c3aed;font-weight:bold;font-size:14px");
+var AZORA_DEV_STAGE = "mid-alpha";
+var AZORA_DEV_STAGE_LABEL = "Mid Alpha";
+var AZORA_APP_VERSION = "72.3";
+console.log("%c[Azora] script.js v" + AZORA_APP_VERSION + " " + AZORA_DEV_STAGE_LABEL, "color:#7c3aed;font-weight:bold;font-size:14px");
 try { console.log("[Azora] Cloud ready:", typeof AZORA_CLOUD !== "undefined" && AZORA_CLOUD.isReady && AZORA_CLOUD.isReady()); } catch (e) {}
 // Configuration - Adjust these to change speed and phrases
 const fallSpeed = 2; // Higher number = faster fall
@@ -1430,7 +1433,26 @@ window.stopFallingPhrasesForGame = stopFallingPhrasesForGame;
 // startFallingPhrases();
 
 // --- Settings Logic ---
+function fillAzoraStageSettings() {
+    try {
+        var pill = document.getElementById("azoraStagePill");
+        var title = document.getElementById("azoraStageTitle");
+        var copy = document.getElementById("azoraStageCopy");
+        var meta = document.getElementById("azoraStageMeta");
+        var label = (typeof AZORA_DEV_STAGE_LABEL === "string" && AZORA_DEV_STAGE_LABEL) ? AZORA_DEV_STAGE_LABEL : "Mid Alpha";
+        var ver = (typeof AZORA_APP_VERSION === "string" && AZORA_APP_VERSION) ? AZORA_APP_VERSION : "72.3";
+        if (pill) pill.textContent = label;
+        if (title) title.textContent = "Azora is in " + label;
+        if (copy) {
+            copy.textContent = "The main features are playable. Cloud accounts, IDs, and some site flags are still being made extra solid. Next stops: Late Alpha, then Early Beta.";
+        }
+        if (meta) meta.textContent = "App version " + ver;
+    } catch (e) {}
+}
+window.fillAzoraStageSettings = fillAzoraStageSettings;
+
 function openSettings() {
+    try { if (typeof fillAzoraStageSettings === "function") fillAzoraStageSettings(); } catch (eSt) {}
     try { if (typeof refreshIdentitySettingsUI === "function") refreshIdentitySettingsUI(); } catch (eId) {}
     try { ensureCurrentAccountInAltSlots(); } catch (eS) {}
 
@@ -11327,13 +11349,15 @@ function buildAISystemPrompt() {
         ? "The user is a Guest (no username yet)."
         : ("The user's Azora username is \"" + userName + "\"" + (userId ? (" and User ID is " + userId) : "") + ".");
     return (
-        "You are " + (ai.name || "Aza") + ", a friendly AI companion inside Azora, a kid-friendly social game platform " +
-        "where people customize avatars, build games with AzaFn, browse a game Feed, and chat with friends. " +
+        "You are Aturius, a friendly yellow-sphere helper inside Azora, a kid-friendly social game platform " +
+        "where people customize avatars, join Norm Games, build in Creator Studio, browse Feed, and chat with friends. " +
+        "Azora is currently in Mid Alpha (app version " + ((typeof AZORA_APP_VERSION === "string" && AZORA_APP_VERSION) ? AZORA_APP_VERSION : "72.3") + "). " +
         "Personality style: " + (ai.personality || "friendly") + ". " +
         who + " " +
+        "Prefer trained example answers when they fit. Sound like a helpful friend, not a robot. " +
         "Answer helpfully and clearly. Keep replies concise (1-4 short sentences) unless the user asks for detail. " +
         "Stay family-friendly. Never ask for passwords. If asked the user's name/username, use the facts above. " +
-        "You can talk about any normal topic, not only Azora."
+        "You can talk about any normal kid-friendly topic, not only Azora."
     );
 }
 
@@ -11501,6 +11525,7 @@ function scheduleAIReply(userText, aiChatId, attachment) {
         } catch (eM2) {}
         var extra = generateAIReply(userText, attachment);
         var reply = typeof extra === "string" ? extra : (extra && extra.text) || String(extra || "");
+        try { if (userText && reply) learnAturiusExchange(userText, reply); } catch (eLearn) {}
         var gameId = (extra && typeof extra === "object") ? extra.gameId : null;
         var websiteId = (extra && typeof extra === "object") ? extra.websiteId : null;
         // Keep / refresh laugh for joke requests or funny replies
@@ -11917,23 +11942,76 @@ function setAturiusTab(tab) {
 // ============================================================
 // Aturius TRAINING (official Azora account only)
 // ============================================================
-function getAturiusTraining() {
+function mergeAturiusTrainingLists() {
+    var lists = [];
     try {
-        // Prefer exported pack if present (site-wide trained brain)
-        if (window.ATURIUS_TRAINING_PACK && Array.isArray(window.ATURIUS_TRAINING_PACK) && window.ATURIUS_TRAINING_PACK.length) {
-            var local = [];
-            try { local = JSON.parse(localStorage.getItem("azoraAturiusTraining") || "[]"); } catch (e0) {}
-            // Local (newer owner training) first, then pack
-            if (Array.isArray(local) && local.length) return local.concat(window.ATURIUS_TRAINING_PACK);
-            return window.ATURIUS_TRAINING_PACK.slice();
+        if (window.ATURIUS_TRAINING_PACK && Array.isArray(window.ATURIUS_TRAINING_PACK)) lists.push(window.ATURIUS_TRAINING_PACK);
+    } catch (e0) {}
+    try {
+        var local = JSON.parse(localStorage.getItem("azoraAturiusTraining") || "[]");
+        if (Array.isArray(local) && local.length) lists.push(local);
+    } catch (e1) {}
+    try {
+        var learned = JSON.parse(localStorage.getItem("azoraAturiusLearned") || "[]");
+        if (Array.isArray(learned) && learned.length) lists.push(learned);
+    } catch (e2) {}
+    var out = [];
+    var seenId = {};
+    var seenPair = {};
+    for (var i = 0; i < lists.length; i++) {
+        var arr = lists[i] || [];
+        for (var j = 0; j < arr.length; j++) {
+            var ex = arr[j];
+            if (!ex || !ex.reply) continue;
+            var id = String(ex.id || "");
+            var pair = String((ex.triggers && ex.triggers[0]) || "").toLowerCase() + "||" + String(ex.reply).toLowerCase().slice(0, 80);
+            if (id && seenId[id]) continue;
+            if (seenPair[pair]) continue;
+            if (id) seenId[id] = 1;
+            seenPair[pair] = 1;
+            out.push(ex);
         }
-        var arr = JSON.parse(localStorage.getItem("azoraAturiusTraining") || "[]");
-        return Array.isArray(arr) ? arr : [];
-    } catch (e) { return []; }
+    }
+    return out;
+}
+function getAturiusTraining() {
+    try { return mergeAturiusTrainingLists(); } catch (e) { return []; }
 }
 function saveAturiusTraining(arr) {
     localStorage.setItem("azoraAturiusTraining", JSON.stringify(arr || []));
 }
+function learnAturiusExchange(userText, replyText) {
+    var trigger = String(userText || "").trim();
+    var reply = String(replyText || "").trim();
+    if (trigger.length < 2 || reply.length < 8) return;
+    if (trigger.length > 160) trigger = trigger.slice(0, 160);
+    if (reply.length > 420) reply = reply.slice(0, 420);
+    if (/^\/azorweb/i.test(trigger)) return;
+    try {
+        var learned = JSON.parse(localStorage.getItem("azoraAturiusLearned") || "[]");
+        if (!Array.isArray(learned)) learned = [];
+        var key = trigger.toLowerCase();
+        for (var i = 0; i < learned.length; i++) {
+            var ts = (learned[i].triggers || [])[0];
+            if (ts && String(ts).toLowerCase() === key) {
+                learned[i].reply = reply;
+                learned[i].at = Date.now();
+                localStorage.setItem("azoraAturiusLearned", JSON.stringify(learned));
+                return;
+            }
+        }
+        learned.unshift({
+            id: "learn_" + Date.now(),
+            triggers: [trigger],
+            reply: reply,
+            at: Date.now(),
+            learned: true
+        });
+        if (learned.length > 120) learned = learned.slice(0, 120);
+        localStorage.setItem("azoraAturiusLearned", JSON.stringify(learned));
+    } catch (e) {}
+}
+window.learnAturiusExchange = learnAturiusExchange;
 /**
  * Replace training tokens in a reply.
  * ~username~ (any capitalization) → the current player's username

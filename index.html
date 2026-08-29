@@ -13,7 +13,7 @@
     <link rel="manifest" href="manifest-azora.json">
     <link rel="apple-touch-icon" href="logo.jpg?v=70.2">
     <link rel="icon" href="logo.jpg?v=70.2">
-    <link rel="stylesheet" href="style.css?v=72.2">
+    <link rel="stylesheet" href="style.css?v=72.3">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 </head>
 <body>
@@ -238,6 +238,16 @@
                 <p class="settings-hint" style="margin-top:0;">Check if a newer version of Azora is available. Updating closes the app and reopens the latest version.</p>
                 <button type="button" id="checkForUpdatesBtn" class="azora-update-btn" style="width:100%;margin:8px 0 0;" onclick="checkForAzoraUpdates(true)">Check for updates</button>
                 <p id="checkForUpdatesStatus" class="settings-hint" style="margin-top:8px;"></p>
+            </div>
+
+            <div class="settings-section" id="azoraStageSettingsSection">
+                <label class="settings-label">Azora stage</label>
+                <div class="azora-stage-card" id="azoraStageCard">
+                    <span class="azora-stage-pill" id="azoraStagePill">Mid Alpha</span>
+                    <p class="azora-stage-title" id="azoraStageTitle">Azora is in Mid Alpha</p>
+                    <p class="azora-stage-copy" id="azoraStageCopy">The main features are playable. Cloud accounts, IDs, and some site flags are still being made extra solid. Next stops: Late Alpha, then Early Beta.</p>
+                    <p class="azora-stage-meta" id="azoraStageMeta">App version 72.3</p>
+                </div>
             </div>
 
 <div class="settings-section">
@@ -980,7 +990,7 @@
             <!-- Azora owner only: train Aturius -->
             <div class="aturius-train-block" id="aturiusTrainBlock" style="display:none;">
                 <h4 class="aturius-train-title">Train Aturius (Azora only)</h4>
-                <p class="aturius-settings-note">Feed example sentences. When someone says something similar, Aturius can use your reply. Then export files to put in your project folder.<br>Tip: write <code>~username~</code> in the answer (any capitalization) and it becomes that player's username.</p>
+                <p class="aturius-settings-note">Core replies now live in <code>aturius-training-pack.js</code>. New chats on this device are saved into training too. Export to update the files in your Azora folder.<br>Tip: write <code>~username~</code> in the answer and it becomes that player's username.</p>
                 <label class="aturius-field-label" for="aturiusTrainTriggers"><strong>When player says</strong> (one phrase per line)</label>
                 <textarea id="aturiusTrainTriggers" class="aturius-train-area" rows="3" placeholder="hello there&#10;what is azora&#10;how do i make friends"></textarea>
                 <label class="aturius-field-label" for="aturiusTrainReply"><strong>Aturius should answer</strong> (use ~username~ for their name)</label>
@@ -1321,12 +1331,12 @@
 
 <!-- Optional: trained Aturius brain (export from Azora account → Settings → Export code files) -->
 <script src="aturius-training-pack.js"></script>
-<script src="script.js?v=72.2"></script>
+<script src="script.js?v=72.3"></script>
 <script>
 // Register Azora as installable app (not the staff website)
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", function () {
-    navigator.serviceWorker.register("./sw-azora.js?v=72.2").then(function (reg) {
+    navigator.serviceWorker.register("./sw-azora.js?v=72.3").then(function (reg) {
       try { if (typeof onAzoraServiceWorkerReady === "function") onAzoraServiceWorkerReady(reg); } catch (e) {}
     }).catch(function () {});
   });

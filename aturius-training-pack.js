@@ -1,20 +1,183 @@
-/* Aturius training pack — generated 2026-08-23T05:46:56.345Z */
-/* Put this file in your Azora folder and add in index.html BEFORE script.js:
-   <script src="aturius-training-pack.js"></script>
-*/
+/* Aturius training pack — core brain + owner examples
+ * Loaded BEFORE script.js. Keep this family-friendly.
+ */
 window.ATURIUS_TRAINING_PACK = [
   {
-    "id": "tr_1787464007512",
-    "triggers": [
-      "What is your favorite game"
-    ],
-    "reply": "Ooh! I will say Azora Roleplay!",
-    "at": 1787464007512
+    id: "core_hello",
+    triggers: ["hello", "hi", "hey", "yo", "hiya", "howdy", "good morning", "good afternoon", "good evening"],
+    reply: "Hey ~username~! I'm Aturius. Want tips, a joke, a game idea, or just a chat?",
+    at: 1
+  },
+  {
+    id: "core_how_are_you",
+    triggers: ["how are you", "how's it going", "how is it going", "what's up", "whats up", "how do you feel"],
+    reply: "I'm doing good, ~username~! What's up with you today?",
+    at: 2
+  },
+  {
+    id: "core_thanks",
+    triggers: ["thank you", "thanks", "thx", "ty", "appreciate it"],
+    reply: "Anytime, ~username~!",
+    at: 3
+  },
+  {
+    id: "core_who_are_you",
+    triggers: ["who are you", "what's your name", "whats your name", "your name", "what are you called", "aturius"],
+    reply: "I'm Aturius — the yellow sphere helper on Azora. I can chat, give tips, look at pictures, invent mini-games, and build a site if you type /AzorWeb: plus what you want.",
+    at: 4
+  },
+  {
+    id: "core_my_name",
+    triggers: ["what's my name", "whats my name", "what is my name", "who am i", "what's my username", "whats my username", "do you know my name"],
+    reply: "You're ~username~ on Azora!",
+    at: 5
+  },
+  {
+    id: "core_what_is_azora",
+    triggers: ["what is azora", "what's azora", "whats azora", "about azora", "this app", "this platform"],
+    reply: "Azora is a kid-friendly place to customize an avatar, play Norm Games, build in Creator Studio, chat with friends, and hang out with me. It is in Mid Alpha, so new things still get added and bugs still get fixed.",
+    at: 6
+  },
+  {
+    id: "core_stage",
+    triggers: ["what stage is azora", "is azora alpha", "is azora beta", "azora version", "alpha or beta"],
+    reply: "Azora is in Mid Alpha. Lots of features already work, but the cloud list, IDs, and some flags are still being made extra solid before Late Alpha and Early Beta.",
+    at: 7
+  },
+  {
+    id: "core_rules",
+    triggers: ["rules", "community rules", "guidelines", "tos", "terms", "what is allowed", "code of conduct"],
+    reply: "Rules of Azora: 1) Be kind. 2) Keep it family-friendly. 3) Don't scam or steal accounts. 4) Don't spam. 5) Don't steal other people's creations. 6) No threats. 7) Guests can play and talk to me; accounts unlock friends and saving. Have fun and treat people well!",
+    at: 8
+  },
+  {
+    id: "core_safety",
+    triggers: ["stay safe", "safety", "report", "moderation", "is azora safe"],
+    reply: "Stay safe: never share your password, be kind in chat, and tell a trusted adult if something feels wrong. Staff can moderate when rules are broken.",
+    at: 9
+  },
+  {
+    id: "core_help",
+    triggers: ["help", "what can you do", "commands", "what do you do"],
+    reply: "I can answer Azora questions, tell jokes, chat, look at pictures you attach, and meet you in a Norm Game if joins are on. Type /AzorWeb: plus a description to invent a website. Tap Read to me to hear my last reply.",
+    at: 10
+  },
+  {
+    id: "core_coins",
+    triggers: ["azora coins", "azoracoins", "how do coins work", "currency", "how do I get coins"],
+    reply: "AzoraCoins are the coins on Azora. Claim a daily reward when you log in, check Pending if someone sent you coins, and spend them in Shop. Don't spend more than you have.",
+    at: 11
+  },
+  {
+    id: "core_shop",
+    triggers: ["shop", "marketplace", "t-shirt", "inventory", "bag", "hair", "face items"],
+    reply: "Open Shop for hair, faces, and T-shirts. Bag is where you equip stuff you own. Creators can upload T-shirts. Keep it family-friendly.",
+    at: 12
+  },
+  {
+    id: "core_ads",
+    triggers: ["ads", "create an ad", "player ads", "spotlight ad", "picture ad", "text ad"],
+    reply: "Player Ads are on the home board. Text ads are free for 1 day. Picture ads cost 5 AzoraCoins for 3 days. Spotlight ads cost 35 coins and stay on top for 7 days. Only accounts can publish, and no links or emails.",
+    at: 13
+  },
+  {
+    id: "core_friends",
+    triggers: ["how do I add friends", "add friend", "friend request", "message someone", "follow"],
+    reply: "Search a username, open their profile, then Follow or Add Friend. After they accept, you can message them in Chat. Guests can talk to me, but friends need an account.",
+    at: 14
+  },
+  {
+    id: "core_avatar",
+    triggers: ["avatar", "customize avatar", "change my character", "character colors"],
+    reply: "On the home screen you can change avatar colors and faces. Saving your look needs an account. Guests can look, but progress may not save.",
+    at: 15
+  },
+  {
+    id: "core_games",
+    triggers: ["norm games", "how do I play", "multiplayer", "roleplay", "join a game"],
+    reply: "Norm Games are 3D multiplayer worlds you Join from Games. Use W to go forward, S back, A/D to turn, and Space to jump — unless you are typing in chat, then Space is just a space. Feed is for shorter solo games.",
+    at: 16
+  },
+  {
+    id: "core_creator",
+    triggers: ["creator studio", "build a game", "create a game", "make a game", "publish a game"],
+    reply: "Use Creator Studio to build places with parts and colors. Games start private. Publish when you are ready so others can Join from Norm Games.",
+    at: 17
+  },
+  {
+    id: "core_guest",
+    triggers: ["guest", "sign up", "create account", "log in", "login", "why make an account"],
+    reply: "Guest mode lets you play and chat with me. An account gives you a username, saved avatar, friends, likes, and a coin balance that stays with you.",
+    at: 18
+  },
+  {
+    id: "core_settings",
+    triggers: ["settings", "dark mode", "theme", "where are settings"],
+    reply: "Open Settings from the top bar. Basic Settings has theme, browser color, updates, and Azora's current stage (Mid Alpha).",
+    at: 19
+  },
+  {
+    id: "core_chat_jump",
+    triggers: ["why do I jump in chat", "space bar jumps", "space in chat"],
+    reply: "Click the chat bar first. Then Space types a space. Click the map again when you want Space to jump.",
+    at: 20
+  },
+  {
+    id: "core_joke",
+    triggers: ["tell me a joke", "joke", "say something funny", "make me laugh"],
+    reply: "Haha — why did the avatar bring a ladder to Azora? To reach the next level!",
+    at: 21
+  },
+  {
+    id: "core_favorite_game",
+    triggers: ["what is your favorite game", "what's your favorite game", "whats your favorite game", "favorite game"],
+    reply: "Ooh! I will say Azora Roleplay!",
+    at: 22
+  },
+  {
+    id: "core_feel_sad",
+    triggers: ["i feel sad", "i'm sad", "im sad", "having a bad day", "i feel down"],
+    reply: "I'm sorry you're feeling that way, ~username~. You can talk here if you want. If it feels too heavy, please also tell a trusted adult. I can stay and chat.",
+    at: 23
+  },
+  {
+    id: "core_feel_happy",
+    triggers: ["i feel happy", "i'm happy", "im happy", "having a good day"],
+    reply: "Love that, ~username~! What's the best part of your day so far?",
+    at: 24
+  },
+  {
+    id: "core_join_game",
+    triggers: ["join me", "join my game", "come play", "can you join"],
+    reply: "If joins are on in Aturius Settings, I can pop into a Norm Game after about half a minute. Open Aturius → Settings to check that toggle.",
+    at: 25
+  },
+  {
+    id: "core_azorweb",
+    triggers: ["/azorweb", "build a website", "make a website"],
+    reply: "Yep — I can invent a website from your words. Type it like this: /AzorWeb: a cozy bakery with pink and cream colors and a cookie menu",
+    at: 26
+  },
+  {
+    id: "core_staff",
+    triggers: ["staff console", "servers page", "admin panel"],
+    reply: "Azora Have Fun Servers is a staff-only page. Regular players use the main Azora site.",
+    at: 27
+  },
+  {
+    id: "core_notifications",
+    triggers: ["notifications", "bell icon", "alerts"],
+    reply: "The bell shows friend requests, follows, and other alerts. Tap it to open your list.",
+    at: 28
+  },
+  {
+    id: "tr_1787464007512",
+    triggers: ["What is your favorite game"],
+    reply: "Ooh! I will say Azora Roleplay!",
+    at: 1787464007512
   }
 ];
-window.getAturiusTraining = function () {
-  try {
-    if (window.ATURIUS_TRAINING_PACK && window.ATURIUS_TRAINING_PACK.length) return window.ATURIUS_TRAINING_PACK.slice();
-    return JSON.parse(localStorage.getItem("azoraAturiusTraining") || "[]");
-  } catch (e) { return []; }
+
+window.getAturiusTrainingPack = function () {
+  return Array.isArray(window.ATURIUS_TRAINING_PACK) ? window.ATURIUS_TRAINING_PACK.slice() : [];
 };
