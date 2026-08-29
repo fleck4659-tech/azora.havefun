@@ -15925,6 +15925,32 @@ function isNormTouchDevice() {
 }
 
 
+function isAzoraTypingTarget(el) {
+    if (!el) return false;
+    try {
+        var tag = String(el.tagName || "").toLowerCase();
+        if (tag === "textarea" || tag === "select") return true;
+        if (el.isContentEditable) return true;
+        if (tag === "input") {
+            var t = String(el.type || "text").toLowerCase();
+            if (t === "button" || t === "submit" || t === "reset" || t === "checkbox" ||
+                t === "radio" || t === "color" || t === "range" || t === "file" || t === "hidden") {
+                return false;
+            }
+            return true;
+        }
+    } catch (e) {}
+    return false;
+}
+
+function isAzoraChatOrTextFocused() {
+    try {
+        return isAzoraTypingTarget(document.activeElement);
+    } catch (e) {
+        return false;
+    }
+}
+
 function setupNormJumpButton() {
     var btn = document.getElementById("normJumpBtn");
     if (!btn) return;
@@ -18338,9 +18364,12 @@ function startNormGameWorld(def) {
     function onKey(e, down) {
         var k = (e.key || "").toLowerCase();
         var code = e.code || "";
+        var typing = typeof isAzoraChatOrTextFocused === "function" && isAzoraChatOrTextFocused();
 
-        // Always eat Space while in Norm Game — stops page scroll + button "click" reload bug
+        // Space jumps in the world — unless the chat box (or any text field) is focused.
+        // Then Space just types a space, and the character stays on the ground.
         if (k === " " || k === "spacebar" || code === "Space") {
+            if (typing) return;
             if (e.preventDefault) e.preventDefault();
             if (e.stopPropagation) e.stopPropagation();
             if (down) {
@@ -18350,6 +18379,7 @@ function startNormGameWorld(def) {
         }
 
         if (["w", "a", "s", "d", "p"].indexOf(k) !== -1) {
+            if (typing) return;
             _normKeys[k] = down;
             if (e.preventDefault) e.preventDefault();
         }
@@ -18362,6 +18392,32 @@ function startNormGameWorld(def) {
     // capture:true so we beat buttons/links that would fire on Space
     window.addEventListener("keydown", _normSession._kd, true);
     window.addEventListener("keyup", _normSession._ku, true);
+
+    // Clicking the map / 3D view gives movement focus back (Space jumps again).
+    _normSession._mapFocus = function (e) {
+        var t = e && e.target;
+        try {
+            if (t && t.closest && t.closest("#normChatInput, #normChatInputRow, #normChatSendBtn, .norm-game-side, #normInventoryPanel, #normGameSettingsPanel, .azafn-header")) {
+                return;
+            }
+            var ae = document.activeElement;
+            if (typeof isAzoraTypingTarget === "function" && isAzoraTypingTarget(ae) && ae.blur) ae.blur();
+        } catch (errMap) {}
+    };
+    var _mapStage = document.querySelector(".norm-game-stage");
+    var _mapCanvas = document.getElementById("normGameCanvas");
+    if (_mapStage) _mapStage.addEventListener("pointerdown", _normSession._mapFocus);
+    if (_mapCanvas) _mapCanvas.addEventListener("pointerdown", _normSession._mapFocus);
+
+    // Starting to type in chat: stop walking / pending jump so letters don't also move you.
+    var _chatInp = document.getElementById("normChatInput");
+    if (_chatInp) {
+        _normSession._chatFocus = function () {
+            _normKeys = {};
+            if (_normSession) _normSession.jumpQueued = false;
+        };
+        _chatInp.addEventListener("focus", _normSession._chatFocus);
+    }
 
     // Joysticks + mobile jump
     setupNormJoysticks();
@@ -18892,6 +18948,16 @@ function disposeNormWorld(keepSession) {
             window.removeEventListener("keyup", _normSession._ku, false);
         }
         if (_normSession._onResize) window.removeEventListener("resize", _normSession._onResize);
+        if (_normSession._mapFocus) {
+            var _mapStageOff = document.querySelector(".norm-game-stage");
+            var _mapCanvasOff = document.getElementById("normGameCanvas");
+            if (_mapStageOff) _mapStageOff.removeEventListener("pointerdown", _normSession._mapFocus);
+            if (_mapCanvasOff) _mapCanvasOff.removeEventListener("pointerdown", _normSession._mapFocus);
+        }
+        if (_normSession._chatFocus) {
+            var _chatInpOff = document.getElementById("normChatInput");
+            if (_chatInpOff) _chatInpOff.removeEventListener("focus", _normSession._chatFocus);
+        }
     }
     if (_normRenderer) {
         try { _normRenderer.dispose(); } catch (e) {}
