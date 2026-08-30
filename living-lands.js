@@ -88,7 +88,58 @@
         m += (fbm(u * 18, v * 18) - 0.5) * 0.22;
         return m;
     }
-    function buildEarth() {
+    var WORLD_MAPS = {
+        blobs: "earth-blobs-360x180.png",
+        realistic: "earth-realistic-360x180.png"
+    };
+    var currentWorldMap = "blobs";
+
+    function levelFromRgb(r, g, b) {
+        var l = (r + g + b) / 3;
+        if (l >= 242) return 0;
+        if (l >= 194) return 1;
+        if (l >= 154) return 2;
+        if (l >= 112) return 3;
+        if (l >= 52) return 4;
+        return 5;
+    }
+    function applyImageToElev(img) {
+        var off = document.createElement("canvas");
+        off.width = W;
+        off.height = H;
+        var octx = off.getContext("2d");
+        octx.imageSmoothingEnabled = false;
+            if (octx.webkitImageSmoothingEnabled !== undefined) octx.webkitImageSmoothingEnabled = false;
+            if (octx.mozImageSmoothingEnabled !== undefined) octx.mozImageSmoothingEnabled = false;
+        if (ctx.webkitImageSmoothingEnabled !== undefined) ctx.webkitImageSmoothingEnabled = false;
+        if (ctx.mozImageSmoothingEnabled !== undefined) ctx.mozImageSmoothingEnabled = false;
+        if (octx.webkitImageSmoothingEnabled !== undefined) octx.webkitImageSmoothingEnabled = false;
+        octx.clearRect(0, 0, W, H);
+        octx.drawImage(img, 0, 0, W, H);
+        var data = octx.getImageData(0, 0, W, H).data;
+        var i, p;
+        for (i = 0; i < W * H; i++) {
+            p = i * 4;
+            elev[i] = levelFromRgb(data[p], data[p + 1], data[p + 2]);
+        }
+    }
+    function loadWorldMap(kind, done) {
+        kind = (kind === "realistic") ? "realistic" : "blobs";
+        currentWorldMap = kind;
+        var src = WORLD_MAPS[kind];
+        var im = new Image();
+        im.decoding = "sync";
+        im.onload = function () {
+            applyImageToElev(im);
+            if (typeof done === "function") done(true);
+        };
+        im.onerror = function () {
+            buildEarthFallback();
+            if (typeof done === "function") done(false);
+        };
+        im.src = src + "?v=72.12";
+    }
+    function buildEarthFallback() {
         var x, y, u, v, land, mtn, e;
         for (y = 0; y < H; y++) {
             v = y / (H - 1);
@@ -105,8 +156,12 @@
                 elev[idx(x, y)] = e;
             }
         }
-        owner.fill(0);
-        cityOwn.fill(0);
+    }
+    function buildEarth() {
+        loadWorldMap(currentWorldMap);
+    }
+    function expandChance(tileElev) {
+        return Math.max(0.08, 0.95 - (tileElev || 0) * 0.17);
     }
     function hexToRgb(hex) {
         hex = String(hex || "#ef4444").replace("#", "");
@@ -321,7 +376,7 @@
             if (landAge[q] < 8) continue;
             oid = cityOwn[q];
             if (!oid) {
-                if (Math.random() < 0.88) cityOwn[q] = cid;
+                if (Math.random() < expandChance(elev[q])) cityOwn[q] = cid;
             } else if (oid !== cid) {
                 b = findCity(oid);
                 if (!b || b.country !== a.country) continue;
@@ -431,12 +486,12 @@
             me = findCountry(cid);
             if (!me) continue;
             if (!oid) {
-                if (Math.random() < 0.92) { owner[q] = cid; landAge[q] = 0; }
+                if (Math.random() < expandChance(elev[q])) { owner[q] = cid; landAge[q] = 0; }
             } else {
                 them = findCountry(oid);
                 if (!them) continue;
                 var atk = power(me) + Math.random() * 6;
-                var def = defense(them) + elev[q] + Math.random() * 6;
+                var def = defense(them) + elev[q] * 3 + Math.random() * 6;
                 if (atk > def) {
                     owner[q] = cid;
                     landAge[q] = 0;
@@ -493,6 +548,10 @@
         if (overlay) {
             var octx = overlay.getContext("2d");
             octx.imageSmoothingEnabled = false;
+            if (octx.webkitImageSmoothingEnabled !== undefined) octx.webkitImageSmoothingEnabled = false;
+            if (octx.mozImageSmoothingEnabled !== undefined) octx.mozImageSmoothingEnabled = false;
+        if (ctx.webkitImageSmoothingEnabled !== undefined) ctx.webkitImageSmoothingEnabled = false;
+        if (ctx.mozImageSmoothingEnabled !== undefined) ctx.mozImageSmoothingEnabled = false;
             octx.clearRect(0, 0, overlay.width, overlay.height);
             octx.drawImage(canvas, 0, 0, overlay.width, overlay.height);
             var sx = overlay.width / W, sy = overlay.height / H;
@@ -616,6 +675,8 @@
         canvas.width = W; canvas.height = H;
         ctx = canvas.getContext("2d", { willReadFrequently: true });
         ctx.imageSmoothingEnabled = false;
+        if (ctx.webkitImageSmoothingEnabled !== undefined) ctx.webkitImageSmoothingEnabled = false;
+        if (ctx.mozImageSmoothingEnabled !== undefined) ctx.mozImageSmoothingEnabled = false;
         fitOverlay();
         window.addEventListener("resize", fitOverlay);
         function down(ev) {
@@ -649,7 +710,8 @@
         var ov = document.getElementById("livingLandsOverlay");
         if (!ov) return;
         ov.style.display = "flex";
-        buildEarth();
+        var sel = document.getElementById("llWorldMap");
+        if (sel) sel.value = currentWorldMap;
         if (!countries.length && !loadMap()) {
             var first = defaultCountry("Red");
             countries.push(first);
@@ -659,9 +721,22 @@
         setMode("edit");
         renderCountryList();
         syncEditorFromCountry();
-        fillCitiesInsideCountries();
-        draw();
+        loadWorldMap(currentWorldMap, function () {
+            fillCitiesInsideCountries();
+            draw();
+        });
         startTicks();
+    };
+    window.llSetWorldMap = function (kind) {
+        if (mode !== "edit") return;
+        loadWorldMap(kind, function () {
+            owner.fill(0);
+            cityOwn.fill(0);
+            cities = [];
+            fillCitiesInsideCountries();
+            draw();
+            addNote(kind === "realistic" ? "Realistic Earth map loaded." : "Blob map loaded (default).");
+        });
     };
     window.closeLivingLands = function () {
         if (tickTimer) { clearInterval(tickTimer); tickTimer = null; }

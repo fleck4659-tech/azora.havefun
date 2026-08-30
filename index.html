@@ -1382,6 +1382,13 @@
                 <p class="ll-hint">White water · light grey land · darker = hills/mountains · black = tallest peaks. Paint only on land.</p>
             </div>
             <aside class="ll-side">
+                <h3>World map</h3>
+                <label>Map
+                    <select id="llWorldMap" class="ll-edit-only" onchange="llSetWorldMap(this.value)">
+                        <option value="blobs">Blobs (default)</option>
+                        <option value="realistic">Realistic Earth</option>
+                    </select>
+                </label>
                 <h3>Paint countries</h3>
                 <label>Name <input id="llActiveName" class="ll-edit-only" maxlength="18" placeholder="Country name"></label>
                 <div class="ll-setup-row">
@@ -1415,7 +1422,7 @@
 <!-- Optional: trained Aturius brain (export from Azora account → Settings → Export code files) -->
 <script src="aturius-training-pack.js"></script>
 <script src="script.js?v=72.7"></script>
-<script src="living-lands.js?v=72.11"></script>
+<script src="living-lands.js?v=72.12"></script>
 <script>
 // Register Azora as installable app (not the staff website)
 if ("serviceWorker" in navigator) {
