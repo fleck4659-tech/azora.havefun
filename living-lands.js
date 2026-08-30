@@ -657,6 +657,10 @@
             });
         }
     }
+    function scrollCountryIntoList(id) {
+        var row = document.querySelector('#llCountryList .ll-c-row[data-id="' + id + '"]');
+        if (row && row.scrollIntoView) row.scrollIntoView({ block: "nearest", inline: "nearest" });
+    }
     function setMode(next) {
         mode = next;
         if (next !== "play" && next !== "pause") {
@@ -679,13 +683,22 @@
         countries.forEach(function (c) {
             var row = document.createElement("div");
             row.className = "ll-c-row" + (c.id === selectedId ? " on" : "");
+            row.setAttribute("data-id", String(c.id));
             row.innerHTML =
                 '<button type="button" class="ll-c-swatch" style="background:' + c.fill + ';box-shadow:0 0 0 2px ' + c.stroke + ' inset"></button>' +
                 '<input class="ll-edit-only" maxlength="18" value="' + String(c.name).replace(/"/g, "") + '">' +
                 '<span>💎' + (c.diamonds || 0) + '</span>';
-            row.querySelector(".ll-c-swatch").onclick = function () {
-                selectedId = c.id; syncEditorFromCountry(); renderCountryList();
-            };
+            function pick() {
+                selectedId = c.id;
+                if (mode === "play" || mode === "pause") lockedOutline = c.id;
+                syncEditorFromCountry();
+                renderCountryList();
+                scrollCountryIntoList(c.id);
+                draw();
+            }
+            row.onclick = pick;
+            row.querySelector(".ll-c-swatch").onclick = function (ev) { ev.stopPropagation(); pick(); };
+            row.querySelector("input").onclick = function (ev) { ev.stopPropagation(); pick(); };
             row.querySelector("input").oninput = function () {
                 if (mode === "edit") c.name = row.querySelector("input").value || c.name;
             };
@@ -771,6 +784,12 @@
             var t = canvasPoint(ev); if (!t) return;
             if (mode === "play" || mode === "pause") {
                 lockedOutline = owner[idx(t.x, t.y)] || 0;
+                if (lockedOutline) {
+                    selectedId = lockedOutline;
+                    syncEditorFromCountry();
+                    renderCountryList();
+                    scrollCountryIntoList(selectedId);
+                }
                 draw();
                 return;
             }
