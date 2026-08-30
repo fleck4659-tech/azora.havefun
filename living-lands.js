@@ -35,6 +35,8 @@
     var painting = false;
     var lastPaint = { x: -1, y: -1 };
     var tool = "paint";
+    var hoverOutline = 0;
+    var lockedOutline = 0;
     var landCache = {};
     var simTick = 0;
     var cityRebuildTimer = null;
@@ -616,6 +618,12 @@
                 border = (x===0||cityOwn[i-1]!==cityOwn[i]) || (x===W-1||cityOwn[i+1]!==cityOwn[i]) || (y===0||cityOwn[i-W]!==cityOwn[i]) || (y===H-1||cityOwn[i+W]!==cityOwn[i]);
                 if (border) col = [70, 70, 70];
             }
+            if ((mode === "play" || mode === "pause") && owner[i]) {
+                x = i % W; y = (i / W) | 0;
+                var edge = (x===0||owner[i-1]!==owner[i]) || (x===W-1||owner[i+1]!==owner[i]) || (y===0||owner[i-W]!==owner[i]) || (y===H-1||owner[i+W]!==owner[i]);
+                if (edge && lockedOutline && owner[i] === lockedOutline) col = [220, 38, 38];
+                else if (edge && hoverOutline && owner[i] === hoverOutline) col = [37, 99, 235];
+            }
             data[p] = col[0]; data[p+1] = col[1]; data[p+2] = col[2]; data[p+3] = 255;
         }
         ctx.putImageData(img, 0, 0);
@@ -651,6 +659,10 @@
     }
     function setMode(next) {
         mode = next;
+        if (next !== "play" && next !== "pause") {
+            hoverOutline = 0;
+            lockedOutline = 0;
+        }
         var locked = next !== "edit";
         document.querySelectorAll(".ll-edit-only").forEach(function (el) { el.disabled = locked; });
         var tag = document.getElementById("llSimTag");
@@ -756,13 +768,24 @@
         fitOverlay();
         window.addEventListener("resize", fitOverlay);
         function down(ev) {
-            if (mode !== "edit") return;
             var t = canvasPoint(ev); if (!t) return;
+            if (mode === "play" || mode === "pause") {
+                lockedOutline = owner[idx(t.x, t.y)] || 0;
+                draw();
+                return;
+            }
+            if (mode !== "edit") return;
             painting = true; lastPaint = t; paintAt(t.x, t.y); draw();
         }
         function move(ev) {
+            var t = canvasPoint(ev);
+            if (mode === "play" || mode === "pause") {
+                var hid = t ? (owner[idx(t.x, t.y)] || 0) : 0;
+                if (hid !== hoverOutline) { hoverOutline = hid; draw(); }
+                return;
+            }
             if (!painting || mode !== "edit") return;
-            var t = canvasPoint(ev); if (!t) return;
+            if (!t) return;
             var steps = Math.max(Math.abs(t.x-lastPaint.x), Math.abs(t.y-lastPaint.y), 1);
             for (var s = 0; s <= steps; s++) {
                 paintAt(Math.round(lastPaint.x + (t.x-lastPaint.x)*s/steps), Math.round(lastPaint.y + (t.y-lastPaint.y)*s/steps));
@@ -770,9 +793,13 @@
             lastPaint = t; draw();
         }
         function up() { painting = false; if (mode === "edit") scheduleCityRebuild(); }
+        function leave() {
+            if (hoverOutline) { hoverOutline = 0; if (mode === "play" || mode === "pause") draw(); }
+        }
         if (overlay) {
             overlay.onmousedown = down;
             overlay.onmousemove = move;
+            overlay.onmouseleave = leave;
             window.addEventListener("mouseup", up);
             overlay.oncontextmenu = function (ev) { ev.preventDefault(); };
         }
