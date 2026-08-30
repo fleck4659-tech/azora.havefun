@@ -203,7 +203,9 @@
                 cities: c.cities || 2,
                 diamonds: c.diamonds || 0,
                 shield: 0,
-                broke: false
+                broke: false,
+                inflation: 1,
+                warHeat: 0
             };
         });
         cities = (data.provinces || []).map(function (p) {
@@ -257,7 +259,9 @@
             banks: 3,
             farms: 2,
             cities: 2,
-            diamonds: 0
+            diamonds: 0,
+            inflation: 1,
+            warHeat: 0
         };
     }
     function findCountry(id) {
@@ -366,17 +370,42 @@
         landCache[id] = n;
         return n;
     }
+    function priceMult(c) {
+        var size = landCount(c.id);
+        var wealth = Number(c.money) || 0;
+        var inf = Number(c.inflation) || 1;
+        var war = Number(c.warHeat) || 0;
+        return inf * (1 + size / 280) * (1 + Math.log(1 + wealth / 8000) / Math.log(10) * 0.28) * (1 + war * 0.015);
+    }
+    function bumpInflation(c, amt) {
+        c.inflation = Math.min(12, (Number(c.inflation) || 1) + amt);
+    }
+    function troopPrice(c) {
+        var mil = Number(c.military) || 0;
+        return Math.max(12000, Math.floor((42000 + mil * 2600) * priceMult(c)));
+    }
+    function claimPrice(c, tileElev) {
+        return Math.max(400, Math.floor((900 + (tileElev || 1) * 700 + landCount(c.id) * 14) * priceMult(c)));
+    }
     function upkeepOf(c) {
-        return Math.max(2, Math.floor(landCount(c.id) * 0.4));
+        var size = landCount(c.id);
+        var mil = Number(c.military) || 0;
+        var base = size * 22 + mil * 180 + (Number(c.banks) || 0) * 70 + (Number(c.farms) || 0) * 40;
+        return Math.max(25, Math.floor(base * priceMult(c)));
     }
     function canDefend(c) {
         if (!c) return false;
         if ((c.shield || 0) > 0) return true;
-        return (Number(c.money) || 0) >= upkeepOf(c) + 12;
+        return (Number(c.money) || 0) >= upkeepOf(c) * 1.15;
     }
     function canGrow(c) {
         if (!c) return false;
-        return (Number(c.money) || 0) > upkeepOf(c);
+        return (Number(c.money) || 0) > upkeepOf(c) + claimPrice(c, 1) * 2;
+    }
+    function canAffordWar(c) {
+        if (!c) return false;
+        var mil = Number(c.military) || 0;
+        return mil >= 12 && (Number(c.money) || 0) > upkeepOf(c) + troopPrice(c);
     }
     function markBroke(c, broke) {
         if (!c) return;
@@ -394,7 +423,7 @@
     }
     function power(c) {
         if (!c) return 0;
-        return (Number(c.military) || 0) * 3 + (Number(c.cities) || 0) * 2 + (Number(c.money) || 0) * 0.03 + (Number(c.banks) || 0) + (Number(c.farms) || 0) + landCount(c.id) * 0.08;
+        return (Number(c.military) || 0) * 3.2 + (Number(c.cities) || 0) * 1.1 + (Number(c.banks) || 0) * 0.4 + (Number(c.farms) || 0) * 0.3 + landCount(c.id) * 0.03;
     }
     function defense(c) {
         if (!c) return 4;
@@ -558,9 +587,11 @@
                 var me = findCountry(cr.from);
                 if (elev[p] && me) {
                     var them = findCountry(owner[p]);
-                    var atk = power(me) + Math.random() * 10;
+                    var landFee = claimPrice(me, elev[p]);
+                    var atk = power(me) + Math.random() * 6;
                     var def = them ? defense(them) + Math.random() * 8 : 3;
-                    if (!owner[p] || atk > def) {
+                    if ((Number(me.money) || 0) >= landFee && (!owner[p] || atk > def)) {
+                        me.money -= landFee;
                         owner[p] = me.id;
                         if (them && Math.random() < 0.4) addNote(me.name + " landed and took ground from " + them.name);
                     } else if (them && Math.random() < 0.3) {
@@ -578,21 +609,24 @@
             var banks = Number(c.banks) || 0;
             var farms = Number(c.farms) || 0;
             var size = landCount(c.id);
-            var income = banks * 6 + farms * 2;
+            var income = banks * 2400 + farms * 900 + Math.floor(size * 2);
             var cost = upkeepOf(c);
+            if (c.warHeat) c.warHeat = Math.max(0, c.warHeat - 1);
             c.money = (Number(c.money) || 0) + income - cost;
             if (c.money < 0) c.money = 0;
             var mil = Number(c.military) || 0;
-            var troopCost = 8;
-            var wanted = Math.max(8, Math.min(90, 8 + Math.floor(size / 5)));
+            var wanted = Math.max(6, Math.min(48, 6 + Math.floor(size / 18)));
             var bought = 0;
-            while (mil < wanted && c.money >= cost + troopCost + 6) {
+            while (bought < 2 && mil < wanted) {
+                var troopCost = troopPrice(c);
+                if (c.money < cost + troopCost) break;
                 c.money -= troopCost;
                 mil += 1;
                 bought += 1;
+                bumpInflation(c, 0.012);
             }
             c.military = mil;
-            if (bought >= 4 && Math.random() < 0.2) addNote(c.name + " spent money to raise its military.");
+            if (bought && Math.random() < 0.12) addNote(c.name + " paid $" + (bought * troopPrice(c)).toLocaleString() + " for troops.");
             if (banks && Math.random() < Math.min(0.35, banks * 0.04)) {
                 c.diamonds = (Number(c.diamonds) || 0) + 1;
             }
@@ -639,15 +673,25 @@
             me = findCountry(cid);
             if (!me) continue;
             if (!canGrow(me)) continue;
+            var price = claimPrice(me, elev[q]);
+            if ((Number(me.money) || 0) < price) continue;
             if (!oid) {
-                if (Math.random() < expandChance(elev[q])) { owner[q] = cid; landAge[q] = 0; landCache[cid] = (landCache[cid] || 0) + 1; }
+                if (Math.random() < expandChance(elev[q]) * 0.65) {
+                    me.money -= price;
+                    bumpInflation(me, 0.002);
+                    owner[q] = cid; landAge[q] = 0; landCache[cid] = (landCache[cid] || 0) + 1;
+                }
             } else {
                 them = findCountry(oid);
                 if (!them) continue;
-                var atk = power(me) + Math.random() * 6;
-                var def = defense(them) + elev[q] * 3 + Math.random() * 6;
-                if (!canDefend(them)) { atk += 10; def *= 0.25; }
-                if (atk > def) {
+                if (!canAffordWar(me)) continue;
+                var atk = power(me) + Math.random() * 4;
+                var def = defense(them) + elev[q] * 4 + Math.random() * 6;
+                if (!canDefend(them)) { atk += 6; def *= 0.55; }
+                if (atk > def && Math.random() < 0.55) {
+                    me.money -= price;
+                    me.warHeat = Math.min(40, (me.warHeat || 0) + 3);
+                    bumpInflation(me, 0.01);
                     owner[q] = cid;
                     landAge[q] = 0;
                     cityOwn[q] = 0;
