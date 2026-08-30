@@ -88,6 +88,12 @@
         ],
         detailedCountries: [
             "earth-detailed-countries.png"
+        ],
+        northAmerica: [
+            "north_america.png"
+        ],
+        seaNorthAmerica: [
+            "sea_north_america.png"
         ]
     };
     var WORLD_MAP_DATA = {
@@ -96,6 +102,7 @@
     };
 
     function levelFromRgb(r, g, b) {
+        if (b > r + 16 && b > g + 6 && b > 55) return 0;
         var l = (r + g + b) / 3;
         if (l >= 242) return 0;
         if (l >= 194) return 1;
@@ -107,7 +114,7 @@
     function applyImageToMap(img) {
         var iw = img.naturalWidth || img.width || 360;
         var ih = img.naturalHeight || img.height || 180;
-        if (currentWorldMap === "detailed" || currentWorldMap === "detailedCountries") {
+        if (currentWorldMap === "detailed" || currentWorldMap === "detailedCountries" || currentWorldMap === "northAmerica" || currentWorldMap === "seaNorthAmerica") {
             var nw = iw, nh = ih;
             if (nw > 720 || nh > 360) {
                 var sc = Math.min(720 / nw, 360 / nh);
@@ -210,7 +217,7 @@
         refreshLandCache();
     }
     function loadWorldMap(kind, done) {
-        if (kind !== "realistic" && kind !== "countries" && kind !== "detailed" && kind !== "detailedCountries") kind = "blobs";
+        if (["realistic","countries","detailed","detailedCountries","northAmerica","seaNorthAmerica"].indexOf(kind) < 0) kind = "blobs";
         currentWorldMap = kind;
         var list = (WORLD_MAPS[kind] || []).slice();
         list.push(WORLD_MAP_DATA[kind]);
@@ -957,7 +964,7 @@
                 countries = [defaultCountry("Red")];
                 selectedId = countries[0].id;
                 fillCitiesInsideCountries();
-                addNote(kind === "detailed" ? "Detailed Earth map loaded." : (kind === "realistic" ? "Realistic Earth map loaded." : "Blob map loaded (default)."));
+                addNote(kind === "northAmerica" ? "North America map loaded." : (kind === "seaNorthAmerica" ? "Sea North America map loaded." : (kind === "detailed" ? "Detailed Earth map loaded." : (kind === "realistic" ? "Realistic Earth map loaded." : "Blob map loaded (default)."))));
             }
             renderCountryList();
             syncEditorFromCountry();
