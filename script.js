@@ -11,7 +11,7 @@
 })();
 var AZORA_DEV_STAGE = "mid-alpha";
 var AZORA_DEV_STAGE_LABEL = "Mid Alpha";
-var AZORA_APP_VERSION = "72.6";
+var AZORA_APP_VERSION = "72.7";
 var AZORA_WHATS_NEW = [
     "Mid Alpha stage shown in Settings",
     "Aturius training pack + learned replies",
@@ -23,7 +23,7 @@ var AZORA_WHATS_NEW = [
     "Invite friends into the world you are in",
     "Emote bar: Wave, Sit, Dance",
     "Guests can save avatar, set a password and email, but cannot change username",
-    "Living Lands: countries, flags, cities for military, box or server"
+    "Living Lands: pixel Earth painter + play/pause/stop sim"
 ];
 
 function isAzoraHiddenAccountName(name) {

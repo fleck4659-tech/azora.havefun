@@ -13,7 +13,7 @@
     <link rel="manifest" href="manifest-azora.json">
     <link rel="apple-touch-icon" href="logo.jpg?v=70.2">
     <link rel="icon" href="logo.jpg?v=70.2">
-    <link rel="stylesheet" href="style.css?v=72.6">
+    <link rel="stylesheet" href="style.css?v=72.7">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 </head>
 <body>
@@ -734,8 +734,8 @@
                 <div class="norm-game-icon">🗺️</div>
                 <div class="norm-game-info">
                     <h4>Living Lands</h4>
-                    <p><span class="by-creator">By Azora</span>. Grow a country on a 2D world map. Name it, pick a flag and border color. Play in a box or on a server. Cities raise military. Farms and groceries keep people fed.</p>
-                    <span class="norm-game-meta">2D · Map · Territory · Economy</span>
+                    <p><span class="by-creator">By Azora</span>. Paint tiny countries on a pixel Earth. Hit Play to watch them expand. Save, Pause, or Stop to restore the map.</p>
+                    <span class="norm-game-meta">2D · Pixel Earth · Paint · Sim</span>
                 </div>
                 <button type="button" class="norm-join-btn" onclick="openLivingLands()">Play</button>
             </article>
@@ -1362,80 +1362,47 @@
     </div>
 </div>
 
-<!-- Living Lands — 2D world map game -->
+<!-- Living Lands — tiny pixel Earth -->
 <div id="livingLandsOverlay" class="ll-overlay" style="display:none;">
-    <div class="ll-setup" id="llSetup">
-        <div class="ll-setup-card">
-            <h2>Living Lands</h2>
-            <p>Grow a country. Feed people. Cities raise military. Contesting other borders is allowed, but usually not the smart play.</p>
-            <label>Country name
-                <input id="llNameInput" maxlength="22" placeholder="My Country">
-            </label>
-            <div class="ll-setup-row">
-                <label>Border color <input id="llColorInput" type="color" value="#f59e0b"></label>
-                <label>Flag color A <input id="llFlagC1" type="color" value="#1d4ed8"></label>
-                <label>Flag color B <input id="llFlagC2" type="color" value="#f8fafc"></label>
-            </div>
-            <label>Flag pattern
-                <select id="llFlagPattern">
-                    <option value="stripes-h">Horizontal stripes</option>
-                    <option value="stripes-v">Vertical stripes</option>
-                    <option value="tricolor">Tricolor</option>
-                    <option value="canton">Canton</option>
-                    <option value="diagonal">Diagonal</option>
-                    <option value="cross">Cross</option>
-                </select>
-            </label>
-            <p class="ll-setup-hint">The flag stretches across your whole border shape.</p>
-            <div class="ll-setup-actions">
-                <button type="button" onclick="llBegin('box')">Play in a box (solo + bots)</button>
-                <button type="button" onclick="llBegin('server')">Join multiplayer server</button>
-            </div>
-            <button type="button" class="ll-setup-leave" onclick="closeLivingLands()">Back to Azora</button>
-        </div>
-    </div>
-    <div class="ll-shell" id="llGame" style="display:none;">
+    <div class="ll-shell" id="llGame" style="display:flex;">
         <header class="ll-top">
-            <div class="ll-brand">🗺️ <span id="llNationName">Living Lands</span> · <span id="llModeTag">Box</span></div>
-            <div class="ll-res">
-                <span>💰 <strong id="llMoney">$0</strong></span>
-                <span>🌾 <strong id="llFood">0</strong></span>
-                <span>🪨 <strong id="llStone">0</strong></span>
-                <span>🧱 <strong id="llBricks">0</strong></span>
-                <span>🏗️ <strong id="llConcrete">0</strong></span>
-                <span>Land <strong id="llTiles">0</strong></span>
-                <span>Military <strong id="llMil">0</strong></span>
-                <span>Food places <strong id="llFoodBuild">0</strong></span>
-                <span>Economy <strong id="llEcon">100%</strong></span>
-            </div>
+            <div class="ll-brand">🗺️ Living Lands · <span id="llSimTag">Editing</span></div>
             <div class="ll-top-actions">
-                <button type="button" onclick="llNewMap()">New world</button>
+                <button type="button" class="ll-edit-only" onclick="llSaveMap()">Save</button>
+                <button type="button" onclick="llPlaySim()">Play</button>
+                <button type="button" onclick="llPauseSim()">Pause</button>
+                <button type="button" onclick="llStopSim()">Stop</button>
                 <button type="button" class="ll-leave" onclick="closeLivingLands()">Leave</button>
             </div>
         </header>
         <div class="ll-body">
             <div class="ll-stage" id="llStage">
-                <canvas id="llCanvas"></canvas>
-                <p class="ll-hint">Drag to pan · wheel to zoom · click empty land next to you to expand</p>
+                <canvas id="llCanvas" width="360" height="180" style="display:none;"></canvas>
+                <canvas id="llView"></canvas>
+                <p class="ll-hint">White water · light grey land · darker = hills/mountains · black = tallest peaks. Paint only on land.</p>
             </div>
             <aside class="ll-side">
-                <p class="ll-upkeep">Upkeep: <span id="llUpkeep">$0</span></p>
-                <div id="llNations" class="ll-nations"></div>
-                <div id="llSelected" class="ll-selected">Click a tile on the map.</div>
-                <button type="button" class="ll-claim" onclick="llClaimSelected()"><span id="llClaimCost">Expand border</span></button>
-                <button type="button" class="ll-contest" onclick="llContest()">Contest neighbor tile (not recommended)</button>
-                <h3>Build</h3>
-                <p class="ll-note">Farms and groceries keep people fed. Cities grow military. Every building costs money. Prices rise after each buy.</p>
-                <button type="button" class="ll-build" id="llBuild_farm" onclick="llBuild('farm')">🌾 Farm <small>food</small><span class="ll-price"></span></button>
-                <button type="button" class="ll-build" id="llBuild_grocery" onclick="llBuild('grocery')">🛒 Grocery <small>food</small><span class="ll-price"></span></button>
-                <button type="button" class="ll-build" id="llBuild_quarry" onclick="llBuild('quarry')">🪨 Quarry<span class="ll-price"></span></button>
-                <button type="button" class="ll-build" id="llBuild_bank" onclick="llBuild('bank')">🏦 Bank<span class="ll-price"></span></button>
-                <button type="button" class="ll-build" id="llBuild_house" onclick="llBuild('house')">🏠 House<span class="ll-price"></span></button>
-                <button type="button" class="ll-build" id="llBuild_market" onclick="llBuild('market')">🧺 Market<span class="ll-price"></span></button>
-                <button type="button" class="ll-build" id="llBuild_brickworks" onclick="llBuild('brickworks')">🧱 Brickworks<span class="ll-price"></span></button>
-                <button type="button" class="ll-build" id="llBuild_mixer" onclick="llBuild('mixer')">🏗️ Mixer<span class="ll-price"></span></button>
-                <button type="button" class="ll-build" id="llBuild_city" onclick="llBuild('city')">🏙️ City <small>military</small><span class="ll-price"></span></button>
-                <p class="ll-log" id="llLog">Welcome to Living Lands.</p>
+                <h3>Paint countries</h3>
+                <label>Name <input id="llActiveName" class="ll-edit-only" maxlength="18" placeholder="Country name"></label>
+                <div class="ll-setup-row">
+                    <label>Fill <input id="llFill" class="ll-edit-only" type="color" value="#ef4444"></label>
+                    <label>Stroke <input id="llStroke" class="ll-edit-only" type="color" value="#111111"></label>
+                </div>
+                <label>Brush <input id="llBrush" class="ll-edit-only" type="range" min="1" max="6" value="2"></label>
+                <div class="ll-setup-row">
+                    <label>Money <input id="llStartMoney" class="ll-edit-only ll-num" type="number" min="0" value="100"></label>
+                    <label>Military <input id="llStartMil" class="ll-edit-only ll-num" type="number" min="0" value="10"></label>
+                </div>
+                <div class="ll-setup-row">
+                    <label>Banks <input id="llStartBanks" class="ll-edit-only ll-num" type="number" min="0" value="3"></label>
+                    <label>Farms <input id="llStartFarms" class="ll-edit-only ll-num" type="number" min="0" value="2"></label>
+                </div>
+                <button type="button" class="ll-claim ll-edit-only" onclick="llAddCountry()">Add another country</button>
+                <button type="button" class="ll-contest ll-edit-only" onclick="llClearPaint()">Clear paint</button>
+                <div id="llCountryList" class="ll-nations"></div>
+                <h3>Notifications</h3>
+                <div id="llNotes" class="ll-log"></div>
+                <p class="ll-note">Name countries and paint them before Play. Stop restores the exact map from when Play began.</p>
             </aside>
         </div>
     </div>
@@ -1443,13 +1410,13 @@
 
 <!-- Optional: trained Aturius brain (export from Azora account → Settings → Export code files) -->
 <script src="aturius-training-pack.js"></script>
-<script src="script.js?v=72.6"></script>
-<script src="living-lands.js?v=72.6"></script>
+<script src="script.js?v=72.7"></script>
+<script src="living-lands.js?v=72.7"></script>
 <script>
 // Register Azora as installable app (not the staff website)
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", function () {
-    navigator.serviceWorker.register("./sw-azora.js?v=72.6").then(function (reg) {
+    navigator.serviceWorker.register("./sw-azora.js?v=72.7").then(function (reg) {
       try { if (typeof onAzoraServiceWorkerReady === "function") onAzoraServiceWorkerReady(reg); } catch (e) {}
     }).catch(function () {});
   });
