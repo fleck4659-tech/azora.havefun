@@ -1397,6 +1397,10 @@
                     <label>Banks <input id="llStartBanks" class="ll-edit-only ll-num" type="number" min="0" value="3"></label>
                     <label>Farms <input id="llStartFarms" class="ll-edit-only ll-num" type="number" min="0" value="2"></label>
                 </div>
+                <div class="ll-setup-row">
+                    <label>Cities <input id="llStartCities" class="ll-edit-only ll-num" type="number" min="0" value="2"></label>
+                    <label>Diamonds <span id="llDiamondsHud">0</span></label>
+                </div>
                 <button type="button" class="ll-claim ll-edit-only" onclick="llAddCountry()">Add another country</button>
                 <button type="button" class="ll-contest ll-edit-only" onclick="llClearPaint()">Clear paint</button>
                 <div id="llCountryList" class="ll-nations"></div>
@@ -1411,7 +1415,7 @@
 <!-- Optional: trained Aturius brain (export from Azora account → Settings → Export code files) -->
 <script src="aturius-training-pack.js"></script>
 <script src="script.js?v=72.7"></script>
-<script src="living-lands.js?v=72.7"></script>
+<script src="living-lands.js?v=72.8"></script>
 <script>
 // Register Azora as installable app (not the staff website)
 if ("serviceWorker" in navigator) {
