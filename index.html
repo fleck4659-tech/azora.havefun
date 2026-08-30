@@ -1388,6 +1388,7 @@
                         <option value="blobs">Blobs (default)</option>
                         <option value="realistic">Realistic Earth</option>
                         <option value="detailed">Detailed Earth (map3)</option>
+                        <option value="detailedCountries">Detailed + countries</option>
                         <option value="countries">Real countries</option>
                     </select>
                 </label>
@@ -1397,8 +1398,8 @@
                     <label>Fill <input id="llFill" class="ll-edit-only" type="color" value="#ef4444"></label>
                     <label>Stroke <input id="llStroke" class="ll-edit-only" type="color" value="#111111"></label>
                 </div>
-                <label>Speed <span id="llSpeedLabel">Normal</span>
-                    <input id="llSpeed" type="range" min="1" max="5" value="3" oninput="llSetSpeed(this.value)">
+                <label>Speed <span id="llSpeedLabel">Max</span>
+                    <input id="llSpeed" type="range" min="1" max="5" value="5" oninput="llSetSpeed(this.value)">
                 </label>
                 <div class="ll-setup-row">
                     <button type="button" id="llToolPaint" class="ll-edit-only on" onclick="llSetTool('paint')">Paint</button>
@@ -1432,7 +1433,8 @@
 <script src="aturius-training-pack.js"></script>
 <script src="script.js?v=72.7"></script>
 <script src="political-earth-data.js?v=72.14"></script>
-<script src="living-lands.js?v=72.19"></script>
+<script src="political-earth-hd.js?v=72.20"></script>
+<script src="living-lands.js?v=72.20"></script>
 <script>
 // Register Azora as installable app (not the staff website)
 if ("serviceWorker" in navigator) {

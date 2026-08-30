@@ -2,11 +2,11 @@
 (function () {
     var W = 360;
     var H = 180;
-    var MAX_COUNTRIES = 180;
+    var MAX_COUNTRIES = 200;
     var MAX_NOTES = 20;
-    var MAX_CITIES = 360;
+    var MAX_CITIES = 600;
     var TICK_MS = 55;
-    var speedLevel = 3;
+    var speedLevel = 5;
     var SAVE_KEY = "azoraPixelEarthV2";
 
     var ELEV_COLOR = [
@@ -85,6 +85,9 @@
         detailed: [
             "map3.png",
             "earth-detailed-360x180.png"
+        ],
+        detailedCountries: [
+            "earth-detailed-countries.png"
         ]
     };
     var WORLD_MAP_DATA = {
@@ -104,7 +107,7 @@
     function applyImageToMap(img) {
         var iw = img.naturalWidth || img.width || 360;
         var ih = img.naturalHeight || img.height || 180;
-        if (currentWorldMap === "detailed") {
+        if (currentWorldMap === "detailed" || currentWorldMap === "detailedCountries") {
             var nw = iw, nh = ih;
             if (nw > 720 || nh > 360) {
                 var sc = Math.min(720 / nw, 360 / nh);
@@ -157,14 +160,29 @@
         var i, n = Math.min(into.length, (bin.length / 2) | 0);
         for (i = 0; i < n; i++) into[i] = bin.charCodeAt(i * 2) | (bin.charCodeAt(i * 2 + 1) << 8);
     }
+    function unpackRLE(b64, into) {
+        var bin = atob(b64);
+        var o = 0, i = 0, val, n;
+        while (i + 3 < bin.length && o < into.length) {
+            val = bin.charCodeAt(i) | (bin.charCodeAt(i + 1) << 8);
+            n = bin.charCodeAt(i + 2) | (bin.charCodeAt(i + 3) << 8);
+            i += 4;
+            while (n-- > 0 && o < into.length) into[o++] = val;
+        }
+    }
+    function unpackGrid(data, key, into) {
+        if (!data || !data[key]) return;
+        if (data.rle) unpackRLE(data[key], into);
+        else unpackU16(data[key], into);
+    }
     function applyPoliticalWorld() {
-        var data = window.LL_POLITICAL;
+        var data = (currentWorldMap === "detailedCountries" && window.LL_POLITICAL_HD) ? window.LL_POLITICAL_HD : window.LL_POLITICAL;
         if (!data || !data.countries) {
             addNote("Country map image loaded, but political data file is missing.");
             return;
         }
-        unpackU16(data.owner, owner);
-        unpackU16(data.cityOwn, cityOwn);
+        unpackGrid(data, "owner", owner);
+        unpackGrid(data, "cityOwn", cityOwn);
         countries = data.countries.map(function (c) {
             return {
                 id: c.id,
@@ -192,7 +210,7 @@
         refreshLandCache();
     }
     function loadWorldMap(kind, done) {
-        if (kind !== "realistic" && kind !== "countries" && kind !== "detailed") kind = "blobs";
+        if (kind !== "realistic" && kind !== "countries" && kind !== "detailed" && kind !== "detailedCountries") kind = "blobs";
         currentWorldMap = kind;
         var list = (WORLD_MAPS[kind] || []).slice();
         list.push(WORLD_MAP_DATA[kind]);
@@ -383,7 +401,7 @@
         return CITY_NAMES[(Math.random() * CITY_NAMES.length) | 0] + " Province";
     }
     function fillCitiesInsideCountries() {
-        if (currentWorldMap === "countries") return;
+        if (currentWorldMap === "countries" || currentWorldMap === "detailedCountries") return;
         cityOwn.fill(0);
         var next = [];
         countries.forEach(function (c) {
@@ -593,8 +611,8 @@
         var dirs = [1, -1, W, -W];
         if (simTick % 4 === 1) refreshLandCache();
         if (simTick % 6 === 1) rebuildBorders();
-        var work = [140, 200, 260, 280, 300][Math.max(0, Math.min(4, speedLevel - 1))];
-        if (W * H > 100000) work = Math.min(work, 220);
+        var work = [160, 240, 320, 400, 480][Math.max(0, Math.min(4, speedLevel - 1))];
+        if (W * H > 100000) work = Math.min(work, 360);
         var attempts = Math.min(work, 70 + Math.min(60, countries.length) * 3);
         var k, p, q, x, cid, oid, me, them, d;
         var pool = borderList.length ? borderList : null;
@@ -732,8 +750,8 @@
     }
     function startTicks() {
         if (tickTimer) clearInterval(tickTimer);
-        var delay = [140, 90, 55, 42, 34][Math.max(0, Math.min(4, speedLevel - 1))];
-        if (W * H > 100000) delay = Math.max(delay, 42);
+        var delay = [90, 55, 34, 22, 16][Math.max(0, Math.min(4, speedLevel - 1))];
+        if (W * H > 100000) delay = Math.max(delay, 18);
         tickTimer = setInterval(function () { if (mode === "play") tickSim(); }, delay);
     }
     function renderCountryList() {
@@ -904,7 +922,7 @@
         renderCountryList();
         syncEditorFromCountry();
         loadWorldMap(currentWorldMap, function () {
-            if (currentWorldMap === "countries") applyPoliticalWorld();
+            if (currentWorldMap === "countries" || currentWorldMap === "detailedCountries") applyPoliticalWorld();
             else fillCitiesInsideCountries();
             renderCountryList();
             syncEditorFromCountry();
@@ -913,7 +931,7 @@
         startTicks();
     };
     window.llSetSpeed = function (v) {
-        speedLevel = Math.max(1, Math.min(5, parseInt(v, 10) || 3));
+        speedLevel = Math.max(1, Math.min(5, parseInt(v, 10) || 5));
         var lab = document.getElementById("llSpeedLabel");
         var names = ["Slow", "Calm", "Normal", "Fast", "Max"];
         if (lab) lab.textContent = names[speedLevel - 1];
@@ -929,9 +947,9 @@
     window.llSetWorldMap = function (kind) {
         if (mode !== "edit") return;
         loadWorldMap(kind, function () {
-            if (kind === "countries") {
+            if (kind === "countries" || kind === "detailedCountries") {
                 applyPoliticalWorld();
-                addNote("Real countries map loaded.");
+                addNote(kind === "detailedCountries" ? "Detailed countries map loaded." : "Real countries map loaded.");
             } else {
                 owner.fill(0);
                 cityOwn.fill(0);
