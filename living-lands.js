@@ -502,6 +502,17 @@
             var cost = upkeepOf(c);
             c.money = (Number(c.money) || 0) + income - cost;
             if (c.money < 0) c.money = 0;
+            var mil = Number(c.military) || 0;
+            var troopCost = 8;
+            var wanted = Math.max(8, Math.min(90, 8 + Math.floor(size / 5)));
+            var bought = 0;
+            while (mil < wanted && c.money >= cost + troopCost + 6) {
+                c.money -= troopCost;
+                mil += 1;
+                bought += 1;
+            }
+            c.military = mil;
+            if (bought >= 4 && Math.random() < 0.2) addNote(c.name + " spent money to raise its military.");
             if (banks && Math.random() < Math.min(0.35, banks * 0.04)) {
                 c.diamonds = (Number(c.diamonds) || 0) + 1;
             }
