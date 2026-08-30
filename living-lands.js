@@ -43,9 +43,30 @@
     var cityRebuildTimer = null;
     var dirtyDraw = true;
     var landAge = new Uint16Array(W * H);
+    var borderList = [];
+    var mapPix = new Uint8ClampedArray(W * H * 4);
 
     function idx(x, y) { return y * W + x; }
-    var mapPix = new Uint8ClampedArray(W * H * 4);
+    function setMapSize(nw, nh) {
+        nw = Math.max(90, Math.min(720, nw | 0));
+        nh = Math.max(45, Math.min(360, nh | 0));
+        W = nw;
+        H = nh;
+        elev = new Uint8Array(W * H);
+        owner = new Uint16Array(W * H);
+        cityOwn = new Uint16Array(W * H);
+        landAge = new Uint16Array(W * H);
+        mapPix = new Uint8ClampedArray(W * H * 4);
+        borderList = [];
+        if (canvas) {
+            canvas.width = W;
+            canvas.height = H;
+            if (ctx) {
+                ctx.imageSmoothingEnabled = false;
+                if (ctx.webkitImageSmoothingEnabled !== undefined) ctx.webkitImageSmoothingEnabled = false;
+            }
+        }
+    }
     var currentWorldMap = "blobs";
     var WORLD_MAPS = {
         blobs: [
@@ -81,6 +102,19 @@
         return 5;
     }
     function applyImageToMap(img) {
+        var iw = img.naturalWidth || img.width || 360;
+        var ih = img.naturalHeight || img.height || 180;
+        if (currentWorldMap === "detailed") {
+            var nw = iw, nh = ih;
+            if (nw > 720 || nh > 360) {
+                var sc = Math.min(720 / nw, 360 / nh);
+                nw = Math.max(2, Math.round(nw * sc));
+                nh = Math.max(2, Math.round(nh * sc));
+            }
+            setMapSize(nw, nh);
+        } else {
+            setMapSize(360, 180);
+        }
         var off = document.createElement("canvas");
         off.width = W;
         off.height = H;
@@ -96,6 +130,20 @@
         for (i = 0; i < W * H; i++) {
             p = i * 4;
             elev[i] = levelFromRgb(data[p], data[p + 1], data[p + 2]);
+        }
+    }
+    function rebuildBorders() {
+        borderList = [];
+        var i, x, tot = W * H;
+        for (i = 0; i < tot; i++) {
+            if (!owner[i]) continue;
+            x = i % W;
+            if ((x > 0 && owner[i - 1] !== owner[i]) ||
+                (x < W - 1 && owner[i + 1] !== owner[i]) ||
+                (i >= W && owner[i - W] !== owner[i]) ||
+                (i < tot - W && owner[i + W] !== owner[i])) {
+                borderList.push(i);
+            }
         }
     }
     function loadImageSrc(src, ok, fail) {
@@ -400,7 +448,7 @@
     function cityTick() {
         if (!cities.length) return;
         var dirs = [1, -1, W, -W];
-        var steps = Math.min(220, 30 + cities.length * 10);
+        var steps = Math.min(W * H > 100000 ? 90 : 180, 16 + cities.length * 4);
         var s, p, q, d, x, cid, oid, a, b, atk, def;
         for (s = 0; s < steps; s++) {
             p = (Math.random() * W * H) | 0;
@@ -543,12 +591,15 @@
         if (mode !== "play" || !countries.length) return;
         simTick++;
         var dirs = [1, -1, W, -W];
-        refreshLandCache();
-        var work = [160, 240, 320, 360, 380][Math.max(0, Math.min(4, speedLevel - 1))];
-        var attempts = Math.min(work, 80 + Math.min(70, countries.length) * 3);
+        if (simTick % 4 === 1) refreshLandCache();
+        if (simTick % 6 === 1) rebuildBorders();
+        var work = [140, 200, 260, 280, 300][Math.max(0, Math.min(4, speedLevel - 1))];
+        if (W * H > 100000) work = Math.min(work, 220);
+        var attempts = Math.min(work, 70 + Math.min(60, countries.length) * 3);
         var k, p, q, x, cid, oid, me, them, d;
+        var pool = borderList.length ? borderList : null;
         for (k = 0; k < attempts; k++) {
-            p = (Math.random() * W * H) | 0;
+            p = pool ? pool[(Math.random() * pool.length) | 0] : ((Math.random() * W * H) | 0);
             cid = owner[p];
             if (!cid || elev[p] === 0) continue;
             d = dirs[(Math.random() * 4) | 0];
@@ -584,14 +635,15 @@
                 }
             }
         }
-        if (simTick % 2 === 0) {
-            for (k = 0; k < W * H; k++) if (owner[k] && landAge[k] < 40) landAge[k]++;
+        if (simTick % 8 === 0) {
+            var step = W * H > 100000 ? 3 : 1;
+            for (k = 0; k < W * H; k += step) if (owner[k] && landAge[k] < 40) landAge[k]++;
         }
-        if (simTick % 2 === 0) cityTick();
-        if (simTick % 8 === 0) maybeLaunchCrafts();
-        moveCrafts();
+        if (simTick % 3 === 0) cityTick();
+        if (simTick % 12 === 0) maybeLaunchCrafts();
+        if (simTick % 2 === 0) moveCrafts();
         if (simTick % 8 === 0) bankTick();
-        if (simTick % 2 === 0) draw();
+        if (simTick % (W * H > 100000 ? 3 : 2) === 0) draw();
     }
     function draw() {
         if (!canvas || !ctx) return;
@@ -680,7 +732,8 @@
     }
     function startTicks() {
         if (tickTimer) clearInterval(tickTimer);
-        var delay = [140, 90, 55, 38, 28][Math.max(0, Math.min(4, speedLevel - 1))];
+        var delay = [140, 90, 55, 42, 34][Math.max(0, Math.min(4, speedLevel - 1))];
+        if (W * H > 100000) delay = Math.max(delay, 42);
         tickTimer = setInterval(function () { if (mode === "play") tickSim(); }, delay);
     }
     function renderCountryList() {
