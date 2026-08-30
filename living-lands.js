@@ -4,8 +4,8 @@
     var H = 180;
     var MAX_COUNTRIES = 24;
     var MAX_NOTES = 16;
-    var MAX_CITIES = 80;
-    var TICK_MS = 28;
+    var MAX_CITIES = 48;
+    var TICK_MS = 50;
     var SAVE_KEY = "azoraPixelEarthV2";
 
     var ELEV_COLOR = [
@@ -35,6 +35,9 @@
     var painting = false;
     var lastPaint = { x: -1, y: -1 };
     var simTick = 0;
+    var cityRebuildTimer = null;
+    var dirtyDraw = true;
+    var landAge = new Uint16Array(W * H);
 
     function idx(x, y) { return y * W + x; }
     function hash(x, y) {
@@ -171,8 +174,18 @@
                 p = idx(dx, dy);
                 if (elev[p] === 0) continue;
                 owner[p] = c.id;
+                landAge[p] = 0;
             }
         }
+        scheduleCityRebuild();
+    }
+    function scheduleCityRebuild() {
+        if (cityRebuildTimer) clearTimeout(cityRebuildTimer);
+        cityRebuildTimer = setTimeout(function () {
+            fillCitiesInsideCountries();
+            dirtyDraw = true;
+            draw();
+        }, 160);
     }
     function takeSnapshot() {
         snapshot = {
@@ -200,68 +213,111 @@
         if (box) box.innerHTML = "";
         addNote("Stopped. Map restored to how it was before Play.");
     }
+    function landCount(id) {
+        var n = 0, i;
+        for (i = 0; i < W * H; i++) if (owner[i] === id) n++;
+        return n;
+    }
+    function provinceCount(id) {
+        var n = 0, i;
+        for (i = 0; i < W * H; i++) if (cityOwn[i] === id) n++;
+        return n;
+    }
     function power(c) {
         if (!c) return 0;
-        return (Number(c.military) || 0) * 3 + (Number(c.cities) || 0) * 2 + (Number(c.money) || 0) * 0.03 + (Number(c.banks) || 0) + (Number(c.farms) || 0);
+        return (Number(c.military) || 0) * 3 + (Number(c.cities) || 0) * 2 + (Number(c.money) || 0) * 0.03 + (Number(c.banks) || 0) + (Number(c.farms) || 0) + landCount(c.id) * 0.08;
     }
     function defense(c) {
         if (!c) return 4;
-        return 8 + (Number(c.military) || 0) * 4 + (Number(c.cities) || 0);
+        return 8 + (Number(c.military) || 0) * 4 + (Number(c.cities) || 0) + landCount(c.id) * 0.05;
+    }
+    function provincePower(pr) {
+        if (!pr) return 0;
+        return 4 + provinceCount(pr.id) * 0.2;
     }
     function randomCityName() {
-        return CITY_NAMES[(Math.random() * CITY_NAMES.length) | 0] + "-" + ((Math.random() * 90 + 10) | 0);
+        return CITY_NAMES[(Math.random() * CITY_NAMES.length) | 0] + " Province";
     }
-    function spawnCities() {
-        cities = [];
+    function fillCitiesInsideCountries() {
         cityOwn.fill(0);
-        nextCity = 1;
+        var kept = {};
         countries.forEach(function (c) {
-            var want = Math.max(0, Math.min(12, Number(c.cities) || 0));
+            var want = Math.max(0, Math.min(8, Number(c.cities) || 0));
+            var mine = cities.filter(function (city) { return city.country === c.id; });
+            while (mine.length > want) mine.pop();
+            while (mine.length < want && cities.length < MAX_CITIES) {
+                mine.push({ id: nextCity++, name: randomCityName(), country: c.id, x: 0, y: 0 });
+            }
+            mine.forEach(function (city) { kept[city.id] = city; });
+        });
+        cities = cities.filter(function (city) { return kept[city.id]; });
+        countries.forEach(function (c) {
+            var mine = cities.filter(function (city) { return city.country === c.id; });
+            if (!mine.length) return;
             var spots = [];
-            var i;
-            for (i = 0; i < W * H; i++) if (owner[i] === c.id && elev[i] > 0) spots.push(i);
+            var i, p, x, y, best, bi, n;
+            for (i = 0; i < W * H; i++) if (owner[i] === c.id && elev[i]) spots.push(i);
             if (!spots.length) return;
-            var n, tries, p, x, y, k, ok;
-            for (n = 0; n < want && cities.length < MAX_CITIES; n++) {
-                ok = false;
-                for (tries = 0; tries < 40 && !ok; tries++) {
-                    p = spots[(Math.random() * spots.length) | 0];
-                    x = p % W; y = (p / W) | 0;
-                    ok = true;
-                    for (k = 0; k < cities.length; k++) {
-                        if (Math.abs(cities[k].x - x) + Math.abs(cities[k].y - y) < 6) { ok = false; break; }
-                    }
+            for (n = 0; n < mine.length; n++) {
+                p = spots[Math.floor((n + 0.5) * spots.length / mine.length) % spots.length];
+                mine[n].x = p % W;
+                mine[n].y = (p / W) | 0;
+            }
+            for (i = 0; i < spots.length; i++) {
+                p = spots[i];
+                x = p % W; y = (p / W) | 0;
+                best = mine[0]; bi = 1e9;
+                for (n = 0; n < mine.length; n++) {
+                    var d = Math.abs(mine[n].x - x) + Math.abs(mine[n].y - y);
+                    if (d < bi) { bi = d; best = mine[n]; }
                 }
-                if (!ok) continue;
-                var city = { id: nextCity++, name: randomCityName(), country: c.id, x: x, y: y };
-                cities.push(city);
-                stampCity(city, 2);
+                cityOwn[p] = best.id;
+                landAge[p] = 0;
             }
         });
-    }
-    function stampCity(city, r) {
-        var i, j, p;
-        for (j = -r; j <= r; j++) {
-            for (i = -r; i <= r; i++) {
-                if (i * i + j * j > r * r) continue;
-                var x = city.x + i, y = city.y + j;
-                if (x < 0 || y < 0 || x >= W || y >= H) continue;
-                p = idx(x, y);
-                if (elev[p] === 0) continue;
-                cityOwn[p] = city.id;
-                if (!owner[p]) owner[p] = city.country;
+        var ci;
+        for (ci = 0; ci < W * H; ci++) {
+            if (cityOwn[ci]) {
+                var city = kept[cityOwn[ci]] || findCity(cityOwn[ci]);
+                if (!city || owner[ci] !== city.country) cityOwn[ci] = 0;
             }
+        }
+    }
+    function spawnCities() { fillCitiesInsideCountries(); }
+    function tryFightBack(loserId, winnerId, atX, atY) {
+        var loser = findCountry(loserId);
+        var winner = findCountry(winnerId);
+        if (!loser || !winner) return;
+        if (power(winner) > power(loser)) {
+            if (Math.random() < 0.12) addNote(loser.name + " tried to fight back, but " + winner.name + " was stronger.");
+            return;
+        }
+        var dirs = [[1,0],[-1,0],[0,1],[0,-1]];
+        var k, nx, ny, np;
+        for (k = 0; k < 4; k++) {
+            nx = atX + dirs[k][0]; ny = atY + dirs[k][1];
+            if (nx < 0 || ny < 0 || nx >= W || ny >= H) continue;
+            np = idx(nx, ny);
+            if (elev[np] === 0) continue;
+            if (owner[np] !== winnerId) continue;
+            owner[np] = loserId;
+            cityOwn[np] = 0;
+            landAge[np] = 0;
+            if (Math.random() < 0.2) addNote(loser.name + " fought back and took a tile from " + winner.name);
+            return;
         }
     }
     function cityTick() {
         if (!cities.length) return;
         var dirs = [1, -1, W, -W];
-        var steps = Math.min(500, cities.length * 18);
-        var s, p, q, d, x, cid, oid, a, b;
+        var steps = Math.min(220, 30 + cities.length * 10);
+        var s, p, q, d, x, cid, oid, a, b, atk, def;
         for (s = 0; s < steps; s++) {
             p = (Math.random() * W * H) | 0;
             cid = cityOwn[p];
             if (!cid) continue;
+            a = findCity(cid);
+            if (!a || owner[p] !== a.country) continue;
             d = dirs[(Math.random() * 4) | 0];
             q = p + d;
             if (q < 0 || q >= W * H) continue;
@@ -269,38 +325,29 @@
             if (d === 1 && x === W - 1) continue;
             if (d === -1 && x === 0) continue;
             if (elev[q] === 0) continue;
+            if (owner[q] !== a.country) continue;
+            if (landAge[q] < 8) continue;
             oid = cityOwn[q];
-            a = findCity(cid);
-            if (!a) continue;
             if (!oid) {
-                if (Math.random() < 0.72) {
-                    cityOwn[q] = cid;
-                    if (!owner[q]) owner[q] = a.country;
-                }
+                if (Math.random() < 0.88) cityOwn[q] = cid;
             } else if (oid !== cid) {
                 b = findCity(oid);
-                if (!b) continue;
-                if (Math.random() < 0.38) {
+                if (!b || b.country !== a.country) continue;
+                atk = provincePower(a) + Math.random() * 4;
+                def = provincePower(b) + Math.random() * 4;
+                if (atk > def) {
                     cityOwn[q] = cid;
-                    owner[q] = a.country;
-                    if (Math.random() < 0.08) addNote(a.name + " has invaded " + b.name);
-                } else if (Math.random() < 0.18) {
-                    cityOwn[p] = oid;
-                    if (Math.random() < 0.06) addNote(b.name + " pushed back " + a.name);
+                    if (Math.random() < 0.06) addNote(a.name + " has invaded " + b.name);
+                    if (provincePower(a) > provincePower(b)) {
+                        if (Math.random() < 0.08) addNote(b.name + " tried to fight back, but " + a.name + " was stronger.");
+                    } else if (Math.random() < 0.25) {
+                        cityOwn[p] = oid;
+                        if (Math.random() < 0.15) addNote(b.name + " fought back against " + a.name);
+                    }
+                } else if (Math.random() < 0.12) {
+                    addNote(b.name + " resisted " + a.name);
                 }
             }
-            if (Math.random() < 0.04 && oid === cid) {
-                cityOwn[p] = 0;
-            }
-        }
-        if (simTick % 8 === 0) {
-            cities.forEach(function (city) {
-                var nx = city.x + ((Math.random() * 3) | 0) - 1;
-                var ny = city.y + ((Math.random() * 3) | 0) - 1;
-                if (nx >= 1 && ny >= 1 && nx < W - 1 && ny < H - 1 && elev[idx(nx, ny)]) {
-                    city.x = nx; city.y = ny;
-                }
-            });
         }
     }
     function spawnCraft(fromC, sx, sy) {
@@ -374,7 +421,7 @@
         if (mode !== "play" || !countries.length) return;
         simTick++;
         var dirs = [1, -1, W, -W];
-        var attempts = Math.min(2600, 400 + countries.length * 160);
+        var attempts = Math.min(900, 140 + countries.length * 70);
         var k, p, q, x, cid, oid, me, them, d;
         for (k = 0; k < attempts; k++) {
             p = (Math.random() * W * H) | 0;
@@ -392,7 +439,7 @@
             me = findCountry(cid);
             if (!me) continue;
             if (!oid) {
-                if (Math.random() < 0.92) owner[q] = cid;
+                if (Math.random() < 0.92) { owner[q] = cid; landAge[q] = 0; }
             } else {
                 them = findCountry(oid);
                 if (!them) continue;
@@ -400,17 +447,23 @@
                 var def = defense(them) + elev[q] + Math.random() * 6;
                 if (atk > def) {
                     owner[q] = cid;
+                    landAge[q] = 0;
+                    cityOwn[q] = 0;
                     if (Math.random() < 0.08) addNote(me.name + " has invaded " + them.name);
-                } else if (Math.random() < 0.05) {
-                    addNote(them.name + " military resisted " + me.name);
+                    tryFightBack(them.id, me.id, q % W, (q / W) | 0);
+                } else if (Math.random() < 0.08) {
+                    addNote(them.name + " resisted " + me.name);
                 }
             }
         }
-        cityTick();
-        if (simTick % 3 === 0) maybeLaunchCrafts();
+        if (simTick % 2 === 0) {
+            for (k = 0; k < W * H; k++) if (owner[k] && landAge[k] < 40) landAge[k]++;
+        }
+        if (simTick % 2 === 0) cityTick();
+        if (simTick % 8 === 0) maybeLaunchCrafts();
         moveCrafts();
-        if (simTick % 6 === 0) bankTick();
-        draw();
+        if (simTick % 8 === 0) bankTick();
+        if (simTick % 2 === 0) draw();
     }
     function draw() {
         if (!canvas || !ctx) return;
@@ -515,6 +568,7 @@
         c.banks = Number((document.getElementById("llStartBanks") || {}).value) || 0;
         c.farms = Number((document.getElementById("llStartFarms") || {}).value) || 0;
         c.cities = Number((document.getElementById("llStartCities") || {}).value) || 0;
+        fillCitiesInsideCountries();
         renderCountryList();
         draw();
     }
@@ -539,6 +593,7 @@
             nextId = raw.nextId || (countries.length + 1);
             selectedId = raw.selectedId || (countries[0] && countries[0].id) || 0;
             owner = new Uint16Array(raw.owner);
+            fillCitiesInsideCountries();
             return true;
         } catch (e) { return false; }
     }
@@ -573,7 +628,7 @@
             }
             lastPaint = t; draw();
         }
-        function up() { painting = false; }
+        function up() { painting = false; if (mode === "edit") scheduleCityRebuild(); }
         if (overlay) {
             overlay.onmousedown = down;
             overlay.onmousemove = move;
@@ -600,6 +655,7 @@
         setMode("edit");
         renderCountryList();
         syncEditorFromCountry();
+        fillCitiesInsideCountries();
         draw();
         startTicks();
     };
@@ -621,12 +677,12 @@
     window.llPlaySim = function () {
         applyEditorToCountry();
         if (!countries.length) { addNote("Add a country first."); return; }
-        spawnCities();
+        fillCitiesInsideCountries();
         crafts = [];
         takeSnapshot();
         notes = [];
         simTick = 0;
-        addNote("Play started. Cities shift. Ships cross water.");
+        addNote("Play started. Provinces expand inside countries.");
         setMode("play");
     };
     window.llPauseSim = function () {
