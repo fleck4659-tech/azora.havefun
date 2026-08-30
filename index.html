@@ -1387,6 +1387,7 @@
                     <select id="llWorldMap" class="ll-edit-only" onchange="llSetWorldMap(this.value)">
                         <option value="blobs">Blobs (default)</option>
                         <option value="realistic">Realistic Earth</option>
+                        <option value="countries">Real countries</option>
                     </select>
                 </label>
                 <h3>Paint countries</h3>
@@ -1395,7 +1396,11 @@
                     <label>Fill <input id="llFill" class="ll-edit-only" type="color" value="#ef4444"></label>
                     <label>Stroke <input id="llStroke" class="ll-edit-only" type="color" value="#111111"></label>
                 </div>
-                <label>Brush <input id="llBrush" class="ll-edit-only" type="range" min="1" max="6" value="2"></label>
+                <div class="ll-setup-row">
+                    <button type="button" id="llToolPaint" class="ll-edit-only on" onclick="llSetTool('paint')">Paint</button>
+                    <button type="button" id="llToolErase" class="ll-edit-only" onclick="llSetTool('erase')">Eraser</button>
+                </div>
+                <label>Size <input id="llBrush" class="ll-edit-only" type="range" min="1" max="6" value="2"></label>
                 <div class="ll-setup-row">
                     <label>Money <input id="llStartMoney" class="ll-edit-only ll-num" type="number" min="0" value="100"></label>
                     <label>Military <input id="llStartMil" class="ll-edit-only ll-num" type="number" min="0" value="10"></label>
@@ -1422,7 +1427,8 @@
 <!-- Optional: trained Aturius brain (export from Azora account → Settings → Export code files) -->
 <script src="aturius-training-pack.js"></script>
 <script src="script.js?v=72.7"></script>
-<script src="living-lands.js?v=72.13"></script>
+<script src="political-earth-data.js?v=72.14"></script>
+<script src="living-lands.js?v=72.14"></script>
 <script>
 // Register Azora as installable app (not the staff website)
 if ("serviceWorker" in navigator) {

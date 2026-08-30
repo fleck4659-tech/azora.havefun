@@ -2,9 +2,9 @@
 (function () {
     var W = 360;
     var H = 180;
-    var MAX_COUNTRIES = 24;
-    var MAX_NOTES = 16;
-    var MAX_CITIES = 48;
+    var MAX_COUNTRIES = 180;
+    var MAX_NOTES = 20;
+    var MAX_CITIES = 360;
     var TICK_MS = 50;
     var SAVE_KEY = "azoraPixelEarthV2";
 
@@ -34,6 +34,8 @@
     var canvas, ctx, overlay;
     var painting = false;
     var lastPaint = { x: -1, y: -1 };
+    var tool = "paint";
+    var landCache = {};
     var simTick = 0;
     var cityRebuildTimer = null;
     var dirtyDraw = true;
@@ -52,6 +54,9 @@
             "earth-realistic-360x180.png",
             "earth-realistic-360x180-preview4x.png",
             "map2.png"
+        ],
+        countries: [
+            "earth-countries-360x180.png"
         ]
     };
     var WORLD_MAP_DATA = {
@@ -92,8 +97,47 @@
         im.onerror = fail;
         im.src = src;
     }
+    function unpackU16(b64, into) {
+        var bin = atob(b64);
+        var i, n = Math.min(into.length, (bin.length / 2) | 0);
+        for (i = 0; i < n; i++) into[i] = bin.charCodeAt(i * 2) | (bin.charCodeAt(i * 2 + 1) << 8);
+    }
+    function applyPoliticalWorld() {
+        var data = window.LL_POLITICAL;
+        if (!data || !data.countries) {
+            addNote("Country map image loaded, but political data file is missing.");
+            return;
+        }
+        unpackU16(data.owner, owner);
+        unpackU16(data.cityOwn, cityOwn);
+        countries = data.countries.map(function (c) {
+            return {
+                id: c.id,
+                name: c.name,
+                fill: c.fill,
+                stroke: c.stroke || "#111111",
+                money: c.money || 100,
+                military: c.military || 8,
+                banks: c.banks || 3,
+                farms: c.farms || 2,
+                cities: c.cities || 2,
+                diamonds: c.diamonds || 0,
+                shield: 0,
+                broke: false
+            };
+        });
+        cities = (data.provinces || []).map(function (p) {
+            return { id: p.id, name: p.name, country: p.country, x: p.x || 0, y: p.y || 0 };
+        });
+        nextId = 1;
+        nextCity = 1;
+        countries.forEach(function (c) { if (c.id >= nextId) nextId = c.id + 1; });
+        cities.forEach(function (p) { if (p.id >= nextCity) nextCity = p.id + 1; });
+        selectedId = countries[0] ? countries[0].id : 0;
+        refreshLandCache();
+    }
     function loadWorldMap(kind, done) {
-        kind = (kind === "realistic") ? "realistic" : "blobs";
+        if (kind !== "realistic" && kind !== "countries") kind = "blobs";
         currentWorldMap = kind;
         var list = (WORLD_MAPS[kind] || []).slice();
         list.push(WORLD_MAP_DATA[kind]);
@@ -168,10 +212,13 @@
         return Math.max(1, Math.min(6, n));
     }
     function paintAt(x, y) {
-        if (mode !== "edit" || !selectedId) return;
-        var c = findCountry(selectedId);
-        if (!c) return;
-        var r = brushSize(), i, j, dx, dy, p;
+        if (mode !== "edit") return;
+        var r = brushSize(), i, j, dx, dy, p, c;
+        if (tool !== "erase") {
+            if (!selectedId) return;
+            c = findCountry(selectedId);
+            if (!c) return;
+        }
         for (j = -r; j <= r; j++) {
             for (i = -r; i <= r; i++) {
                 if (i * i + j * j > r * r) continue;
@@ -179,11 +226,16 @@
                 if (dx < 0 || dy < 0 || dx >= W || dy >= H) continue;
                 p = idx(dx, dy);
                 if (elev[p] === 0) continue;
-                owner[p] = c.id;
-                landAge[p] = 0;
+                if (tool === "erase") {
+                    owner[p] = 0;
+                    cityOwn[p] = 0;
+                } else {
+                    owner[p] = c.id;
+                    landAge[p] = 0;
+                }
             }
         }
-        scheduleCityRebuild();
+        if (tool !== "erase" && currentWorldMap !== "countries") scheduleCityRebuild();
     }
     function scheduleCityRebuild() {
         if (cityRebuildTimer) clearTimeout(cityRebuildTimer);
@@ -219,10 +271,41 @@
         if (box) box.innerHTML = "";
         addNote("Stopped. Map restored to how it was before Play.");
     }
+    function refreshLandCache() {
+        landCache = {};
+        var i, id;
+        for (i = 0; i < W * H; i++) {
+            id = owner[i];
+            if (id) landCache[id] = (landCache[id] || 0) + 1;
+        }
+    }
     function landCount(id) {
+        if (landCache[id] != null) return landCache[id];
         var n = 0, i;
         for (i = 0; i < W * H; i++) if (owner[i] === id) n++;
+        landCache[id] = n;
         return n;
+    }
+    function upkeepOf(c) {
+        return Math.max(2, Math.floor(landCount(c.id) * 0.4));
+    }
+    function canDefend(c) {
+        if (!c) return false;
+        if ((c.shield || 0) > 0) return true;
+        return (Number(c.money) || 0) >= upkeepOf(c) + 12;
+    }
+    function canGrow(c) {
+        if (!c) return false;
+        return (Number(c.money) || 0) > upkeepOf(c);
+    }
+    function markBroke(c, broke) {
+        if (!c) return;
+        if (broke && !c.broke) addNote(c.name + " is too poor to defend.");
+        if (!broke && c.broke) {
+            c.shield = 8 + ((Math.random() * 36) | 0);
+            addNote(c.name + " can defend again.");
+        }
+        c.broke = !!broke;
     }
     function provinceCount(id) {
         var n = 0, i;
@@ -245,6 +328,7 @@
         return CITY_NAMES[(Math.random() * CITY_NAMES.length) | 0] + " Province";
     }
     function fillCitiesInsideCountries() {
+        if (currentWorldMap === "countries") return;
         cityOwn.fill(0);
         var next = [];
         countries.forEach(function (c) {
@@ -286,6 +370,7 @@
         var loser = findCountry(loserId);
         var winner = findCountry(winnerId);
         if (!loser || !winner) return;
+        if (!canDefend(loser)) return;
         if (power(winner) > power(loser)) {
             if (Math.random() < 0.12) addNote(loser.name + " tried to fight back, but " + winner.name + " was stronger.");
             return;
@@ -407,11 +492,32 @@
         crafts = keep;
     }
     function bankTick() {
+        refreshLandCache();
         countries.forEach(function (c) {
+            if (c.shield) c.shield = Math.max(0, c.shield - 1);
             var banks = Number(c.banks) || 0;
-            c.money = (Number(c.money) || 0) + banks * 6;
+            var farms = Number(c.farms) || 0;
+            var size = landCount(c.id);
+            var income = banks * 6 + farms * 2;
+            var cost = upkeepOf(c);
+            c.money = (Number(c.money) || 0) + income - cost;
+            if (c.money < 0) c.money = 0;
             if (banks && Math.random() < Math.min(0.35, banks * 0.04)) {
                 c.diamonds = (Number(c.diamonds) || 0) + 1;
+            }
+            if (size <= 0) {
+                if (!c.collapsed) {
+                    c.collapsed = true;
+                    addNote(c.name + " has collapsed.");
+                }
+                markBroke(c, true);
+                return;
+            }
+            c.collapsed = false;
+            var poor = c.money < cost + 10;
+            markBroke(c, poor);
+            if (!poor && c.money >= cost + 28 && !c.shield) {
+                c.shield = 10 + ((Math.random() * 40) | 0);
             }
         });
     }
@@ -419,7 +525,8 @@
         if (mode !== "play" || !countries.length) return;
         simTick++;
         var dirs = [1, -1, W, -W];
-        var attempts = Math.min(900, 140 + countries.length * 70);
+        refreshLandCache();
+        var attempts = Math.min(420, 90 + Math.min(80, countries.length) * 4);
         var k, p, q, x, cid, oid, me, them, d;
         for (k = 0; k < attempts; k++) {
             p = (Math.random() * W * H) | 0;
@@ -436,20 +543,24 @@
             if (oid === cid) continue;
             me = findCountry(cid);
             if (!me) continue;
+            if (!canGrow(me)) continue;
             if (!oid) {
-                if (Math.random() < expandChance(elev[q])) { owner[q] = cid; landAge[q] = 0; }
+                if (Math.random() < expandChance(elev[q])) { owner[q] = cid; landAge[q] = 0; landCache[cid] = (landCache[cid] || 0) + 1; }
             } else {
                 them = findCountry(oid);
                 if (!them) continue;
                 var atk = power(me) + Math.random() * 6;
                 var def = defense(them) + elev[q] * 3 + Math.random() * 6;
+                if (!canDefend(them)) { atk += 10; def *= 0.25; }
                 if (atk > def) {
                     owner[q] = cid;
                     landAge[q] = 0;
                     cityOwn[q] = 0;
-                    if (Math.random() < 0.08) addNote(me.name + " has invaded " + them.name);
-                    tryFightBack(them.id, me.id, q % W, (q / W) | 0);
-                } else if (Math.random() < 0.08) {
+                    landCache[cid] = (landCache[cid] || 0) + 1;
+                    landCache[them.id] = Math.max(0, (landCache[them.id] || 1) - 1);
+                    if (Math.random() < (canDefend(them) ? 0.06 : 0.14)) addNote(me.name + " has invaded " + them.name);
+                    if (canDefend(them)) tryFightBack(them.id, me.id, q % W, (q / W) | 0);
+                } else if (canDefend(them) && Math.random() < 0.06) {
                     addNote(them.name + " resisted " + me.name);
                 }
             }
@@ -510,6 +621,7 @@
             octx.font = "10px sans-serif";
             octx.textAlign = "center";
             octx.font = "bold 11px sans-serif";
+            if (cities.length <= 28) {
             cities.forEach(function (city) {
                 var px = city.x * sx, py = city.y * sy;
                 octx.fillStyle = "rgba(255,255,255,0.8)";
@@ -519,6 +631,7 @@
                 octx.fillStyle = "#111";
                 octx.fillText(city.name, px, py - 6);
             });
+            }
             crafts.forEach(function (cr) {
                 octx.fillStyle = cr.type === "plane" ? "#0f172a" : (cr.type === "sub" ? "#334155" : "#1e3a8a");
                 octx.fillRect(cr.x * sx - 2, cr.y * sy - 2, 4, 4);
@@ -674,20 +787,39 @@
         renderCountryList();
         syncEditorFromCountry();
         loadWorldMap(currentWorldMap, function () {
-            fillCitiesInsideCountries();
+            if (currentWorldMap === "countries") applyPoliticalWorld();
+            else fillCitiesInsideCountries();
+            renderCountryList();
+            syncEditorFromCountry();
             draw();
         });
         startTicks();
     };
+    window.llSetTool = function (name) {
+        tool = name === "erase" ? "erase" : "paint";
+        var p = document.getElementById("llToolPaint");
+        var e = document.getElementById("llToolErase");
+        if (p) p.classList.toggle("on", tool === "paint");
+        if (e) e.classList.toggle("on", tool === "erase");
+    };
     window.llSetWorldMap = function (kind) {
         if (mode !== "edit") return;
         loadWorldMap(kind, function () {
-            owner.fill(0);
-            cityOwn.fill(0);
-            cities = [];
-            fillCitiesInsideCountries();
+            if (kind === "countries") {
+                applyPoliticalWorld();
+                addNote("Real countries map loaded.");
+            } else {
+                owner.fill(0);
+                cityOwn.fill(0);
+                cities = [];
+                countries = [defaultCountry("Red")];
+                selectedId = countries[0].id;
+                fillCitiesInsideCountries();
+                addNote(kind === "realistic" ? "Realistic Earth map loaded." : "Blob map loaded (default).");
+            }
+            renderCountryList();
+            syncEditorFromCountry();
             draw();
-            addNote(kind === "realistic" ? "Realistic Earth map loaded." : "Blob map loaded (default).");
         });
     };
     window.closeLivingLands = function () {

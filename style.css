@@ -7059,3 +7059,5 @@ html[data-theme="dark"] .azora-bg-wave { background: transparent; }
 .ll-num { width:58px; }
 .ll-side label { display:block; font-size:12px; margin:6px 0; }
 .ll-side input[type="text"], .ll-side input:not([type="color"]):not([type="range"]) { width:100%; }
+
+#llToolPaint.on, #llToolErase.on { outline: 2px solid #111; background: #e5e7eb; }
