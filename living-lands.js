@@ -240,26 +240,24 @@
     }
     function fillCitiesInsideCountries() {
         cityOwn.fill(0);
-        var kept = {};
+        var next = [];
         countries.forEach(function (c) {
             var want = Math.max(0, Math.min(8, Number(c.cities) || 0));
+            if (want < 1) return;
             var mine = cities.filter(function (city) { return city.country === c.id; });
             while (mine.length > want) mine.pop();
-            while (mine.length < want && cities.length < MAX_CITIES) {
-                mine.push({ id: nextCity++, name: randomCityName(), country: c.id, x: 0, y: 0 });
+            while (mine.length < want && next.length + mine.length < MAX_CITIES) {
+                mine.push({ id: nextCity++, name: randomCityName(), country: c.id, x: 2, y: 2 });
             }
-            mine.forEach(function (city) { kept[city.id] = city; });
-        });
-        cities = cities.filter(function (city) { return kept[city.id]; });
-        countries.forEach(function (c) {
-            var mine = cities.filter(function (city) { return city.country === c.id; });
-            if (!mine.length) return;
             var spots = [];
             var i, p, x, y, best, bi, n;
             for (i = 0; i < W * H; i++) if (owner[i] === c.id && elev[i]) spots.push(i);
-            if (!spots.length) return;
+            if (!spots.length) {
+                mine.forEach(function (city) { next.push(city); });
+                return;
+            }
             for (n = 0; n < mine.length; n++) {
-                p = spots[Math.floor((n + 0.5) * spots.length / mine.length) % spots.length];
+                p = spots[Math.floor((n + 0.35) * spots.length / mine.length) % spots.length];
                 mine[n].x = p % W;
                 mine[n].y = (p / W) | 0;
             }
@@ -272,16 +270,10 @@
                     if (d < bi) { bi = d; best = mine[n]; }
                 }
                 cityOwn[p] = best.id;
-                landAge[p] = 0;
             }
+            mine.forEach(function (city) { next.push(city); });
         });
-        var ci;
-        for (ci = 0; ci < W * H; ci++) {
-            if (cityOwn[ci]) {
-                var city = kept[cityOwn[ci]] || findCity(cityOwn[ci]);
-                if (!city || owner[ci] !== city.country) cityOwn[ci] = 0;
-            }
-        }
+        cities = next;
     }
     function spawnCities() { fillCitiesInsideCountries(); }
     function tryFightBack(loserId, winnerId, atX, atY) {
@@ -486,8 +478,14 @@
             }
             if (cityOwn[i]) {
                 x = i % W; y = (i / W) | 0;
+                var shade = (cityOwn[i] % 3) * 18;
+                col = [
+                    Math.max(0, col[0] - 18 + shade),
+                    Math.max(0, col[1] - 12 + shade),
+                    Math.max(0, col[2] - 18 + shade)
+                ];
                 border = (x===0||cityOwn[i-1]!==cityOwn[i]) || (x===W-1||cityOwn[i+1]!==cityOwn[i]) || (y===0||cityOwn[i-W]!==cityOwn[i]) || (y===H-1||cityOwn[i+W]!==cityOwn[i]);
-                if (border) col = [120, 120, 120];
+                if (border) col = [70, 70, 70];
             }
             data[p] = col[0]; data[p+1] = col[1]; data[p+2] = col[2]; data[p+3] = 255;
         }
@@ -500,9 +498,15 @@
             var sx = overlay.width / W, sy = overlay.height / H;
             octx.font = "10px sans-serif";
             octx.textAlign = "center";
+            octx.font = "bold 11px sans-serif";
             cities.forEach(function (city) {
+                var px = city.x * sx, py = city.y * sy;
+                octx.fillStyle = "rgba(255,255,255,0.8)";
+                octx.fillRect(px - 3, py - 3, 6, 6);
+                octx.strokeStyle = "#111";
+                octx.strokeRect(px - 3, py - 3, 6, 6);
                 octx.fillStyle = "#111";
-                octx.fillText(city.name, city.x * sx, city.y * sy - 4);
+                octx.fillText(city.name, px, py - 6);
             });
             crafts.forEach(function (cr) {
                 octx.fillStyle = cr.type === "plane" ? "#0f172a" : (cr.type === "sub" ? "#334155" : "#1e3a8a");
