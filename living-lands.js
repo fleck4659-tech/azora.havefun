@@ -375,23 +375,27 @@
         var wealth = Number(c.money) || 0;
         var inf = Number(c.inflation) || 1;
         var war = Number(c.warHeat) || 0;
-        return inf * (1 + size / 280) * (1 + Math.log(1 + wealth / 8000) / Math.log(10) * 0.28) * (1 + war * 0.015);
+        return inf * (1 + size / 900) * (1 + Math.log(1 + wealth / 2500) / Math.log(10) * 0.18) * (1 + war * 0.012);
     }
     function bumpInflation(c, amt) {
         c.inflation = Math.min(12, (Number(c.inflation) || 1) + amt);
     }
     function troopPrice(c) {
         var mil = Number(c.military) || 0;
-        return Math.max(12000, Math.floor((42000 + mil * 2600) * priceMult(c)));
+        return Math.max(4, Math.floor((9 + mil * 0.55) * priceMult(c)));
     }
     function claimPrice(c, tileElev) {
-        return Math.max(400, Math.floor((900 + (tileElev || 1) * 700 + landCount(c.id) * 14) * priceMult(c)));
+        return Math.max(1, Math.floor((1.2 + (tileElev || 1) * 0.8 + landCount(c.id) * 0.012) * priceMult(c)));
     }
     function upkeepOf(c) {
         var size = landCount(c.id);
         var mil = Number(c.military) || 0;
-        var base = size * 22 + mil * 180 + (Number(c.banks) || 0) * 70 + (Number(c.farms) || 0) * 40;
-        return Math.max(25, Math.floor(base * priceMult(c)));
+        var farms = Number(c.farms) || 0;
+        var mil = Number(c.military) || 0;
+        var banks = Number(c.banks) || 0;
+        var food = Math.max(0.52, 1 - Math.log(1 + farms) * 0.07);
+        var base = size * 0.5 + Math.sqrt(mil) * 2.4 + Math.log(1 + banks) * 4;
+        return Math.max(2, Math.floor(base * priceMult(c) * food));
     }
     function canDefend(c) {
         if (!c) return false;
@@ -405,7 +409,7 @@
     function canAffordWar(c) {
         if (!c) return false;
         var mil = Number(c.military) || 0;
-        return mil >= 12 && (Number(c.money) || 0) > upkeepOf(c) + troopPrice(c);
+        return mil >= 8 && (Number(c.money) || 0) > upkeepOf(c) + troopPrice(c);
     }
     function markBroke(c, broke) {
         if (!c) return;
@@ -423,11 +427,12 @@
     }
     function power(c) {
         if (!c) return 0;
-        return (Number(c.military) || 0) * 3.2 + (Number(c.cities) || 0) * 1.1 + (Number(c.banks) || 0) * 0.4 + (Number(c.farms) || 0) * 0.3 + landCount(c.id) * 0.03;
+        var mil = Number(c.military) || 0;
+        return Math.sqrt(mil) * 1.7 + (Number(c.cities) || 0) * 0.12 + landCount(c.id) * 0.03;
     }
     function defense(c) {
         if (!c) return 4;
-        return 8 + (Number(c.military) || 0) * 4 + (Number(c.cities) || 0) + landCount(c.id) * 0.05;
+        return 8 + Math.sqrt(Number(c.military) || 0) * 2.1 + (Number(c.cities) || 0) * 0.08 + landCount(c.id) * 0.04;
     }
     function provincePower(pr) {
         if (!pr) return 0;
@@ -609,26 +614,29 @@
             var banks = Number(c.banks) || 0;
             var farms = Number(c.farms) || 0;
             var size = landCount(c.id);
-            var income = banks * 2400 + farms * 900 + Math.floor(size * 2);
+            var income = Math.floor((18 + Math.log(1 + banks) / Math.LN10 * 70) * (1 + (Number(c.money) || 0) * 0.00025)) + Math.floor(12 + Math.log(1 + farms) / Math.LN10 * 40 + farms * 0.12) + Math.floor(size * 0.06);
             var cost = upkeepOf(c);
             if (c.warHeat) c.warHeat = Math.max(0, c.warHeat - 1);
             c.money = (Number(c.money) || 0) + income - cost;
             if (c.money < 0) c.money = 0;
             var mil = Number(c.military) || 0;
-            var wanted = Math.max(6, Math.min(48, 6 + Math.floor(size / 18)));
+            if (c.standingMil == null) c.standingMil = mil;
             var bought = 0;
-            while (bought < 2 && mil < wanted) {
+            while (bought < 1 && mil < c.standingMil) {
                 var troopCost = troopPrice(c);
                 if (c.money < cost + troopCost) break;
                 c.money -= troopCost;
                 mil += 1;
                 bought += 1;
-                bumpInflation(c, 0.012);
+                bumpInflation(c, 0.008);
             }
             c.military = mil;
             if (bought && Math.random() < 0.12) addNote(c.name + " paid $" + (bought * troopPrice(c)).toLocaleString() + " for troops.");
-            if (banks && Math.random() < Math.min(0.35, banks * 0.04)) {
+            if (banks && Math.random() < Math.min(0.28, banks * 0.035)) {
                 c.diamonds = (Number(c.diamonds) || 0) + 1;
+            }
+            if (farms && Math.random() < Math.min(0.12, farms * 0.02)) {
+                c.money += 8 + farms * 3;
             }
             if (size <= 0) {
                 if (!c.collapsed) {
