@@ -5,7 +5,8 @@
     var MAX_COUNTRIES = 180;
     var MAX_NOTES = 20;
     var MAX_CITIES = 360;
-    var TICK_MS = 50;
+    var TICK_MS = 55;
+    var speedLevel = 3;
     var SAVE_KEY = "azoraPixelEarthV2";
 
     var ELEV_COLOR = [
@@ -59,6 +60,10 @@
         ],
         countries: [
             "earth-countries-360x180.png"
+        ],
+        detailed: [
+            "map3.png",
+            "earth-detailed-360x180.png"
         ]
     };
     var WORLD_MAP_DATA = {
@@ -139,7 +144,7 @@
         refreshLandCache();
     }
     function loadWorldMap(kind, done) {
-        if (kind !== "realistic" && kind !== "countries") kind = "blobs";
+        if (kind !== "realistic" && kind !== "countries" && kind !== "detailed") kind = "blobs";
         currentWorldMap = kind;
         var list = (WORLD_MAPS[kind] || []).slice();
         list.push(WORLD_MAP_DATA[kind]);
@@ -539,7 +544,8 @@
         simTick++;
         var dirs = [1, -1, W, -W];
         refreshLandCache();
-        var attempts = Math.min(420, 90 + Math.min(80, countries.length) * 4);
+        var work = [160, 240, 320, 360, 380][Math.max(0, Math.min(4, speedLevel - 1))];
+        var attempts = Math.min(work, 80 + Math.min(70, countries.length) * 3);
         var k, p, q, x, cid, oid, me, them, d;
         for (k = 0; k < attempts; k++) {
             p = (Math.random() * W * H) | 0;
@@ -674,7 +680,8 @@
     }
     function startTicks() {
         if (tickTimer) clearInterval(tickTimer);
-        tickTimer = setInterval(function () { if (mode === "play") tickSim(); }, TICK_MS);
+        var delay = [140, 90, 55, 38, 28][Math.max(0, Math.min(4, speedLevel - 1))];
+        tickTimer = setInterval(function () { if (mode === "play") tickSim(); }, delay);
     }
     function renderCountryList() {
         var box = document.getElementById("llCountryList");
@@ -852,6 +859,13 @@
         });
         startTicks();
     };
+    window.llSetSpeed = function (v) {
+        speedLevel = Math.max(1, Math.min(5, parseInt(v, 10) || 3));
+        var lab = document.getElementById("llSpeedLabel");
+        var names = ["Slow", "Calm", "Normal", "Fast", "Max"];
+        if (lab) lab.textContent = names[speedLevel - 1];
+        startTicks();
+    };
     window.llSetTool = function (name) {
         tool = name === "erase" ? "erase" : "paint";
         var p = document.getElementById("llToolPaint");
@@ -872,7 +886,7 @@
                 countries = [defaultCountry("Red")];
                 selectedId = countries[0].id;
                 fillCitiesInsideCountries();
-                addNote(kind === "realistic" ? "Realistic Earth map loaded." : "Blob map loaded (default).");
+                addNote(kind === "detailed" ? "Detailed Earth map loaded." : (kind === "realistic" ? "Realistic Earth map loaded." : "Blob map loaded (default)."));
             }
             renderCountryList();
             syncEditorFromCountry();
