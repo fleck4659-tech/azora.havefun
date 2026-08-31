@@ -48,8 +48,10 @@
 
     function idx(x, y) { return y * W + x; }
     function setMapSize(nw, nh) {
-        nw = Math.max(90, Math.min(720, nw | 0));
-        nh = Math.max(45, Math.min(360, nh | 0));
+        var maxW = (currentWorldMap === "hyper") ? 1440 : 720;
+        var maxH = (currentWorldMap === "hyper") ? 720 : 360;
+        nw = Math.max(90, Math.min(maxW, nw | 0));
+        nh = Math.max(45, Math.min(maxH, nh | 0));
         W = nw;
         H = nh;
         elev = new Uint8Array(W * H);
@@ -94,6 +96,9 @@
         ],
         seaNorthAmerica: [
             "sea_north_america.png"
+        ],
+        hyper: [
+            "earth-hyper-1440x720.png"
         ]
     };
     var WORLD_MAP_DATA = {
@@ -114,10 +119,12 @@
     function applyImageToMap(img) {
         var iw = img.naturalWidth || img.width || 360;
         var ih = img.naturalHeight || img.height || 180;
-        if (currentWorldMap === "detailed" || currentWorldMap === "detailedCountries" || currentWorldMap === "northAmerica" || currentWorldMap === "seaNorthAmerica") {
+        if (currentWorldMap === "detailed" || currentWorldMap === "detailedCountries" || currentWorldMap === "northAmerica" || currentWorldMap === "seaNorthAmerica" || currentWorldMap === "hyper") {
+            var capW = currentWorldMap === "hyper" ? 1440 : 720;
+            var capH = currentWorldMap === "hyper" ? 720 : 360;
             var nw = iw, nh = ih;
-            if (nw > 720 || nh > 360) {
-                var sc = Math.min(720 / nw, 360 / nh);
+            if (nw > capW || nh > capH) {
+                var sc = Math.min(capW / nw, capH / nh);
                 nw = Math.max(2, Math.round(nw * sc));
                 nh = Math.max(2, Math.round(nh * sc));
             }
@@ -219,7 +226,7 @@
         refreshLandCache();
     }
     function loadWorldMap(kind, done) {
-        if (["realistic","countries","detailed","detailedCountries","northAmerica","seaNorthAmerica"].indexOf(kind) < 0) kind = "blobs";
+        if (["realistic","countries","detailed","detailedCountries","northAmerica","seaNorthAmerica","hyper"].indexOf(kind) < 0) kind = "blobs";
         currentWorldMap = kind;
         var list = (WORLD_MAPS[kind] || []).slice();
         list.push(WORLD_MAP_DATA[kind]);
@@ -507,7 +514,7 @@
     function cityTick() {
         if (!cities.length) return;
         var dirs = [1, -1, W, -W];
-        var steps = Math.min(W * H > 100000 ? 90 : 180, 16 + cities.length * 4);
+        var steps = Math.min(W * H > 400000 ? 40 : (W * H > 100000 ? 90 : 180), 12 + cities.length * 3);
         var s, p, q, d, x, cid, oid, a, b, atk, def;
         for (s = 0; s < steps; s++) {
             p = (Math.random() * W * H) | 0;
@@ -658,10 +665,12 @@
         if (mode !== "play" || !countries.length) return;
         simTick++;
         var dirs = [1, -1, W, -W];
-        if (simTick % 4 === 1) refreshLandCache();
-        if (simTick % 6 === 1) rebuildBorders();
+        var heavy = W * H > 400000;
+        if (simTick % (heavy ? 8 : 4) === 1) refreshLandCache();
+        if (simTick % (heavy ? 10 : 6) === 1) rebuildBorders();
         var work = [160, 240, 320, 400, 480][Math.max(0, Math.min(4, speedLevel - 1))];
-        if (W * H > 100000) work = Math.min(work, 360);
+        if (W * H > 400000) work = Math.min(work, 180);
+        else if (W * H > 100000) work = Math.min(work, 300);
         var attempts = Math.min(work, 70 + Math.min(60, countries.length) * 3);
         var k, p, q, x, cid, oid, me, them, d;
         var pool = borderList.length ? borderList : null;
@@ -712,15 +721,15 @@
                 }
             }
         }
-        if (simTick % 8 === 0) {
+        if (!heavy && simTick % 8 === 0) {
             var step = W * H > 100000 ? 3 : 1;
             for (k = 0; k < W * H; k += step) if (owner[k] && landAge[k] < 40) landAge[k]++;
         }
-        if (simTick % 3 === 0) cityTick();
-        if (simTick % 12 === 0) maybeLaunchCrafts();
-        if (simTick % 2 === 0) moveCrafts();
-        if (simTick % 8 === 0) bankTick();
-        if (simTick % (W * H > 100000 ? 3 : 2) === 0) draw();
+        if (simTick % (heavy ? 6 : 3) === 0) cityTick();
+        if (!heavy && simTick % 12 === 0) maybeLaunchCrafts();
+        if (!heavy && simTick % 2 === 0) moveCrafts();
+        if (simTick % (heavy ? 10 : 8) === 0) bankTick();
+        if (simTick % (heavy ? 4 : (W * H > 100000 ? 3 : 2)) === 0) draw();
     }
     function draw() {
         if (!canvas || !ctx) return;
@@ -742,7 +751,7 @@
                     if (border) col = hexToRgb(c.stroke);
                 }
             }
-            if (cityOwn[i]) {
+            if (cityOwn[i] && W * H <= 400000) {
                 x = i % W; y = (i / W) | 0;
                 var shade = (cityOwn[i] % 3) * 18;
                 col = [
@@ -810,7 +819,8 @@
     function startTicks() {
         if (tickTimer) clearInterval(tickTimer);
         var delay = [90, 55, 34, 22, 16][Math.max(0, Math.min(4, speedLevel - 1))];
-        if (W * H > 100000) delay = Math.max(delay, 18);
+        if (W * H > 400000) delay = Math.max(delay, 28);
+        else if (W * H > 100000) delay = Math.max(delay, 18);
         tickTimer = setInterval(function () { if (mode === "play") tickSim(); }, delay);
     }
     function renderCountryList() {
