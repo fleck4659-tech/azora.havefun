@@ -2,7 +2,7 @@
 (function () {
     var W = 360;
     var H = 180;
-    var MAX_COUNTRIES = 200;
+    var MAX_COUNTRIES = 320;
     var MAX_NOTES = 20;
     var MAX_CITIES = 600;
     var TICK_MS = 55;
@@ -48,8 +48,8 @@
 
     function idx(x, y) { return y * W + x; }
     function setMapSize(nw, nh) {
-        var maxW = (currentWorldMap === "hyper") ? 1440 : 720;
-        var maxH = (currentWorldMap === "hyper") ? 720 : 360;
+        var maxW = (currentWorldMap === "hyper" || currentWorldMap === "hyperCountries") ? 1440 : 720;
+        var maxH = (currentWorldMap === "hyper" || currentWorldMap === "hyperCountries") ? 720 : 360;
         nw = Math.max(90, Math.min(maxW, nw | 0));
         nh = Math.max(45, Math.min(maxH, nh | 0));
         W = nw;
@@ -99,6 +99,12 @@
         ],
         hyper: [
             "earth-hyper-1440x720.png"
+        ],
+        hyperCountries: [
+            "earth-hyper-countries.png"
+        ],
+        naStates: [
+            "north_america_states.png"
         ]
     };
     var WORLD_MAP_DATA = {
@@ -119,9 +125,9 @@
     function applyImageToMap(img) {
         var iw = img.naturalWidth || img.width || 360;
         var ih = img.naturalHeight || img.height || 180;
-        if (currentWorldMap === "detailed" || currentWorldMap === "detailedCountries" || currentWorldMap === "northAmerica" || currentWorldMap === "seaNorthAmerica" || currentWorldMap === "hyper") {
-            var capW = currentWorldMap === "hyper" ? 1440 : 720;
-            var capH = currentWorldMap === "hyper" ? 720 : 360;
+        if (["detailed","detailedCountries","northAmerica","seaNorthAmerica","hyper","hyperCountries","naStates"].indexOf(currentWorldMap) >= 0) {
+            var capW = (currentWorldMap === "hyper" || currentWorldMap === "hyperCountries") ? 1440 : 720;
+            var capH = (currentWorldMap === "hyper" || currentWorldMap === "hyperCountries") ? 720 : 360;
             var nw = iw, nh = ih;
             if (nw > capW || nh > capH) {
                 var sc = Math.min(capW / nw, capH / nh);
@@ -190,7 +196,10 @@
         else unpackU16(data[key], into);
     }
     function applyPoliticalWorld() {
-        var data = (currentWorldMap === "detailedCountries" && window.LL_POLITICAL_HD) ? window.LL_POLITICAL_HD : window.LL_POLITICAL;
+        var data = window.LL_POLITICAL;
+        if (currentWorldMap === "hyperCountries" && window.LL_POLITICAL_HYPER) data = window.LL_POLITICAL_HYPER;
+        else if (currentWorldMap === "naStates" && window.LL_NA_STATES) data = window.LL_NA_STATES;
+        else if (currentWorldMap === "detailedCountries" && window.LL_POLITICAL_HD) data = window.LL_POLITICAL_HD;
         if (!data || !data.countries) {
             addNote("Country map image loaded, but political data file is missing.");
             return;
@@ -226,7 +235,7 @@
         refreshLandCache();
     }
     function loadWorldMap(kind, done) {
-        if (["realistic","countries","detailed","detailedCountries","northAmerica","seaNorthAmerica","hyper"].indexOf(kind) < 0) kind = "blobs";
+        if (["realistic","countries","detailed","detailedCountries","northAmerica","seaNorthAmerica","hyper","hyperCountries","naStates"].indexOf(kind) < 0) kind = "blobs";
         currentWorldMap = kind;
         var list = (WORLD_MAPS[kind] || []).slice();
         list.push(WORLD_MAP_DATA[kind]);
@@ -449,7 +458,7 @@
         return CITY_NAMES[(Math.random() * CITY_NAMES.length) | 0] + " Province";
     }
     function fillCitiesInsideCountries() {
-        if (currentWorldMap === "countries" || currentWorldMap === "detailedCountries") return;
+        if (currentWorldMap === "countries" || currentWorldMap === "detailedCountries" || currentWorldMap === "hyperCountries" || currentWorldMap === "naStates") return;
         cityOwn.fill(0);
         var next = [];
         countries.forEach(function (c) {
@@ -991,7 +1000,7 @@
         renderCountryList();
         syncEditorFromCountry();
         loadWorldMap(currentWorldMap, function () {
-            if (currentWorldMap === "countries" || currentWorldMap === "detailedCountries") applyPoliticalWorld();
+            if (currentWorldMap === "countries" || currentWorldMap === "detailedCountries" || currentWorldMap === "hyperCountries" || currentWorldMap === "naStates") applyPoliticalWorld();
             else fillCitiesInsideCountries();
             renderCountryList();
             syncEditorFromCountry();
@@ -1016,9 +1025,9 @@
     window.llSetWorldMap = function (kind) {
         if (mode !== "edit") return;
         loadWorldMap(kind, function () {
-            if (kind === "countries" || kind === "detailedCountries") {
+            if (kind === "countries" || kind === "detailedCountries" || kind === "hyperCountries" || kind === "naStates") {
                 applyPoliticalWorld();
-                addNote(kind === "detailedCountries" ? "Detailed countries map loaded." : "Real countries map loaded.");
+                addNote(kind === "naStates" ? "North America states map loaded." : (kind === "hyperCountries" ? "Hyper countries map loaded." : (kind === "detailedCountries" ? "Detailed countries map loaded." : "Real countries map loaded.")));
             } else {
                 owner.fill(0);
                 cityOwn.fill(0);
