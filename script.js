@@ -27813,3 +27813,225 @@ window.scanAzoraChatMessage = scanAzoraChatMessage;
 window.finishSendNormChat = finishSendNormChat;
 window.loadNormCvbSettingsIntoUi = loadNormCvbSettingsIntoUi;
 
+
+
+/* ===== Azora Videos (separate category, heavy moderation) ===== */
+(function () {
+    var META_KEY = "azoraVideosMetaV1";
+    var MAX_BYTES = 40 * 1024 * 1024;
+    var MAX_SEC = 60;
+    var dbp = null;
+
+    function videosDb() {
+        if (dbp) return dbp;
+        dbp = new Promise(function (resolve, reject) {
+            var req = indexedDB.open("azoraVideosDB", 1);
+            req.onupgradeneeded = function () {
+                var db = req.result;
+                if (!db.objectStoreNames.contains("files")) db.createObjectStore("files");
+            };
+            req.onsuccess = function () { resolve(req.result); };
+            req.onerror = function () { reject(req.error); };
+        });
+        return dbp;
+    }
+    function idbPut(id, blob) {
+        return videosDb().then(function (db) {
+            return new Promise(function (resolve, reject) {
+                var tx = db.transaction("files", "readwrite");
+                tx.objectStore("files").put(blob, id);
+                tx.oncomplete = function () { resolve(); };
+                tx.onerror = function () { reject(tx.error); };
+            });
+        });
+    }
+    function idbGet(id) {
+        return videosDb().then(function (db) {
+            return new Promise(function (resolve, reject) {
+                var tx = db.transaction("files", "readonly");
+                var r = tx.objectStore("files").get(id);
+                r.onsuccess = function () { resolve(r.result || null); };
+                r.onerror = function () { reject(r.error); };
+            });
+        });
+    }
+    function loadMeta() {
+        try {
+            var list = JSON.parse(localStorage.getItem(META_KEY) || "[]");
+            return Array.isArray(list) ? list : [];
+        } catch (e) { return []; }
+    }
+    function saveMeta(list) {
+        try { localStorage.setItem(META_KEY, JSON.stringify(list.slice(0, 80))); } catch (e) {}
+    }
+    function meName() {
+        try {
+            if (typeof currentUsername === "function") return currentUsername();
+        } catch (e) {}
+        return (window.currentUser && window.currentUser.username) || localStorage.getItem("azoraUsername") || "";
+    }
+    function isReviewer() {
+        var n = meName();
+        return (typeof isOwnerUsername === "function" && isOwnerUsername(n)) || String(n).toLowerCase() === "azora" || String(n).toLowerCase() === "system";
+    }
+    function extraVideoMod(text, fileName) {
+        var blob = String(text || "") + " " + String(fileName || "");
+        if (typeof azoraAutoModerate === "function") {
+            var m = azoraAutoModerate(blob.replace(/https?:\/\/\S+/g, "http://x"));
+            if (!m.ok) return m.reason;
+        }
+        if (/\b(gore|blood|weapon|hate|bully|dating|kiss|boyfriend|girlfriend|romance)\b/i.test(blob)) {
+            return "This upload was blocked by extra video safety filters.";
+        }
+        return "";
+    }
+    function readDuration(file) {
+        return new Promise(function (resolve) {
+            var url = URL.createObjectURL(file);
+            var v = document.createElement("video");
+            v.preload = "metadata";
+            v.onloadedmetadata = function () {
+                var d = v.duration || 0;
+                URL.revokeObjectURL(url);
+                resolve(d);
+            };
+            v.onerror = function () {
+                URL.revokeObjectURL(url);
+                resolve(-1);
+            };
+            v.src = url;
+        });
+    }
+    function setStatus(msg) {
+        var el = document.getElementById("vidUploadStatus");
+        if (el) el.textContent = msg || "";
+    }
+    function cardHtml(item, url, tools) {
+        var st = item.status === "live" ? "Live" : (item.status === "rejected" ? "Rejected" : "Held for review");
+        var html = '<article class="azora-video-card" data-id="' + item.id + '">';
+        if (url && (item.status === "live" || tools || item.creator === meName())) {
+            html += '<video controls playsinline src="' + url + '"></video>';
+        } else {
+            html += '<p class="st">Video is hidden until it passes review.</p>';
+        }
+        html += '<div><strong>' + String(item.title || "").replace(/</g, "") + '</strong></div>';
+        html += '<div class="st">by ' + String(item.creator || "Player").replace(/</g, "") + ' · ' + st + '</div>';
+        html += '<p>' + String(item.description || "").replace(/</g, "") + '</p>';
+        if (item.status === "live") {
+            html += '<button type="button" onclick="azoraReportVideo(\'' + item.id + '\')">Report</button>';
+        }
+        if (tools) {
+            html += '<button type="button" onclick="azoraReviewVideo(\'' + item.id + '\',\'live\')">Approve</button>';
+            html += '<button type="button" onclick="azoraReviewVideo(\'' + item.id + '\',\'rejected\')">Reject</button>';
+        }
+        html += "</article>";
+        return html;
+    }
+    function fillList(el, filter, tools) {
+        if (!el) return;
+        var list = loadMeta().filter(filter);
+        if (!list.length) {
+            el.innerHTML = "<p>No videos here yet.</p>";
+            return;
+        }
+        el.innerHTML = "Loading…";
+        Promise.all(list.map(function (item) {
+            return idbGet(item.id).then(function (blob) {
+                var url = blob ? URL.createObjectURL(blob) : "";
+                return cardHtml(item, url, tools);
+            }).catch(function () { return cardHtml(item, "", tools); });
+        })).then(function (parts) { el.innerHTML = parts.join(""); });
+    }
+    function renderAll() {
+        fillList(document.getElementById("vidPanelWatch"), function (v) { return v.status === "live"; }, false);
+        fillList(document.getElementById("vidPanelMine"), function (v) { return v.creator === meName(); }, false);
+        fillList(document.getElementById("vidPanelReview"), function (v) { return v.status === "held"; }, true);
+        var rev = document.getElementById("vidTabReview");
+        if (rev) rev.style.display = isReviewer() ? "" : "none";
+    }
+
+    window.openAzoraVideos = function () {
+        var ov = document.getElementById("azoraVideosOverlay");
+        if (!ov) return;
+        ov.style.display = "flex";
+        azoraVideosTab("watch");
+        renderAll();
+    };
+    window.closeAzoraVideos = function () {
+        var ov = document.getElementById("azoraVideosOverlay");
+        if (ov) ov.style.display = "none";
+    };
+    window.azoraVideosTab = function (name) {
+        ["watch", "upload", "mine", "review"].forEach(function (n) {
+            var p = document.getElementById("vidPanel" + n.charAt(0).toUpperCase() + n.slice(1));
+            var b = document.getElementById("vidTab" + n.charAt(0).toUpperCase() + n.slice(1));
+            if (p) p.style.display = n === name ? "block" : "none";
+            if (b) b.classList.toggle("on", n === name);
+        });
+        if (name === "review" && !isReviewer()) azoraVideosTab("watch");
+        renderAll();
+    };
+    window.azoraSubmitVideo = function () {
+        var title = ((document.getElementById("vidTitle") || {}).value || "").trim();
+        var desc = ((document.getElementById("vidDesc") || {}).value || "").trim();
+        var input = document.getElementById("vidFile");
+        var file = input && input.files && input.files[0];
+        var user = meName();
+        if (!user) { setStatus("Log in first."); return; }
+        if (!title) { setStatus("Add a title."); return; }
+        if (!file) { setStatus("Pick an MP4 or WebM file."); return; }
+        var blocked = extraVideoMod(title + " " + desc, file.name);
+        if (blocked) { setStatus(blocked); return; }
+        if (file.type !== "video/mp4" && file.type !== "video/webm") {
+            setStatus("Only MP4 and WebM are allowed.");
+            return;
+        }
+        if (file.size > MAX_BYTES) { setStatus("File is over 40 MB."); return; }
+        setStatus("Scanning file…");
+        readDuration(file).then(function (dur) {
+            if (dur < 0) { setStatus("Could not read that video."); return; }
+            if (dur > MAX_SEC) { setStatus("Video is longer than 60 seconds."); return; }
+            setStatus("Safety scan 1/3: title…");
+            return new Promise(function (r) { setTimeout(r, 350); }).then(function () {
+                setStatus("Safety scan 2/3: description…");
+                return new Promise(function (r) { setTimeout(r, 350); });
+            }).then(function () {
+                setStatus("Safety scan 3/3: holding for human review…");
+                var id = "vid_" + Date.now() + "_" + Math.random().toString(36).slice(2, 7);
+                return idbPut(id, file).then(function () {
+                    var list = loadMeta();
+                    list.unshift({
+                        id: id,
+                        title: title.slice(0, 48),
+                        description: desc.slice(0, 160),
+                        creator: user,
+                        created: Date.now(),
+                        status: "held",
+                        mime: file.type,
+                        seconds: Math.round(dur),
+                        size: file.size
+                    });
+                    saveMeta(list);
+                    setStatus("Held for review. It will not appear in Watch until a reviewer approves it.");
+                    if (input) input.value = "";
+                    renderAll();
+                });
+            });
+        }).catch(function () { setStatus("Upload failed."); });
+    };
+    window.azoraReviewVideo = function (id, status) {
+        if (!isReviewer()) return;
+        var list = loadMeta();
+        list.forEach(function (v) {
+            if (v.id === id) v.status = status === "live" ? "live" : "rejected";
+        });
+        saveMeta(list);
+        renderAll();
+    };
+    window.azoraReportVideo = function (id) {
+        if (typeof saveReport === "function") {
+            saveReport({ type: "video", videoId: id, by: meName(), at: Date.now() });
+        }
+        alert("Thanks. This video was sent to the safety queue.");
+    };
+})();

@@ -7061,3 +7061,21 @@ html[data-theme="dark"] .azora-bg-wave { background: transparent; }
 .ll-side input[type="text"], .ll-side input:not([type="color"]):not([type="range"]) { width:100%; }
 
 #llToolPaint.on, #llToolErase.on { outline: 2px solid #111; background: #e5e7eb; }
+
+.azora-videos-overlay { align-items: stretch; justify-content: center; padding: 18px; }
+.azora-videos-shell { width: min(720px, 100%); max-height: 92vh; overflow: auto; background: #101c2b; color: #fff; border-radius: 16px; padding: 16px; }
+.azora-videos-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.azora-videos-head button { background: #ff3b30; color: #fff; border: 0; border-radius: 8px; padding: 8px 12px; cursor: pointer; }
+.azora-videos-banner { background: #3b1d12; color: #fed7aa; padding: 8px 10px; border-radius: 10px; font-size: 13px; }
+.azora-videos-tabs { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0; }
+.azora-videos-tabs button { border: 0; border-radius: 999px; padding: 7px 12px; background: #1e3348; color: #fff; cursor: pointer; }
+.azora-videos-tabs button.on { background: #2563eb; }
+.azora-videos-panel label { display: block; margin: 8px 0; font-size: 13px; }
+.azora-videos-panel input, .azora-videos-panel textarea { width: 100%; margin-top: 4px; border-radius: 8px; border: 0; padding: 8px; }
+.azora-videos-rules { font-size: 12px; opacity: 0.8; }
+.azora-videos-send { width: 100%; border: 0; border-radius: 10px; padding: 10px; background: #10b981; color: #052e16; font-weight: 800; cursor: pointer; }
+.azora-videos-status { margin-top: 8px; font-size: 13px; min-height: 1.2em; }
+.azora-video-card { background: #162536; border-radius: 12px; padding: 10px; margin: 10px 0; }
+.azora-video-card video { width: 100%; max-height: 280px; background: #000; border-radius: 8px; }
+.azora-video-card .st { font-size: 11px; opacity: 0.8; }
+.azora-video-card button { margin-right: 6px; margin-top: 6px; border: 0; border-radius: 8px; padding: 6px 10px; cursor: pointer; }

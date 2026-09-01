@@ -586,6 +586,11 @@
                 <span class="azora-action-title">Ads</span>
                 <span class="azora-action-desc">Post a free text ad or boost it</span>
             </button>
+            <button type="button" class="azora-action-card feed" onclick="openAzoraVideos()">
+                <span class="azora-action-emoji">🎬</span>
+                <span class="azora-action-title">Videos</span>
+                <span class="azora-action-desc">Family-safe videos · heavy review</span>
+            </button>
         </div>
 
         <div class="azora-featured-row">
@@ -1434,9 +1439,39 @@
     </div>
 </div>
 
+
+<div id="azoraVideosOverlay" class="azafn-overlay azora-videos-overlay" style="display:none;">
+    <div class="azora-videos-shell">
+        <header class="azora-videos-head">
+            <h2>🎬 Azora Videos</h2>
+            <button type="button" onclick="closeAzoraVideos()">✕ Close</button>
+        </header>
+        <p class="azora-videos-banner">Separate from Feed. Every video is scanned, then held for review before anyone else can watch it.</p>
+        <nav class="azora-videos-tabs">
+            <button type="button" id="vidTabWatch" class="on" onclick="azoraVideosTab('watch')">Watch</button>
+            <button type="button" id="vidTabUpload" onclick="azoraVideosTab('upload')">Upload</button>
+            <button type="button" id="vidTabMine" onclick="azoraVideosTab('mine')">My videos</button>
+            <button type="button" id="vidTabReview" onclick="azoraVideosTab('review')" style="display:none;">Review queue</button>
+        </nav>
+        <section id="vidPanelWatch" class="azora-videos-panel"></section>
+        <section id="vidPanelUpload" class="azora-videos-panel" style="display:none;">
+            <label>Title <input id="vidTitle" maxlength="48" placeholder="Short, friendly title"></label>
+            <label>Description <textarea id="vidDesc" maxlength="160" placeholder="What is this video about?"></textarea></label>
+            <label>Video file
+                <input id="vidFile" type="file" accept="video/mp4,video/webm">
+            </label>
+            <p class="azora-videos-rules">Allowed: MP4 or WebM only · max 40 MB · max 60 seconds · no links · must be kind and family-safe. Uploads never go live instantly.</p>
+            <button type="button" class="azora-videos-send" onclick="azoraSubmitVideo()">Scan and send to review</button>
+            <div id="vidUploadStatus" class="azora-videos-status"></div>
+        </section>
+        <section id="vidPanelMine" class="azora-videos-panel" style="display:none;"></section>
+        <section id="vidPanelReview" class="azora-videos-panel" style="display:none;"></section>
+    </div>
+</div>
+
 <!-- Optional: trained Aturius brain (export from Azora account → Settings → Export code files) -->
 <script src="aturius-training-pack.js"></script>
-<script src="script.js?v=72.7"></script>
+<script src="script.js?v=72.27"></script>
 <script src="political-earth-data.js?v=72.24"></script>
 <script src="political-earth-hd.js?v=72.24"></script>
 <script src="political-earth-hyper.js?v=72.26"></script>
