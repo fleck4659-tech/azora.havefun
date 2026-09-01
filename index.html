@@ -1431,6 +1431,11 @@
                 <button type="button" class="ll-claim ll-edit-only" onclick="llAddCountry()">Add another country</button>
                 <button type="button" class="ll-contest ll-edit-only" onclick="llClearPaint()">Clear paint</button>
                 <div id="llCountryList" class="ll-nations"></div>
+                <h3>Allies</h3>
+                <p class="ll-note">Pick the selected country, then ally it with another. Allies only help — they never attack each other. If one is invaded, the other spends troops and money right away to stop it.</p>
+                <select id="llAllyPick"></select>
+                <button type="button" class="ll-claim" onclick="llToggleAlly()">Ally / Unally</button>
+                <div id="llAllyList" class="ll-note">No allies yet.</div>
                 <h3>Notifications</h3>
                 <div id="llNotes" class="ll-log"></div>
                 <p class="ll-note">Name countries and paint them before Play. Stop restores the exact map from when Play began.</p>
@@ -1476,7 +1481,7 @@
 <script src="political-earth-hd.js?v=72.24"></script>
 <script src="political-earth-hyper.js?v=72.26"></script>
 <script src="na-states-data.js?v=72.26"></script>
-<script src="living-lands.js?v=72.26"></script>
+<script src="living-lands.js?v=72.28"></script>
 <script>
 // Register Azora as installable app (not the staff website)
 if ("serviceWorker" in navigator) {

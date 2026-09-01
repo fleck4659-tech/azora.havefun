@@ -221,7 +221,8 @@
                 shield: 0,
                 broke: false,
                 inflation: 1,
-                warHeat: 0
+                warHeat: 0,
+                allies: []
             };
         });
         cities = (data.provinces || []).map(function (p) {
@@ -277,12 +278,101 @@
             cities: 2,
             diamonds: 0,
             inflation: 1,
-            warHeat: 0
+            warHeat: 0,
+            allies: []
         };
     }
     function findCountry(id) {
         for (var i = 0; i < countries.length; i++) if (countries[i].id === id) return countries[i];
         return null;
+    }
+
+    function allyIds(c) {
+        if (!c || !c.allies) return [];
+        var out = [], i, id;
+        for (i = 0; i < c.allies.length; i++) {
+            id = c.allies[i];
+            if (id && out.indexOf(id) < 0 && id !== c.id) out.push(id);
+        }
+        return out;
+    }
+    function areAllied(a, b) {
+        if (!a || !b || a.id === b.id) return false;
+        return allyIds(a).indexOf(b.id) >= 0 || allyIds(b).indexOf(a.id) >= 0;
+    }
+    function allyNames(c) {
+        return allyIds(c).map(function (id) {
+            var x = findCountry(id);
+            return x ? x.name : "";
+        }).filter(Boolean);
+    }
+    function setAlliance(a, b, on) {
+        if (!a || !b || a.id === b.id) return false;
+        a.allies = allyIds(a);
+        b.allies = allyIds(b);
+        function add(list, id) { if (list.indexOf(id) < 0) list.push(id); }
+        function drop(list, id) { return list.filter(function (x) { return x !== id; }); }
+        if (on) {
+            if (a.allies.length >= 4 || b.allies.length >= 4) return false;
+            add(a.allies, b.id);
+            add(b.allies, a.id);
+        } else {
+            a.allies = drop(a.allies, b.id);
+            b.allies = drop(b.allies, a.id);
+        }
+        return true;
+    }
+    function allyDefenseBoost(c) {
+        var extra = 0;
+        allyIds(c).forEach(function (id) {
+            var a = findCountry(id);
+            if (!a) return;
+            extra += defense(a) * 0.95 + power(a) * 0.7;
+        });
+        return extra;
+    }
+    function allyIntervene(victim, attacker) {
+        if (!victim || !attacker) return;
+        var helpers = allyIds(victim).map(findCountry).filter(Boolean);
+        if (!helpers.length) return;
+        helpers.forEach(function (h) {
+            if (Math.random() < 0.35) addNote(h.name + " noticed the invasion of " + victim.name + " and sent everything to stop " + attacker.name + ".");
+            h.warHeat = Math.min(40, (h.warHeat || 0) + 6);
+            var cash = Number(h.money) || 0;
+            if (cash > 4) {
+                var gift = Math.max(1, Math.floor(cash * 0.18));
+                h.money = cash - gift;
+                victim.money = (Number(victim.money) || 0) + gift;
+            }
+            var mil = Number(h.military) || 0;
+            if (mil > 2) {
+                var troops = Math.max(1, Math.floor(mil * 0.12));
+                h.military = mil - troops;
+                victim.military = (Number(victim.military) || 0) + troops;
+            }
+        });
+        var dirs = [1, -1, W, -W];
+        var tries = Math.min(80, 12 + helpers.length * 18);
+        var i, p, q, d, x, hid;
+        var helperIds = helpers.map(function (h) { return h.id; });
+        for (i = 0; i < tries; i++) {
+            p = borderList.length ? borderList[(Math.random() * borderList.length) | 0] : ((Math.random() * W * H) | 0);
+            if (owner[p] !== attacker.id) continue;
+            d = dirs[(Math.random() * 4) | 0];
+            q = p + d;
+            if (q < 0 || q >= W * H) continue;
+            x = p % W;
+            if (d === 1 && x === W - 1) continue;
+            if (d === -1 && x === 0) continue;
+            if (elev[q] === 0) continue;
+            hid = owner[q];
+            if (hid !== victim.id && helperIds.indexOf(hid) < 0) continue;
+            owner[p] = hid || victim.id;
+            cityOwn[p] = 0;
+            landAge[p] = 0;
+            landCache[attacker.id] = Math.max(0, (landCache[attacker.id] || 1) - 1);
+            landCache[owner[p]] = (landCache[owner[p]] || 0) + 1;
+        }
     }
     function findCity(id) {
         for (var i = 0; i < cities.length; i++) if (cities[i].id === id) return cities[i];
@@ -611,6 +701,7 @@
                     var landFee = claimPrice(me, elev[p]);
                     var atk = power(me) + Math.random() * 6;
                     var def = them ? defense(them) + Math.random() * 8 : 3;
+                    if (them && areAllied(me, them)) { keep.push(cr); return; }
                     if ((Number(me.money) || 0) >= landFee && (!owner[p] || atk > def)) {
                         me.money -= landFee;
                         owner[p] = me.id;
@@ -710,10 +801,11 @@
             } else {
                 them = findCountry(oid);
                 if (!them) continue;
+                if (areAllied(me, them)) continue;
                 if (!canAffordWar(me)) continue;
                 var atk = power(me) + Math.random() * 4;
-                var def = defense(them) + elev[q] * 4 + Math.random() * 6;
-                if (!canDefend(them)) { atk += 6; def *= 0.55; }
+                var def = defense(them) + allyDefenseBoost(them) + elev[q] * 4 + Math.random() * 6;
+                if (!canDefend(them) && !allyIds(them).length) { atk += 6; def *= 0.55; }
                 if (atk > def && Math.random() < 0.55) {
                     me.money -= price;
                     me.warHeat = Math.min(40, (me.warHeat || 0) + 3);
@@ -723,10 +815,11 @@
                     cityOwn[q] = 0;
                     landCache[cid] = (landCache[cid] || 0) + 1;
                     landCache[them.id] = Math.max(0, (landCache[them.id] || 1) - 1);
-                    if (Math.random() < (canDefend(them) ? 0.06 : 0.14)) addNote(me.name + " has invaded " + them.name);
-                    if (canDefend(them)) tryFightBack(them.id, me.id, q % W, (q / W) | 0);
-                } else if (canDefend(them) && Math.random() < 0.06) {
-                    addNote(them.name + " resisted " + me.name);
+                    if (Math.random() < (canDefend(them) ? 0.06 : 0.18)) addNote(me.name + " has invaded " + them.name);
+                    if (allyIds(them).length) allyIntervene(them, me);
+                    else if (canDefend(them)) tryFightBack(them.id, me.id, q % W, (q / W) | 0);
+                } else if ((canDefend(them) || allyIds(them).length) && Math.random() < 0.08) {
+                    addNote(them.name + (allyIds(them).length ? " and its allies resisted " : " resisted ") + me.name);
                 }
             }
         }
@@ -832,6 +925,36 @@
         else if (W * H > 100000) delay = Math.max(delay, 18);
         tickTimer = setInterval(function () { if (mode === "play") tickSim(); }, delay);
     }
+
+    function fillAllyPicker() {
+        var sel = document.getElementById("llAllyPick");
+        var lab = document.getElementById("llAllyList");
+        var me = findCountry(selectedId);
+        if (!sel) return;
+        sel.innerHTML = '<option value="0">Choose a territory…</option>';
+        countries.forEach(function (c) {
+            if (!me || c.id === me.id) return;
+            var o = document.createElement("option");
+            o.value = String(c.id);
+            o.textContent = c.name + (areAllied(me, c) ? " (allied)" : "");
+            sel.appendChild(o);
+        });
+        if (lab) lab.textContent = me && allyNames(me).length ? ("Allied with: " + allyNames(me).join(", ")) : "No allies yet.";
+    }
+    function llToggleAlly() {
+        var me = findCountry(selectedId);
+        var sel = document.getElementById("llAllyPick");
+        var other = findCountry(sel ? Number(sel.value) : 0);
+        if (!me || !other) { addNote("Select a country, then pick another to ally."); return; }
+        var on = !areAllied(me, other);
+        if (!setAlliance(me, other, on)) {
+            addNote("Could not change that alliance (max 4 allies).");
+            return;
+        }
+        addNote(on ? (me.name + " allied with " + other.name + ".") : (me.name + " ended its alliance with " + other.name + "."));
+        fillAllyPicker();
+        renderCountryList();
+    }
     function renderCountryList() {
         var box = document.getElementById("llCountryList");
         if (!box) return;
@@ -867,6 +990,7 @@
             countries.forEach(function (c) { sum += Number(c.diamonds) || 0; });
             dia.textContent = String(sum);
         }
+        fillAllyPicker();
     }
     function syncEditorFromCountry() {
         var c = findCountry(selectedId);
