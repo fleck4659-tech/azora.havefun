@@ -1,5 +1,5 @@
 /* Azora main app service worker — player ads */
-var CACHE = "azora-app-v72-40-pixel-earth";
+var CACHE = "azora-app-v72-41-pixel-earth";
 var ASSETS = [
   "./", "./index.html", "./checkout.html", "./style.css", "./script.js", "./living-lands.js", "./earth-blobs-360x180.png", "./earth-realistic-360x180.png", "./earth-countries-360x180.png", "./map3.png", "./earth-detailed-countries.png", "./earth-hyper-1440x720.png", "./earth-hyper-countries.png", "./north_america_states.png", "./political-earth-hyper.js", "./na-states-data.js", "./north_america.png", "./sea_north_america.png", "./political-earth-hd.js", "./earth-detailed-360x180.png", "./political-earth-data.js",
   "./logo.png", "./logo.jpg", "./logo-192.png", "./logo-512.png", "./manifest-azora.json", "./Smile.png", "./female_smile.png", "./cartoonish_smile.png", "./crying.png", "./greedy_smile.png", "./mysterious.png", "./red_mysterious.png", "./robotic.png", "./sad_tears.png", "./simple_smile.png", "./tears_of_joy.png", "./wide_mouth.png",

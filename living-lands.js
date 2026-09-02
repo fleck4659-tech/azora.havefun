@@ -1097,30 +1097,203 @@
         renderCountryList();
         draw();
     }
-    function saveMap() {
+    function packRuns(arr) {
+        var out = [], i = 0, n = arr.length, v, c;
+        while (i < n) {
+            v = arr[i] | 0;
+            c = 1;
+            i++;
+            while (i < n && (arr[i] | 0) === v && c < 65535) { c++; i++; }
+            out.push(v, c);
+        }
+        return out;
+    }
+    function unpackRuns(runs, into) {
+        if (!runs || !runs.length || !into) return;
+        var i = 0, o = 0, v, c;
+        while (i + 1 < runs.length && o < into.length) {
+            v = runs[i++] | 0;
+            c = runs[i++] | 0;
+            while (c-- > 0 && o < into.length) into[o++] = v;
+        }
+    }
+    function safeSaveName(name) {
+        name = String(name || "").replace(/\.(llsave|json)$/i, "");
+        name = name.replace(/[^a-zA-Z0-9_\- ]+/g, "").trim();
+        name = name.replace(/\s+/g, "_");
+        if (!name) name = "save_map1";
+        return name.slice(0, 40);
+    }
+    function nextDefaultSaveName() {
+        var n = 1;
+        try { n = parseInt(localStorage.getItem("azoraLLSaveNum") || "1", 10) || 1; } catch (e) {}
+        return "save_map" + n;
+    }
+    function bumpDefaultSaveName() {
+        var n = 1;
+        try { n = parseInt(localStorage.getItem("azoraLLSaveNum") || "1", 10) || 1; } catch (e) {}
+        try { localStorage.setItem("azoraLLSaveNum", String(n + 1)); } catch (e) {}
+    }
+    function buildSaveData() {
         applyEditorToCountry();
-        try {
-            localStorage.setItem(SAVE_KEY, JSON.stringify({
-                countries: countries, nextId: nextId, selectedId: selectedId, owner: Array.from(owner)
-            }));
-            addNote("Map saved.");
-        } catch (e) { addNote("Could not save."); }
+        return {
+            type: "azora-living-lands",
+            version: 2,
+            name: "",
+            worldMap: currentWorldMap,
+            w: W,
+            h: H,
+            nextId: nextId,
+            nextCity: nextCity,
+            selectedId: selectedId,
+            countries: countries.map(function (c) {
+                return {
+                    id: c.id,
+                    name: c.name,
+                    fill: c.fill,
+                    stroke: c.stroke,
+                    money: c.money,
+                    military: c.military,
+                    banks: c.banks,
+                    farms: c.farms,
+                    cities: c.cities,
+                    diamonds: c.diamonds,
+                    shield: c.shield || 0,
+                    broke: !!c.broke,
+                    inflation: c.inflation || 1,
+                    warHeat: c.warHeat || 0,
+                    allies: allyIds(c)
+                };
+            }),
+            cities: cities.map(function (p) {
+                return { id: p.id, name: p.name, country: p.country, x: p.x || 0, y: p.y || 0 };
+            }),
+            ownerRle: packRuns(owner),
+            cityOwnRle: packRuns(cityOwn)
+        };
+    }
+    function applyPackedGrid(raw, keyRle, keyFlat, into) {
+        if (raw[keyRle] && raw[keyRle].length) {
+            if ((raw.w || W) === W && (raw.h || H) === H) {
+                unpackRuns(raw[keyRle], into);
+                return;
+            }
+            var tmp = new Uint16Array((raw.w || W) * (raw.h || H));
+            unpackRuns(raw[keyRle], tmp);
+            scaleGridU16(tmp, raw.w || W, raw.h || H, into, W, H);
+            return;
+        }
+        if (raw[keyFlat] && raw[keyFlat].length) {
+            if (raw[keyFlat].length === into.length) {
+                into.set(raw[keyFlat]);
+                return;
+            }
+            var src = new Uint16Array(raw[keyFlat]);
+            var sw = raw.w || Math.round(Math.sqrt(src.length * 2)) || W;
+            var sh = raw.h || Math.max(1, (src.length / sw) | 0);
+            if (sw * sh === src.length) scaleGridU16(src, sw, sh, into, W, H);
+        }
+    }
+    function applySaveData(raw) {
+        if (!raw) return false;
+        countries = (raw.countries || []).map(function (c) {
+            return {
+                id: c.id,
+                name: c.name || "Country",
+                fill: c.fill || "#ef4444",
+                stroke: c.stroke || "#111111",
+                money: c.money || 0,
+                military: c.military || 0,
+                banks: c.banks || 0,
+                farms: c.farms || 0,
+                cities: c.cities == null ? 2 : c.cities,
+                diamonds: c.diamonds || 0,
+                shield: c.shield || 0,
+                broke: !!c.broke,
+                inflation: c.inflation || 1,
+                warHeat: c.warHeat || 0,
+                allies: Array.isArray(c.allies) ? c.allies.slice() : []
+            };
+        });
+        cities = raw.cities || [];
+        nextId = raw.nextId || 1;
+        nextCity = raw.nextCity || 1;
+        countries.forEach(function (c) { if (c.id >= nextId) nextId = c.id + 1; });
+        cities.forEach(function (p) { if (p.id >= nextCity) nextCity = p.id + 1; });
+        selectedId = raw.selectedId || (countries[0] && countries[0].id) || 0;
+        applyPackedGrid(raw, "ownerRle", "owner", owner);
+        applyPackedGrid(raw, "cityOwnRle", "cityOwn", cityOwn);
+        if (!cities.length) fillCitiesInsideCountries();
+        scrubOceanClaims();
+        refreshLandCache();
+        rebuildBorders();
+        return true;
+    }
+    function downloadSaveFile(filename, text) {
+        var blob = new Blob([text], { type: "application/json" });
+        var url = URL.createObjectURL(blob);
+        var a = document.createElement("a");
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        setTimeout(function () {
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }, 400);
+    }
+    function saveMap() {
+        var suggested = nextDefaultSaveName();
+        var typed = window.prompt("Name this Living Lands save. It will download to your device.", suggested);
+        if (typed === null) return;
+        var name = safeSaveName(typed);
+        var data = buildSaveData();
+        data.name = name;
+        var text;
+        try { text = JSON.stringify(data); } catch (e) { addNote("Could not save."); return; }
+        try { localStorage.setItem(SAVE_KEY, text); } catch (e) {}
+        downloadSaveFile(name + ".llsave.json", text);
+        if (name.indexOf("save_map") === 0) bumpDefaultSaveName();
+        addNote("Saved \"" + name + "\" to your device.");
     }
     function loadMap() {
         try {
             var raw = JSON.parse(localStorage.getItem(SAVE_KEY) || "null");
-            if (!raw || !raw.owner) return false;
-            countries = raw.countries || [];
-            countries.forEach(function (c) {
-                if (c.cities == null) c.cities = 2;
-                if (c.diamonds == null) c.diamonds = 0;
-            });
-            nextId = raw.nextId || (countries.length + 1);
-            selectedId = raw.selectedId || (countries[0] && countries[0].id) || 0;
-            owner = new Uint16Array(raw.owner);
-            fillCitiesInsideCountries();
-            return true;
+            if (!raw || !(raw.owner || raw.ownerRle)) return false;
+            return applySaveData(raw);
         } catch (e) { return false; }
+    }
+    function readSaveFile(file) {
+        if (!file) return;
+        var reader = new FileReader();
+        reader.onload = function () {
+            try {
+                var raw = JSON.parse(String(reader.result || ""));
+                if (!raw || raw.type && raw.type !== "azora-living-lands") {
+                    if (!raw || !(raw.owner || raw.ownerRle || raw.countries)) {
+                        addNote("That file is not a Living Lands save.");
+                        return;
+                    }
+                }
+                var kind = raw.worldMap || currentWorldMap || "blobs";
+                currentWorldMap = kind;
+                var sel = document.getElementById("llWorldMap");
+                if (sel) sel.value = kind;
+                loadWorldMap(kind, function () {
+                    applySaveData(raw);
+                    setMode("edit");
+                    renderCountryList();
+                    syncEditorFromCountry();
+                    fillAllyPicker();
+                    draw();
+                    addNote("Loaded \"" + (raw.name || file.name || "save") + "\".");
+                });
+            } catch (e) {
+                addNote("Could not read that save file.");
+            }
+        };
+        reader.onerror = function () { addNote("Could not open that file."); };
+        reader.readAsText(file);
     }
     function fitOverlay() {
         if (!overlay) return;
@@ -1285,6 +1458,23 @@
         draw();
     };
     window.llSaveMap = saveMap;
+    window.llLoadMap = function () {
+        var input = document.getElementById("llLoadFile");
+        if (!input) {
+            input = document.createElement("input");
+            input.type = "file";
+            input.id = "llLoadFile";
+            input.accept = ".json,.llsave,.llsave.json,application/json";
+            input.style.display = "none";
+            document.body.appendChild(input);
+        }
+        input.onchange = function () {
+            var file = input.files && input.files[0];
+            input.value = "";
+            if (file) readSaveFile(file);
+        };
+        input.click();
+    };
     window.llClearPaint = function () {
         if (mode !== "edit") return;
         if (!confirm("Clear all painted countries? Earth stays.")) return;

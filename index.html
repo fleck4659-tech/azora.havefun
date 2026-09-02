@@ -1373,7 +1373,9 @@
         <header class="ll-top">
             <div class="ll-brand">🗺️ Living Lands · <span id="llSimTag">Editing</span></div>
             <div class="ll-top-actions">
-                <button type="button" class="ll-edit-only" onclick="llSaveMap()">Save</button>
+                <button type="button" onclick="llSaveMap()">Save</button>
+                <button type="button" onclick="llLoadMap()">Load</button>
+                <input id="llLoadFile" type="file" accept=".json,.llsave,.llsave.json,application/json" style="display:none;">
                 <button type="button" onclick="llPlaySim()">Play</button>
                 <button type="button" onclick="llPauseSim()">Pause</button>
                 <button type="button" onclick="llStopSim()">Stop</button>
@@ -1438,7 +1440,7 @@
                 <div id="llAllyList" class="ll-note">No allies yet.</div>
                 <h3>Notifications</h3>
                 <div id="llNotes" class="ll-log"></div>
-                <p class="ll-note">Name countries and paint them before Play. Stop restores the exact map from when Play began.</p>
+                <p class="ll-note">Save downloads a file to your device (default name save_map1). Load lets you pick that file and restore the map, countries, money, military, and allies. Name countries and paint them before Play. Stop restores the exact map from when Play began.</p>
             </aside>
         </div>
     </div>
@@ -1481,12 +1483,12 @@
 <script src="political-earth-hd.js?v=72.24"></script>
 <script src="political-earth-hyper.js?v=72.26"></script>
 <script src="na-states-data.js?v=72.26"></script>
-<script src="living-lands.js?v=72.40"></script>
+<script src="living-lands.js?v=72.41"></script>
 <script>
 // Register Azora as installable app (not the staff website)
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", function () {
-    navigator.serviceWorker.register("./sw-azora.js?v=72.40").then(function (reg) {
+    navigator.serviceWorker.register("./sw-azora.js?v=72.41").then(function (reg) {
       try { if (typeof onAzoraServiceWorkerReady === "function") onAzoraServiceWorkerReady(reg); } catch (e) {}
     }).catch(function () {});
   });
