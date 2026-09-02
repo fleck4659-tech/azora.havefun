@@ -153,7 +153,9 @@
         for (i = 0; i < W * H; i++) {
             p = i * 4;
             elev[i] = levelFromRgb(data[p], data[p + 1], data[p + 2]);
+            if (data[p] > 236 && data[p+1] > 236 && data[p+2] > 236) elev[i] = 0;
         }
+        scrubOceanClaims();
     }
     function rebuildBorders() {
         borderList = [];
@@ -195,6 +197,30 @@
         if (data.rle) unpackRLE(data[key], into);
         else unpackU16(data[key], into);
     }
+
+    function scrubOceanClaims() {
+        var i, x, y, n;
+        if (!owner || !elev) return;
+        for (i = 0; i < W * H; i++) {
+            if (elev[i] === 0) {
+                owner[i] = 0;
+                cityOwn[i] = 0;
+            }
+        }
+        for (i = 0; i < W * H; i++) {
+            if (!owner[i] || elev[i] === 0) continue;
+            x = i % W; y = (i / W) | 0;
+            n = 0;
+            if (x > 0 && owner[i - 1] === owner[i] && elev[i - 1]) n++;
+            if (x < W - 1 && owner[i + 1] === owner[i] && elev[i + 1]) n++;
+            if (y > 0 && owner[i - W] === owner[i] && elev[i - W]) n++;
+            if (y < H - 1 && owner[i + W] === owner[i] && elev[i + W]) n++;
+            if (n < 1) {
+                owner[i] = 0;
+                cityOwn[i] = 0;
+            }
+        }
+    }
     function applyPoliticalWorld() {
         var data = window.LL_POLITICAL;
         if (currentWorldMap === "hyperCountries" && window.LL_POLITICAL_HYPER) data = window.LL_POLITICAL_HYPER;
@@ -206,6 +232,7 @@
         }
         unpackGrid(data, "owner", owner);
         unpackGrid(data, "cityOwn", cityOwn);
+        scrubOceanClaims();
         countries = data.countries.map(function (c) {
             return {
                 id: c.id,
@@ -843,7 +870,7 @@
             p = i * 4;
             col = [mapPix[p], mapPix[p + 1], mapPix[p + 2]];
             if (!mapPix[p + 3]) col = [255, 255, 255];
-            if (owner[i]) {
+            if (owner[i] && elev[i]) {
                 c = findCountry(owner[i]);
                 if (c) {
                     rgb = hexToRgb(c.fill);
@@ -853,7 +880,7 @@
                     if (border) col = hexToRgb(c.stroke);
                 }
             }
-            if (cityOwn[i] && W * H <= 400000) {
+            if (cityOwn[i] && elev[i] && W * H <= 400000) {
                 x = i % W; y = (i / W) | 0;
                 var shade = (cityOwn[i] % 3) * 18;
                 col = [
@@ -864,7 +891,7 @@
                 border = (x===0||cityOwn[i-1]!==cityOwn[i]) || (x===W-1||cityOwn[i+1]!==cityOwn[i]) || (y===0||cityOwn[i-W]!==cityOwn[i]) || (y===H-1||cityOwn[i+W]!==cityOwn[i]);
                 if (border) col = [70, 70, 70];
             }
-            if ((mode === "play" || mode === "pause") && owner[i]) {
+            if ((mode === "play" || mode === "pause") && owner[i] && elev[i]) {
                 x = i % W; y = (i / W) | 0;
                 var edge = (x===0||owner[i-1]!==owner[i]) || (x===W-1||owner[i+1]!==owner[i]) || (y===0||owner[i-W]!==owner[i]) || (y===H-1||owner[i+W]!==owner[i]);
                 if (edge && lockedOutline && owner[i] === lockedOutline) col = [220, 38, 38];
