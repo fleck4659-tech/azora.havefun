@@ -98,9 +98,11 @@
             "sea_north_america.png"
         ],
         hyper: [
-            "earth-hyper-1440x720.png"
+            "earth-hyper-1440x720.png",
+            "earth-hyper-countries.png"
         ],
         hyperCountries: [
+            "earth-hyper-1440x720.png",
             "earth-hyper-countries.png"
         ],
         naStates: [
@@ -122,12 +124,17 @@
         if (l >= 52) return 4;
         return 5;
     }
+    function isHyperMap() {
+        return currentWorldMap === "hyper" || currentWorldMap === "hyperCountries";
+    }
     function applyImageToMap(img) {
         var iw = img.naturalWidth || img.width || 360;
         var ih = img.naturalHeight || img.height || 180;
-        if (["detailed","detailedCountries","northAmerica","seaNorthAmerica","hyper","hyperCountries","naStates"].indexOf(currentWorldMap) >= 0) {
-            var capW = (currentWorldMap === "hyper" || currentWorldMap === "hyperCountries") ? 1440 : 720;
-            var capH = (currentWorldMap === "hyper" || currentWorldMap === "hyperCountries") ? 720 : 360;
+        if (isHyperMap()) {
+            // Always play hyper maps at 1440×720. Never shrink to a 360 stand-in file.
+            setMapSize(1440, 720);
+        } else if (["detailed","detailedCountries","northAmerica","seaNorthAmerica","naStates"].indexOf(currentWorldMap) >= 0) {
+            var capW = 720, capH = 360;
             var nw = iw, nh = ih;
             if (nw > capW || nh > capH) {
                 var sc = Math.min(capW / nw, capH / nh);
@@ -221,6 +228,26 @@
             }
         }
     }
+    function scaleGridU16(src, sw, sh, dst, dw, dh) {
+        var x, y, sx, sy;
+        for (y = 0; y < dh; y++) {
+            sy = Math.min(sh - 1, Math.round(y * sh / dh));
+            for (x = 0; x < dw; x++) {
+                sx = Math.min(sw - 1, Math.round(x * sw / dw));
+                dst[y * dw + x] = src[sy * sw + sx];
+            }
+        }
+    }
+    function unpackToCurrentGrid(data, key, into) {
+        var tw = data.w || W, th = data.h || H;
+        if (tw === W && th === H) {
+            unpackGrid(data, key, into);
+            return;
+        }
+        var tmp = new Uint16Array(tw * th);
+        unpackGrid(data, key, tmp);
+        scaleGridU16(tmp, tw, th, into, W, H);
+    }
     function applyPoliticalWorld() {
         var data = window.LL_POLITICAL;
         if (currentWorldMap === "hyperCountries" && window.LL_POLITICAL_HYPER) data = window.LL_POLITICAL_HYPER;
@@ -230,8 +257,21 @@
             addNote("Country map image loaded, but political data file is missing.");
             return;
         }
-        unpackGrid(data, "owner", owner);
-        unpackGrid(data, "cityOwn", cityOwn);
+        unpackToCurrentGrid(data, "owner", owner);
+        unpackToCurrentGrid(data, "cityOwn", cityOwn);
+        var i, p, hasLand = false;
+        for (i = 0; i < W * H; i++) { if (elev[i]) { hasLand = true; break; } }
+        if (!hasLand) {
+            for (i = 0; i < W * H; i++) {
+                elev[i] = owner[i] ? 1 : 0;
+                p = i * 4;
+                if (elev[i]) {
+                    mapPix[p] = 212; mapPix[p + 1] = 212; mapPix[p + 2] = 212; mapPix[p + 3] = 255;
+                } else {
+                    mapPix[p] = 255; mapPix[p + 1] = 255; mapPix[p + 2] = 255; mapPix[p + 3] = 255;
+                }
+            }
+        }
         scrubOceanClaims();
         countries = data.countries.map(function (c) {
             return {
@@ -265,18 +305,32 @@
     function loadWorldMap(kind, done) {
         if (["realistic","countries","detailed","detailedCountries","northAmerica","seaNorthAmerica","hyper","hyperCountries","naStates"].indexOf(kind) < 0) kind = "blobs";
         currentWorldMap = kind;
+        if (isHyperMap()) setMapSize(1440, 720);
         var list = (WORLD_MAPS[kind] || []).slice();
-        list.push(WORLD_MAP_DATA[kind]);
+        if (WORLD_MAP_DATA[kind]) list.push(WORLD_MAP_DATA[kind]);
+        function finish(ok) {
+            var hint = document.querySelector(".ll-hint");
+            if (hint) hint.textContent = W + "×" + H + " pixels · white water · light grey land · darker = hills/mountains · black = tallest peaks. Paint only on land.";
+            if (typeof done === "function") done(ok);
+        }
         function next() {
             if (!list.length) {
-                if (typeof done === "function") done(false);
+                finish(false);
                 return;
             }
             var src = list.shift();
-            if (src.indexOf("data:") !== 0 && src.indexOf("?") < 0) src = src + "?v=72.13";
+            if (!src || typeof src !== "string") { next(); return; }
+            if (src.indexOf("data:") !== 0 && src.indexOf("?") < 0) src = src + "?v=72.40";
             loadImageSrc(src, function (im) {
+                var iw = im.naturalWidth || im.width || 0;
+                var ih = im.naturalHeight || im.height || 0;
+                // A 360×180 file is NOT the hyper map — skip it and try the next source.
+                if (isHyperMap() && (iw < 1000 || ih < 500)) {
+                    next();
+                    return;
+                }
                 applyImageToMap(im);
-                if (typeof done === "function") done(true);
+                finish(true);
             }, next);
         }
         next();

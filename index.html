@@ -1481,12 +1481,12 @@
 <script src="political-earth-hd.js?v=72.24"></script>
 <script src="political-earth-hyper.js?v=72.26"></script>
 <script src="na-states-data.js?v=72.26"></script>
-<script src="living-lands.js?v=72.29"></script>
+<script src="living-lands.js?v=72.40"></script>
 <script>
 // Register Azora as installable app (not the staff website)
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", function () {
-    navigator.serviceWorker.register("./sw-azora.js?v=72.7").then(function (reg) {
+    navigator.serviceWorker.register("./sw-azora.js?v=72.40").then(function (reg) {
       try { if (typeof onAzoraServiceWorkerReady === "function") onAzoraServiceWorkerReady(reg); } catch (e) {}
     }).catch(function () {});
   });
