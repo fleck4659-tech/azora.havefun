@@ -48,8 +48,8 @@
 
     function idx(x, y) { return y * W + x; }
     function setMapSize(nw, nh) {
-        var maxW = (currentWorldMap === "hyper" || currentWorldMap === "hyperCountries") ? 1440 : 720;
-        var maxH = (currentWorldMap === "hyper" || currentWorldMap === "hyperCountries") ? 720 : 360;
+        var maxW = (currentWorldMap === "hyper" || currentWorldMap === "hyperCountries" || currentWorldMap === "empires") ? 1440 : 720;
+        var maxH = (currentWorldMap === "hyper" || currentWorldMap === "hyperCountries" || currentWorldMap === "empires") ? 720 : 360;
         nw = Math.max(90, Math.min(maxW, nw | 0));
         nh = Math.max(45, Math.min(maxH, nh | 0));
         W = nw;
@@ -98,12 +98,15 @@
             "sea_north_america.png"
         ],
         hyper: [
-            "earth-hyper-1440x720.png",
-            "earth-hyper-countries.png"
+            "earth-hyper-1440x720.png"
         ],
         hyperCountries: [
             "earth-hyper-1440x720.png",
             "earth-hyper-countries.png"
+        ],
+        empires: [
+            "empires-hyper-1440x720.png",
+            "earth-hyper-1440x720.png"
         ],
         naStates: [
             "north_america_states.png"
@@ -125,13 +128,15 @@
         return 5;
     }
     function isHyperMap() {
-        return currentWorldMap === "hyper" || currentWorldMap === "hyperCountries";
+        return currentWorldMap === "hyper" || currentWorldMap === "hyperCountries" || currentWorldMap === "empires";
+    }
+    function isPaintedMap() {
+        return currentWorldMap === "countries" || currentWorldMap === "detailedCountries" || currentWorldMap === "hyperCountries" || currentWorldMap === "empires" || currentWorldMap === "naStates";
     }
     function applyImageToMap(img) {
         var iw = img.naturalWidth || img.width || 360;
         var ih = img.naturalHeight || img.height || 180;
         if (isHyperMap()) {
-            // Always play hyper maps at 1440×720. Never shrink to a 360 stand-in file.
             setMapSize(1440, 720);
         } else if (["detailed","detailedCountries","northAmerica","seaNorthAmerica","naStates"].indexOf(currentWorldMap) >= 0) {
             var capW = 720, capH = 360;
@@ -250,7 +255,8 @@
     }
     function applyPoliticalWorld() {
         var data = window.LL_POLITICAL;
-        if (currentWorldMap === "hyperCountries" && window.LL_POLITICAL_HYPER) data = window.LL_POLITICAL_HYPER;
+        if (currentWorldMap === "empires" && window.LL_EMPIRES_HYPER) data = window.LL_EMPIRES_HYPER;
+        else if (currentWorldMap === "hyperCountries" && window.LL_POLITICAL_HYPER) data = window.LL_POLITICAL_HYPER;
         else if (currentWorldMap === "naStates" && window.LL_NA_STATES) data = window.LL_NA_STATES;
         else if (currentWorldMap === "detailedCountries" && window.LL_POLITICAL_HD) data = window.LL_POLITICAL_HD;
         if (!data || !data.countries) {
@@ -265,11 +271,8 @@
             for (i = 0; i < W * H; i++) {
                 elev[i] = owner[i] ? 1 : 0;
                 p = i * 4;
-                if (elev[i]) {
-                    mapPix[p] = 212; mapPix[p + 1] = 212; mapPix[p + 2] = 212; mapPix[p + 3] = 255;
-                } else {
-                    mapPix[p] = 255; mapPix[p + 1] = 255; mapPix[p + 2] = 255; mapPix[p + 3] = 255;
-                }
+                if (elev[i]) { mapPix[p] = 212; mapPix[p+1] = 212; mapPix[p+2] = 212; mapPix[p+3] = 255; }
+                else { mapPix[p] = 255; mapPix[p+1] = 255; mapPix[p+2] = 255; mapPix[p+3] = 255; }
             }
         }
         scrubOceanClaims();
@@ -303,7 +306,7 @@
         refreshLandCache();
     }
     function loadWorldMap(kind, done) {
-        if (["realistic","countries","detailed","detailedCountries","northAmerica","seaNorthAmerica","hyper","hyperCountries","naStates"].indexOf(kind) < 0) kind = "blobs";
+        if (["realistic","countries","detailed","detailedCountries","northAmerica","seaNorthAmerica","hyper","hyperCountries","empires","naStates"].indexOf(kind) < 0) kind = "blobs";
         currentWorldMap = kind;
         if (isHyperMap()) setMapSize(1440, 720);
         var list = (WORLD_MAPS[kind] || []).slice();
@@ -314,21 +317,14 @@
             if (typeof done === "function") done(ok);
         }
         function next() {
-            if (!list.length) {
-                finish(false);
-                return;
-            }
+            if (!list.length) { finish(false); return; }
             var src = list.shift();
             if (!src || typeof src !== "string") { next(); return; }
-            if (src.indexOf("data:") !== 0 && src.indexOf("?") < 0) src = src + "?v=72.40";
+            if (src.indexOf("data:") !== 0 && src.indexOf("?") < 0) src = src + "?v=72.50";
             loadImageSrc(src, function (im) {
                 var iw = im.naturalWidth || im.width || 0;
                 var ih = im.naturalHeight || im.height || 0;
-                // A 360×180 file is NOT the hyper map — skip it and try the next source.
-                if (isHyperMap() && (iw < 1000 || ih < 500)) {
-                    next();
-                    return;
-                }
+                if (isHyperMap() && (iw < 1000 || ih < 500)) { next(); return; }
                 applyImageToMap(im);
                 finish(true);
             }, next);
@@ -629,7 +625,7 @@
         return CITY_NAMES[(Math.random() * CITY_NAMES.length) | 0] + " Province";
     }
     function fillCitiesInsideCountries() {
-        if (currentWorldMap === "countries" || currentWorldMap === "detailedCountries" || currentWorldMap === "hyperCountries" || currentWorldMap === "naStates") return;
+        if (isPaintedMap()) return;
         cityOwn.fill(0);
         var next = [];
         countries.forEach(function (c) {
@@ -1148,20 +1144,10 @@
             selectedId: selectedId,
             countries: countries.map(function (c) {
                 return {
-                    id: c.id,
-                    name: c.name,
-                    fill: c.fill,
-                    stroke: c.stroke,
-                    money: c.money,
-                    military: c.military,
-                    banks: c.banks,
-                    farms: c.farms,
-                    cities: c.cities,
-                    diamonds: c.diamonds,
-                    shield: c.shield || 0,
-                    broke: !!c.broke,
-                    inflation: c.inflation || 1,
-                    warHeat: c.warHeat || 0,
+                    id: c.id, name: c.name, fill: c.fill, stroke: c.stroke,
+                    money: c.money, military: c.military, banks: c.banks, farms: c.farms,
+                    cities: c.cities, diamonds: c.diamonds, shield: c.shield || 0,
+                    broke: !!c.broke, inflation: c.inflation || 1, warHeat: c.warHeat || 0,
                     allies: allyIds(c)
                 };
             }),
@@ -1188,30 +1174,20 @@
                 into.set(raw[keyFlat]);
                 return;
             }
-            var src = new Uint16Array(raw[keyFlat]);
-            var sw = raw.w || Math.round(Math.sqrt(src.length * 2)) || W;
-            var sh = raw.h || Math.max(1, (src.length / sw) | 0);
-            if (sw * sh === src.length) scaleGridU16(src, sw, sh, into, W, H);
+            var srcGrid = new Uint16Array(raw[keyFlat]);
+            var sw = raw.w || W;
+            var sh = raw.h || Math.max(1, (srcGrid.length / sw) | 0);
+            if (sw * sh === srcGrid.length) scaleGridU16(srcGrid, sw, sh, into, W, H);
         }
     }
     function applySaveData(raw) {
         if (!raw) return false;
         countries = (raw.countries || []).map(function (c) {
             return {
-                id: c.id,
-                name: c.name || "Country",
-                fill: c.fill || "#ef4444",
-                stroke: c.stroke || "#111111",
-                money: c.money || 0,
-                military: c.military || 0,
-                banks: c.banks || 0,
-                farms: c.farms || 0,
-                cities: c.cities == null ? 2 : c.cities,
-                diamonds: c.diamonds || 0,
-                shield: c.shield || 0,
-                broke: !!c.broke,
-                inflation: c.inflation || 1,
-                warHeat: c.warHeat || 0,
+                id: c.id, name: c.name || "Country", fill: c.fill || "#ef4444", stroke: c.stroke || "#111111",
+                money: c.money || 0, military: c.military || 0, banks: c.banks || 0, farms: c.farms || 0,
+                cities: c.cities == null ? 2 : c.cities, diamonds: c.diamonds || 0, shield: c.shield || 0,
+                broke: !!c.broke, inflation: c.inflation || 1, warHeat: c.warHeat || 0,
                 allies: Array.isArray(c.allies) ? c.allies.slice() : []
             };
         });
@@ -1269,11 +1245,9 @@
         reader.onload = function () {
             try {
                 var raw = JSON.parse(String(reader.result || ""));
-                if (!raw || raw.type && raw.type !== "azora-living-lands") {
-                    if (!raw || !(raw.owner || raw.ownerRle || raw.countries)) {
-                        addNote("That file is not a Living Lands save.");
-                        return;
-                    }
+                if (!raw || !(raw.owner || raw.ownerRle || raw.countries)) {
+                    addNote("That file is not a Living Lands save.");
+                    return;
                 }
                 var kind = raw.worldMap || currentWorldMap || "blobs";
                 currentWorldMap = kind;
@@ -1284,7 +1258,7 @@
                     setMode("edit");
                     renderCountryList();
                     syncEditorFromCountry();
-                    fillAllyPicker();
+                    if (typeof fillAllyPicker === "function") fillAllyPicker();
                     draw();
                     addNote("Loaded \"" + (raw.name || file.name || "save") + "\".");
                 });
@@ -1378,7 +1352,7 @@
         renderCountryList();
         syncEditorFromCountry();
         loadWorldMap(currentWorldMap, function () {
-            if (currentWorldMap === "countries" || currentWorldMap === "detailedCountries" || currentWorldMap === "hyperCountries" || currentWorldMap === "naStates") applyPoliticalWorld();
+            if (isPaintedMap()) applyPoliticalWorld();
             else fillCitiesInsideCountries();
             renderCountryList();
             syncEditorFromCountry();
@@ -1403,9 +1377,9 @@
     window.llSetWorldMap = function (kind) {
         if (mode !== "edit") return;
         loadWorldMap(kind, function () {
-            if (kind === "countries" || kind === "detailedCountries" || kind === "hyperCountries" || kind === "naStates") {
+            if (isPaintedMap()) {
                 applyPoliticalWorld();
-                addNote(kind === "naStates" ? "North America states map loaded." : (kind === "hyperCountries" ? "Hyper countries map loaded." : (kind === "detailedCountries" ? "Detailed countries map loaded." : "Real countries map loaded.")));
+                addNote(kind === "empires" ? "Empires map loaded." : (kind === "naStates" ? "North America states map loaded." : (kind === "hyperCountries" ? "Hyper countries map loaded." : (kind === "detailedCountries" ? "Detailed countries map loaded." : "Real countries map loaded."))));
             } else {
                 owner.fill(0);
                 cityOwn.fill(0);
