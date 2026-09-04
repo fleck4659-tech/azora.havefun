@@ -292,7 +292,18 @@
                 broke: false,
                 inflation: 1,
                 warHeat: 0,
-                allies: []
+                allies: [],
+                willInvade: Math.random() > 0.28,
+                maxWars: Math.random() < 0.55 ? 1 : 2,
+                takeGoal: ["little", "half", "most", "all"][(Math.random() * 4) | 0],
+                wars: [],
+                manualWar: false,
+                leaderStatus: "ok",
+                exileTroops: 0,
+                exileWait: 0,
+                fallen: false,
+                homeX: 0,
+                homeY: 0
             };
         });
         cities = (data.provinces || []).map(function (p) {
@@ -356,7 +367,18 @@
             diamonds: 0,
             inflation: 1,
             warHeat: 0,
-            allies: []
+            allies: [],
+            willInvade: true,
+            maxWars: 1,
+            takeGoal: "half",
+            wars: [],
+            manualWar: false,
+            leaderStatus: "ok",
+            exileTroops: 0,
+            exileWait: 0,
+            fallen: false,
+            homeX: 0,
+            homeY: 0
         };
     }
     function findCountry(id) {
@@ -376,6 +398,97 @@
     function areAllied(a, b) {
         if (!a || !b || a.id === b.id) return false;
         return allyIds(a).indexOf(b.id) >= 0 || allyIds(b).indexOf(a.id) >= 0;
+    }
+    function takeGoalFrac(goal) {
+        if (goal === "little") return 0.12;
+        if (goal === "quarter") return 0.28;
+        if (goal === "half") return 0.5;
+        if (goal === "most") return 0.8;
+        return 1;
+    }
+    function takeGoalLabel(goal) {
+        if (goal === "little") return "a little";
+        if (goal === "quarter") return "about a quarter";
+        if (goal === "half") return "about half";
+        if (goal === "most") return "most";
+        return "all";
+    }
+    function warList(c) {
+        if (!c) return [];
+        if (!Array.isArray(c.wars)) c.wars = [];
+        return c.wars;
+    }
+    function findWar(c, id) {
+        var w = warList(c), i;
+        for (i = 0; i < w.length; i++) if (w[i].id === id) return w[i];
+        return null;
+    }
+    function maxWarsOf(c) {
+        var n = Number(c && c.maxWars) || 1;
+        if (n < 1) n = 1;
+        if (n > 2) n = 2;
+        return n;
+    }
+    function countryAlive(c) {
+        return !!(c && !c.fallen && c.leaderStatus !== "gone");
+    }
+    function rememberHome(c, x, y) {
+        if (!c) return;
+        c.homeX = x;
+        c.homeY = y;
+    }
+    function pickAiWarPlan(c) {
+        if (!c || c.manualWar) return;
+        var rich = (Number(c.money) || 0) > upkeepOf(c) * 3;
+        var strong = (Number(c.military) || 0) >= 14;
+        if (simTick % 36 === c.id % 36) {
+            if (!rich && !strong) c.willInvade = Math.random() < 0.22;
+            else c.willInvade = Math.random() < 0.72;
+            if (!c.maxWars) c.maxWars = Math.random() < 0.6 ? 1 : 2;
+            if (!c.takeGoal) {
+                if ((Number(c.military) || 0) > 80) c.takeGoal = Math.random() < 0.45 ? "all" : "most";
+                else if ((Number(c.military) || 0) > 25) c.takeGoal = Math.random() < 0.5 ? "half" : "most";
+                else c.takeGoal = Math.random() < 0.6 ? "little" : "half";
+            }
+        }
+    }
+    function canStartWar(me, them) {
+        if (!countryAlive(me) || !countryAlive(them)) return false;
+        if (!me.willInvade) return false;
+        if (areAllied(me, them)) return false;
+        if (!canAffordWar(me)) return false;
+        if (findWar(me, them.id)) return true;
+        if ((them.peaceUntil || 0) > simTick) return false;
+        return warList(me).length < maxWarsOf(me);
+    }
+    function startWar(me, them) {
+        if (!me || !them) return false;
+        if (findWar(me, them.id)) return true;
+        if (warList(me).length >= maxWarsOf(me)) return false;
+        me.wars.push({
+            id: them.id,
+            goal: me.takeGoal || "half",
+            startLand: Math.max(1, landCount(them.id)),
+            taken: 0
+        });
+        addNote(me.name + " chose to invade " + them.name + " and take " + takeGoalLabel(me.takeGoal || "half") + " of it.");
+        return true;
+    }
+    function finishWarIfDone(me, them) {
+        var w = findWar(me, them.id);
+        if (!w) return false;
+        var start = Math.max(1, w.startLand || 1);
+        var left = landCount(them.id);
+        var frac = Math.max(w.taken / start, 1 - left / start);
+        var need = takeGoalFrac(w.goal);
+        if (w.goal === "all" ? left > 0 && frac < 0.995 : frac < need) return false;
+        me.wars = warList(me).filter(function (x) { return x.id !== them.id; });
+        them.peaceUntil = simTick + 28 + ((Math.random() * 24) | 0);
+        addNote(me.name + " stopped after taking " + takeGoalLabel(w.goal) + " of " + them.name + ".");
+        return true;
+    }
+    function noteHomeFromTile(me, p) {
+        rememberHome(me, p % W, (p / W) | 0);
     }
     function allyNames(c) {
         return allyIds(c).map(function (id) {
@@ -779,6 +892,12 @@
                     var atk = power(me) + Math.random() * 6;
                     var def = them ? defense(them) + Math.random() * 8 : 3;
                     if (them && areAllied(me, them)) { keep.push(cr); return; }
+                    if (them && countryAlive(them) && me.willInvade) {
+                        if (!findWar(me, them.id)) {
+                            if (!canStartWar(me, them) || !startWar(me, them)) { keep.push(cr); return; }
+                        }
+                        if (finishWarIfDone(me, them)) { keep.push(cr); return; }
+                    } else if (them && owner[p]) { keep.push(cr); return; }
                     if ((Number(me.money) || 0) >= landFee && (!owner[p] || atk > def)) {
                         me.money -= landFee;
                         owner[p] = me.id;
@@ -790,6 +909,92 @@
             } else keep.push(cr);
         });
         crafts = keep;
+    }
+    function wipeCountryLand(c) {
+        if (!c) return;
+        var i;
+        for (i = 0; i < W * H; i++) {
+            if (owner[i] === c.id) { owner[i] = 0; cityOwn[i] = 0; }
+        }
+        landCache[c.id] = 0;
+        c.wars = [];
+    }
+    function handleTerritoryFall(c) {
+        if (!c || c.fallen) return;
+        if (landCount(c.id) > 0) return;
+        c.collapsed = true;
+        if (c.leaderStatus === "away" || c.leaderStatus === "gone") return;
+        var mil = Number(c.military) || 0;
+        var escaped = mil >= 18 && Math.random() < 0.62;
+        if (escaped) {
+            c.leaderStatus = "away";
+            c.exileTroops = Math.max(10, Math.floor(mil * 0.65));
+            c.military = 0;
+            c.exileWait = 18 + ((Math.random() * 36) | 0);
+            addNote(c.name + " collapsed, but its leader left with " + c.exileTroops + " troops.");
+        } else {
+            c.leaderStatus = "gone";
+            c.fallen = true;
+            c.exileTroops = 0;
+            c.military = 0;
+            wipeCountryLand(c);
+            addNote("The leader of " + c.name + " was defeated and nobody took over. " + c.name + " is gone.");
+        }
+    }
+    function findReturnTile(c) {
+        var tries, x, y, p, hx = c.homeX | 0, hy = c.homeY | 0;
+        for (tries = 0; tries < 80; tries++) {
+            x = Math.max(1, Math.min(W - 2, hx + ((Math.random() * 24) | 0) - 12));
+            y = Math.max(1, Math.min(H - 2, hy + ((Math.random() * 24) | 0) - 12));
+            p = idx(x, y);
+            if (elev[p] && (!owner[p] || !countryAlive(findCountry(owner[p])))) return p;
+        }
+        for (tries = 0; tries < 120; tries++) {
+            p = (Math.random() * W * H) | 0;
+            if (elev[p] && !owner[p]) return p;
+        }
+        return -1;
+    }
+    function leaderTick() {
+        countries.forEach(function (c) {
+            if (c.fallen || c.leaderStatus === "gone") return;
+            if (c.leaderStatus !== "away") return;
+            c.exileWait = (c.exileWait || 0) - 1;
+            c.exileTroops = (c.exileTroops || 0) + 1 + ((Number(c.banks) || 0) > 2 ? 1 : 0);
+            if (c.exileWait > 0) return;
+            if ((c.exileTroops || 0) >= 22) {
+                var p = findReturnTile(c);
+                if (p < 0) {
+                    c.exileWait = 8;
+                    return;
+                }
+                var spot, s, x, y, q;
+                var granted = Math.min(18, 4 + ((c.exileTroops / 8) | 0));
+                owner[p] = c.id;
+                landAge[p] = 0;
+                granted--;
+                x = p % W; y = (p / W) | 0;
+                for (s = 0; s < 40 && granted > 0; s++) {
+                    q = idx(Math.max(0, Math.min(W - 1, x + ((Math.random() * 7) | 0) - 3)), Math.max(0, Math.min(H - 1, y + ((Math.random() * 7) | 0) - 3)));
+                    if (elev[q] && !owner[q]) { owner[q] = c.id; landAge[q] = 0; granted--; }
+                }
+                c.leaderStatus = "ok";
+                c.fallen = false;
+                c.collapsed = false;
+                c.military = c.exileTroops;
+                c.standingMil = c.exileTroops;
+                c.exileTroops = 0;
+                c.wars = [];
+                refreshLandCache();
+                addNote(c.name + "'s leader came back with a large army and reclaimed land.");
+            } else if (c.exileWait < -70) {
+                c.leaderStatus = "gone";
+                c.fallen = true;
+                c.exileTroops = 0;
+                wipeCountryLand(c);
+                addNote(c.name + "'s leader never came back, and nobody took over. " + c.name + " is gone.");
+            }
+        });
     }
     function bankTick() {
         refreshLandCache();
@@ -823,14 +1028,12 @@
                 c.money += 8 + farms * 3;
             }
             if (size <= 0) {
-                if (!c.collapsed) {
-                    c.collapsed = true;
-                    addNote(c.name + " has collapsed.");
-                }
+                handleTerritoryFall(c);
                 markBroke(c, true);
                 return;
             }
             c.collapsed = false;
+            if (c.leaderStatus === "away") return;
             var poor = c.money < cost + 10;
             markBroke(c, poor);
             if (!poor && c.money >= cost + 28 && !c.shield) {
@@ -865,8 +1068,9 @@
             oid = owner[q];
             if (oid === cid) continue;
             me = findCountry(cid);
-            if (!me) continue;
-            if (!canGrow(me)) continue;
+            if (!me || !countryAlive(me)) continue;
+            pickAiWarPlan(me);
+            if (!canGrow(me) && !me.willInvade) continue;
             var price = claimPrice(me, elev[q]);
             if ((Number(me.money) || 0) < price) continue;
             if (!oid) {
@@ -874,11 +1078,20 @@
                     me.money -= price;
                     bumpInflation(me, 0.002);
                     owner[q] = cid; landAge[q] = 0; landCache[cid] = (landCache[cid] || 0) + 1;
+                    noteHomeFromTile(me, q);
                 }
             } else {
                 them = findCountry(oid);
-                if (!them) continue;
+                if (!them || !countryAlive(them)) continue;
                 if (areAllied(me, them)) continue;
+                if (!me.willInvade) continue;
+                var ongoing = findWar(me, them.id);
+                if (!ongoing) {
+                    if (!canStartWar(me, them)) continue;
+                    if (!startWar(me, them)) continue;
+                    ongoing = findWar(me, them.id);
+                }
+                if (finishWarIfDone(me, them)) continue;
                 if (!canAffordWar(me)) continue;
                 var atk = power(me) + Math.random() * 4;
                 var def = defense(them) + allyDefenseBoost(them) + elev[q] * 4 + Math.random() * 6;
@@ -892,9 +1105,13 @@
                     cityOwn[q] = 0;
                     landCache[cid] = (landCache[cid] || 0) + 1;
                     landCache[them.id] = Math.max(0, (landCache[them.id] || 1) - 1);
+                    if (ongoing) ongoing.taken = (ongoing.taken || 0) + 1;
+                    noteHomeFromTile(me, q);
                     if (Math.random() < (canDefend(them) ? 0.06 : 0.18)) addNote(me.name + " has invaded " + them.name);
                     if (allyIds(them).length) allyIntervene(them, me);
                     else if (canDefend(them)) tryFightBack(them.id, me.id, q % W, (q / W) | 0);
+                    finishWarIfDone(me, them);
+                    if (landCount(them.id) <= 0) handleTerritoryFall(them);
                 } else if ((canDefend(them) || allyIds(them).length) && Math.random() < 0.08) {
                     addNote(them.name + (allyIds(them).length ? " and its allies resisted " : " resisted ") + me.name);
                 }
@@ -908,6 +1125,7 @@
         if (!heavy && simTick % 12 === 0) maybeLaunchCrafts();
         if (!heavy && simTick % 2 === 0) moveCrafts();
         if (simTick % (heavy ? 10 : 8) === 0) bankTick();
+        if (simTick % (heavy ? 12 : 9) === 0) leaderTick();
         if (simTick % (heavy ? 4 : (W * H > 100000 ? 3 : 2)) === 0) draw();
     }
     function draw() {
@@ -1043,7 +1261,7 @@
             row.innerHTML =
                 '<button type="button" class="ll-c-swatch" style="background:' + c.fill + ';box-shadow:0 0 0 2px ' + c.stroke + ' inset"></button>' +
                 '<input class="ll-edit-only" maxlength="18" value="' + String(c.name).replace(/"/g, "") + '">' +
-                '<span>💎' + (c.diamonds || 0) + '</span>';
+                '<span>💎' + (c.diamonds || 0) + (c.fallen || c.leaderStatus === "gone" ? " · gone" : (c.leaderStatus === "away" ? " · away" : "")) + '</span>';
             function pick() {
                 selectedId = c.id;
                 if (mode === "play" || mode === "pause") lockedOutline = c.id;
@@ -1077,6 +1295,26 @@
         val("llStartMoney", c.money); val("llStartMil", c.military);
         val("llStartBanks", c.banks); val("llStartFarms", c.farms);
         val("llStartCities", c.cities);
+        var inv = document.getElementById("llWillInvade");
+        if (inv) inv.value = c.willInvade ? "yes" : "no";
+        var mw = document.getElementById("llMaxWars");
+        if (mw) mw.value = String(maxWarsOf(c));
+        var tg = document.getElementById("llTakeGoal");
+        if (tg) tg.value = c.takeGoal || "half";
+        var st = document.getElementById("llLeaderStatus");
+        if (st) {
+            if (c.fallen || c.leaderStatus === "gone") st.textContent = "Gone — leader defeated, no replacement.";
+            else if (c.leaderStatus === "away") st.textContent = "Leader away with " + (c.exileTroops || 0) + " troops. May return.";
+            else st.textContent = "Leader is in charge.";
+        }
+        var wr = document.getElementById("llWarStatus");
+        if (wr) {
+            var names = warList(c).map(function (w) {
+                var t = findCountry(w.id);
+                return (t ? t.name : "Unknown") + " (" + takeGoalLabel(w.goal) + ")";
+            });
+            wr.textContent = names.length ? ("Invading: " + names.join(", ")) : (c.willInvade ? "Ready to pick 1–2 targets." : "Chose not to invade.");
+        }
     }
     function applyEditorToCountry() {
         var c = findCountry(selectedId);
@@ -1148,7 +1386,18 @@
                     money: c.money, military: c.military, banks: c.banks, farms: c.farms,
                     cities: c.cities, diamonds: c.diamonds, shield: c.shield || 0,
                     broke: !!c.broke, inflation: c.inflation || 1, warHeat: c.warHeat || 0,
-                    allies: allyIds(c)
+                    allies: allyIds(c),
+                    willInvade: !!c.willInvade,
+                    maxWars: maxWarsOf(c),
+                    takeGoal: c.takeGoal || "half",
+                    wars: warList(c).map(function (w) { return { id: w.id, goal: w.goal, startLand: w.startLand, taken: w.taken || 0 }; }),
+                    manualWar: !!c.manualWar,
+                    leaderStatus: c.leaderStatus || "ok",
+                    exileTroops: c.exileTroops || 0,
+                    exileWait: c.exileWait || 0,
+                    fallen: !!c.fallen,
+                    homeX: c.homeX || 0,
+                    homeY: c.homeY || 0
                 };
             }),
             cities: cities.map(function (p) {
@@ -1188,7 +1437,18 @@
                 money: c.money || 0, military: c.military || 0, banks: c.banks || 0, farms: c.farms || 0,
                 cities: c.cities == null ? 2 : c.cities, diamonds: c.diamonds || 0, shield: c.shield || 0,
                 broke: !!c.broke, inflation: c.inflation || 1, warHeat: c.warHeat || 0,
-                allies: Array.isArray(c.allies) ? c.allies.slice() : []
+                allies: Array.isArray(c.allies) ? c.allies.slice() : [],
+                willInvade: c.willInvade !== false,
+                maxWars: c.maxWars === 2 ? 2 : 1,
+                takeGoal: c.takeGoal || "half",
+                wars: Array.isArray(c.wars) ? c.wars.slice() : [],
+                manualWar: !!c.manualWar,
+                leaderStatus: c.leaderStatus || "ok",
+                exileTroops: c.exileTroops || 0,
+                exileWait: c.exileWait || 0,
+                fallen: !!c.fallen,
+                homeX: c.homeX || 0,
+                homeY: c.homeY || 0
             };
         });
         cities = raw.cities || [];
@@ -1359,6 +1619,23 @@
             draw();
         });
         startTicks();
+    };
+    window.llApplyWarPlan = function () {
+        var c = findCountry(selectedId);
+        if (!c) return;
+        var inv = document.getElementById("llWillInvade");
+        var mw = document.getElementById("llMaxWars");
+        var tg = document.getElementById("llTakeGoal");
+        c.willInvade = !!(inv && inv.value === "yes");
+        c.maxWars = mw && mw.value === "2" ? 2 : 1;
+        c.takeGoal = (tg && tg.value) || "half";
+        c.manualWar = true;
+        if (!c.willInvade) c.wars = [];
+        else if (warList(c).length > maxWarsOf(c)) c.wars = warList(c).slice(0, maxWarsOf(c));
+        syncEditorFromCountry();
+        addNote(c.name + (c.willInvade
+            ? (" will invade up to " + maxWarsOf(c) + " at a time and take " + takeGoalLabel(c.takeGoal) + ".")
+            : " chose not to invade anyone."));
     };
     window.llSetSpeed = function (v) {
         speedLevel = Math.max(1, Math.min(5, parseInt(v, 10) || 5));

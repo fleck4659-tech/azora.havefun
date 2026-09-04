@@ -1439,6 +1439,31 @@
                 <select id="llAllyPick"></select>
                 <button type="button" class="ll-claim" onclick="llToggleAlly()">Ally / Unally</button>
                 <div id="llAllyList" class="ll-note">No allies yet.</div>
+                <h3>War plan</h3>
+                <p class="ll-note">A territory can choose to invade or stay peaceful. It may only invade 1 or 2 territories at a time. It also picks how much land to take, then stops. If a territory falls, its leader may come back later with troops. If the leader is defeated and nobody takes over, that territory is gone.</p>
+                <label>Invade others
+                    <select id="llWillInvade" onchange="llApplyWarPlan()">
+                        <option value="yes">Yes</option>
+                        <option value="no">No</option>
+                    </select>
+                </label>
+                <label>At the same time
+                    <select id="llMaxWars" onchange="llApplyWarPlan()">
+                        <option value="1">1 territory</option>
+                        <option value="2">2 territories</option>
+                    </select>
+                </label>
+                <label>Take this much
+                    <select id="llTakeGoal" onchange="llApplyWarPlan()">
+                        <option value="little">A little</option>
+                        <option value="quarter">About a quarter</option>
+                        <option value="half" selected>About half</option>
+                        <option value="most">Most of it</option>
+                        <option value="all">All of it</option>
+                    </select>
+                </label>
+                <div id="llWarStatus" class="ll-note">Ready to pick 1–2 targets.</div>
+                <div id="llLeaderStatus" class="ll-note">Leader is in charge.</div>
                 <h3>Notifications</h3>
                 <div id="llNotes" class="ll-log"></div>
                 <p class="ll-note">Save downloads a file to your device (default name save_map1). Load lets you pick that file and restore the map, countries, money, military, and allies. Name countries and paint them before Play. Stop restores the exact map from when Play began.</p>
@@ -1485,7 +1510,7 @@
 <script src="political-earth-hyper.js?v=72.26"></script>
 <script src="empires-earth-hyper.js?v=72.50"></script>
 <script src="na-states-data.js?v=72.26"></script>
-<script src="living-lands.js?v=72.50"></script>
+<script src="living-lands.js?v=72.51"></script>
 <script>
 // Register Azora as installable app (not the staff website)
 if ("serviceWorker" in navigator) {
