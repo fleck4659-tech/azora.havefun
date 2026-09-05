@@ -12000,6 +12000,7 @@ function closeAturiusPanel() {
     try {
         if (window.speechSynthesis) window.speechSynthesis.cancel();
     } catch (e) {}
+    try { if (typeof closeAturiusCall === "function") closeAturiusCall(); } catch (eC) {}
     setAturiusMood("idle");
     _aturiusMouthOpen = 0;
 }
@@ -13383,10 +13384,10 @@ function showAturiusTyping(on) {
     box.scrollTop = box.scrollHeight;
 }
 
-function sendAturiusMessage() {
+function sendAturiusMessage(presetText) {
     var input = document.getElementById("aturiusInput");
     if (!input) return;
-    var text = (input.value || "").trim();
+    var text = (typeof presetText === "string") ? presetText.trim() : (input.value || "").trim();
     var att = _aturiusPendingAttach;
     if (!text && !att) return;
     if (text && typeof azoraAutoModerate === "function") {
@@ -28033,5 +28034,220 @@ window.loadNormCvbSettingsIntoUi = loadNormCvbSettingsIntoUi;
             saveReport({ type: "video", videoId: id, by: meName(), at: Date.now() });
         }
         alert("Thanks. This video was sent to the safety queue.");
+    };
+})();
+
+
+/* ===== Aturius voice call screen (speech becomes text) ===== */
+(function () {
+    var callOpen = false;
+    var rec = null;
+    var stream = null;
+    var audioCtx = null;
+    var analyser = null;
+    var freqData = null;
+    var timeData = null;
+    var raf = 0;
+    var bars = [];
+    var lastSent = "";
+    var listenBoost = 0;
+
+    function liveEl() { return document.getElementById("aturiusCallLive"); }
+    function setLive(t) { var el = liveEl(); if (el) el.textContent = t; }
+
+    function drawCallFace(vol, freqHint) {
+        var canvas = document.getElementById("aturiusCallFace");
+        if (!canvas) return;
+        var ctx = canvas.getContext("2d");
+        var w = canvas.width, h = canvas.height;
+        ctx.clearRect(0, 0, w, h);
+        ctx.fillStyle = "rgba(0,0,0,0)";
+        ctx.fillRect(0, 0, w, h);
+        var blink = (Date.now() % 4200) < 120;
+        ctx.save();
+        ctx.translate(w / 2, h / 2);
+        ctx.fillStyle = "#1a1a1a";
+        var eyeY = -28 - freqHint * 10;
+        var eyeW = 28, eyeH = blink ? 4 : 34;
+        ctx.beginPath();
+        ctx.ellipse(-52, eyeY, eyeW * 0.45, eyeH * 0.45, 0, 0, Math.PI * 2);
+        ctx.ellipse(52, eyeY, eyeW * 0.45, eyeH * 0.45, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = "#1a1a1a";
+        ctx.lineWidth = 14;
+        ctx.lineCap = "round";
+        ctx.beginPath();
+        var mouthOpen = 10 + vol * 36;
+        ctx.moveTo(-70, 48);
+        ctx.quadraticCurveTo(0, 48 + mouthOpen, 70, 48);
+        ctx.stroke();
+        ctx.restore();
+    }
+
+    function buildBars() {
+        var box = document.getElementById("aturiusCallBars");
+        if (!box) return;
+        box.innerHTML = "";
+        bars = [];
+        for (var i = 0; i < 24; i++) {
+            var el = document.createElement("i");
+            box.appendChild(el);
+            bars.push(el);
+        }
+    }
+
+    function tickCall() {
+        if (!callOpen) return;
+        raf = requestAnimationFrame(tickCall);
+        var vol = 0, bass = 0, treble = 0;
+        if (analyser && freqData && timeData) {
+            analyser.getByteFrequencyData(freqData);
+            analyser.getByteTimeDomainData(timeData);
+            var i, s = 0, peak = 0;
+            for (i = 0; i < timeData.length; i++) {
+                var v = Math.abs(timeData[i] - 128) / 128;
+                s += v;
+                if (v > peak) peak = v;
+            }
+            vol = Math.min(1, (s / timeData.length) * 4.2 + peak * 0.35);
+            var mid = freqData.length >> 2;
+            for (i = 0; i < mid; i++) bass += freqData[i];
+            for (i = mid; i < freqData.length; i++) treble += freqData[i];
+            bass = bass / Math.max(1, mid) / 255;
+            treble = treble / Math.max(1, freqData.length - mid) / 255;
+            for (i = 0; i < bars.length; i++) {
+                var bin = freqData[Math.floor(i * freqData.length / bars.length)] / 255;
+                var h = 8 + Math.pow(bin, 0.85) * 56;
+                bars[i].style.height = h.toFixed(1) + "px";
+                bars[i].style.opacity = String(0.45 + bin * 0.55);
+            }
+        }
+        listenBoost += (vol - listenBoost) * 0.2;
+        var wrap = document.getElementById("aturiusCallOrbWrap");
+        if (wrap) {
+            var closer = 1 + listenBoost * 0.42;
+            var down = listenBoost * 54;
+            var rot = (treble - bass) * 18 + Math.sin(Date.now() / 260) * listenBoost * 8;
+            wrap.style.transform = "translateY(" + down.toFixed(1) + "px) scale(" + closer.toFixed(3) + ") rotate(" + rot.toFixed(2) + "deg)";
+        }
+        drawCallFace(listenBoost, bass);
+    }
+
+    function startMic() {
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+            setLive("This device cannot use a microphone. You can still type to Aturius.");
+            return Promise.resolve(null);
+        }
+        return navigator.mediaDevices.getUserMedia({ audio: true, video: false }).then(function (s) {
+            stream = s;
+            var AC = window.AudioContext || window.webkitAudioContext;
+            if (AC) {
+                audioCtx = new AC();
+                var src = audioCtx.createMediaStreamSource(s);
+                analyser = audioCtx.createAnalyser();
+                analyser.fftSize = 256;
+                analyser.smoothingTimeConstant = 0.72;
+                src.connect(analyser);
+                freqData = new Uint8Array(analyser.frequencyBinCount);
+                timeData = new Uint8Array(analyser.fftSize);
+            }
+            return s;
+        }).catch(function () {
+            setLive("Microphone was blocked. Allow it, or type your words instead.");
+            return null;
+        });
+    }
+
+    function startSpeech() {
+        var Rec = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (!Rec) {
+            setLive("Voice-to-words is not on this browser. Chrome works best. You can still type.");
+            return;
+        }
+        rec = new Rec();
+        rec.lang = "en-US";
+        rec.continuous = true;
+        rec.interimResults = true;
+        rec.onresult = function (ev) {
+            var live = "";
+            var finalText = "";
+            for (var i = ev.resultIndex; i < ev.results.length; i++) {
+                var chunk = ev.results[i][0].transcript || "";
+                if (ev.results[i].isFinal) finalText += chunk + " ";
+                else live += chunk;
+            }
+            if (live) setLive(live);
+            finalText = finalText.trim();
+            if (finalText && finalText !== lastSent) {
+                lastSent = finalText;
+                setLive("Aturius is reading: “" + finalText + "”");
+                if (typeof sendAturiusMessage === "function") sendAturiusMessage(finalText);
+            }
+        };
+        rec.onerror = function (e) {
+            if (e && e.error === "not-allowed") setLive("Microphone was blocked.");
+        };
+        rec.onend = function () {
+            if (callOpen) {
+                try { rec.start(); } catch (e) {}
+            }
+        };
+        try { rec.start(); } catch (e) {}
+    }
+
+    function stopAll() {
+        callOpen = false;
+        if (raf) { cancelAnimationFrame(raf); raf = 0; }
+        try { if (rec) rec.stop(); } catch (e) {}
+        rec = null;
+        if (stream) {
+            stream.getTracks().forEach(function (t) { try { t.stop(); } catch (e2) {} });
+            stream = null;
+        }
+        if (audioCtx) {
+            try { audioCtx.close(); } catch (e3) {}
+            audioCtx = null;
+        }
+        analyser = null;
+        var wrap = document.getElementById("aturiusCallOrbWrap");
+        if (wrap) wrap.style.transform = "";
+        var ov = document.getElementById("aturiusCallOverlay");
+        if (ov) {
+            ov.style.display = "none";
+            ov.classList.remove("open");
+            ov.setAttribute("aria-hidden", "true");
+        }
+        var btn = document.getElementById("aturiusPhoneBtn");
+        if (btn) btn.classList.remove("on-call");
+    }
+
+    window.openAturiusCall = function () {
+        var ov = document.getElementById("aturiusCallOverlay");
+        if (!ov) return;
+        if (typeof openAturiusPanel === "function") {
+            try { openAturiusPanel(); } catch (e) {}
+        }
+        ov.style.display = "flex";
+        ov.classList.add("open");
+        ov.setAttribute("aria-hidden", "false");
+        callOpen = true;
+        lastSent = "";
+        listenBoost = 0;
+        buildBars();
+        drawCallFace(0, 0);
+        setLive("Tap Allow, then speak. Your speech becomes words Aturius can read.");
+        var btn = document.getElementById("aturiusPhoneBtn");
+        if (btn) btn.classList.add("on-call");
+        startMic().then(function () {
+            if (!callOpen) return;
+            startSpeech();
+            if (!raf) tickCall();
+        });
+        if (!raf) tickCall();
+    };
+
+    window.closeAturiusCall = function () {
+        stopAll();
+        setLive("Call ended.");
     };
 })();
