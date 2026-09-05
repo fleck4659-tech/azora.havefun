@@ -11656,7 +11656,7 @@ function scheduleAIReply(userText, aiChatId, attachment) {
         try { if (typeof renderAIChatHistoryList === "function") renderAIChatHistoryList(); } catch (eH) {}
         try {
             var xs2 = getAturiusExtraSettings();
-            if (xs2.autoRead && typeof aturiusReadLastMessage === "function") {
+            if ((xs2.autoRead || window._aturiusCallActive || window._aturiusCallJustEnded) && typeof aturiusReadLastMessage === "function") {
                 setTimeout(function () { aturiusReadLastMessage(); }, 200);
             }
         } catch (eAR) {}
@@ -28048,9 +28048,11 @@ window.loadNormCvbSettingsIntoUi = loadNormCvbSettingsIntoUi;
     var freqData = null;
     var timeData = null;
     var raf = 0;
-    var bars = [];
     var lastSent = "";
     var listenBoost = 0;
+    var waveHist = [];
+    var said = [];
+    var speaking = false;
 
     function liveEl() { return document.getElementById("aturiusCallLive"); }
     function setLive(t) { var el = liveEl(); if (el) el.textContent = t; }
@@ -28061,17 +28063,15 @@ window.loadNormCvbSettingsIntoUi = loadNormCvbSettingsIntoUi;
         var ctx = canvas.getContext("2d");
         var w = canvas.width, h = canvas.height;
         ctx.clearRect(0, 0, w, h);
-        ctx.fillStyle = "rgba(0,0,0,0)";
-        ctx.fillRect(0, 0, w, h);
         var blink = (Date.now() % 4200) < 120;
         ctx.save();
         ctx.translate(w / 2, h / 2);
         ctx.fillStyle = "#1a1a1a";
         var eyeY = -28 - freqHint * 10;
-        var eyeW = 28, eyeH = blink ? 4 : 34;
+        var eyeH = blink ? 4 : 34;
         ctx.beginPath();
-        ctx.ellipse(-52, eyeY, eyeW * 0.45, eyeH * 0.45, 0, 0, Math.PI * 2);
-        ctx.ellipse(52, eyeY, eyeW * 0.45, eyeH * 0.45, 0, 0, Math.PI * 2);
+        ctx.ellipse(-52, eyeY, 12.6, eyeH * 0.45, 0, 0, Math.PI * 2);
+        ctx.ellipse(52, eyeY, 12.6, eyeH * 0.45, 0, 0, Math.PI * 2);
         ctx.fill();
         ctx.strokeStyle = "#1a1a1a";
         ctx.lineWidth = 14;
@@ -28084,16 +28084,50 @@ window.loadNormCvbSettingsIntoUi = loadNormCvbSettingsIntoUi;
         ctx.restore();
     }
 
-    function buildBars() {
-        var box = document.getElementById("aturiusCallBars");
-        if (!box) return;
-        box.innerHTML = "";
-        bars = [];
-        for (var i = 0; i < 24; i++) {
-            var el = document.createElement("i");
-            box.appendChild(el);
-            bars.push(el);
+    function drawWave(vol) {
+        var canvas = document.getElementById("aturiusCallWave");
+        if (!canvas) return;
+        var ctx = canvas.getContext("2d");
+        var w = canvas.width, h = canvas.height;
+        ctx.clearRect(0, 0, w, h);
+        var mid = h / 2;
+        ctx.strokeStyle = "rgba(255,255,255,0.95)";
+        ctx.lineWidth = 3;
+        ctx.lineJoin = "round";
+        ctx.lineCap = "round";
+        ctx.beginPath();
+        var i, n = timeData ? timeData.length : 0;
+        if (n) {
+            for (i = 0; i < n; i++) {
+                var x = (i / (n - 1)) * w;
+                var sample = (timeData[i] - 128) / 128;
+                var y = mid + sample * mid * (0.35 + vol * 1.35);
+                if (i === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            }
+        } else {
+            ctx.moveTo(0, mid);
+            ctx.lineTo(w, mid);
         }
+        ctx.stroke();
+    }
+
+    function speakText(text, after) {
+        if (!text || !window.speechSynthesis) { if (after) after(); return; }
+        try {
+            window.speechSynthesis.cancel();
+            var u = new SpeechSynthesisUtterance(String(text));
+            if (typeof applyAturiusVoiceToUtterance === "function") applyAturiusVoiceToUtterance(u);
+            speaking = true;
+            if (typeof setAturiusMood === "function") setAturiusMood("talking");
+            u.onend = function () {
+                speaking = false;
+                if (typeof setAturiusMood === "function") setAturiusMood("idle");
+                if (after) after();
+            };
+            u.onerror = function () { speaking = false; if (after) after(); };
+            window.speechSynthesis.speak(u);
+        } catch (e) { speaking = false; if (after) after(); }
     }
 
     function tickCall() {
@@ -28115,22 +28149,17 @@ window.loadNormCvbSettingsIntoUi = loadNormCvbSettingsIntoUi;
             for (i = mid; i < freqData.length; i++) treble += freqData[i];
             bass = bass / Math.max(1, mid) / 255;
             treble = treble / Math.max(1, freqData.length - mid) / 255;
-            for (i = 0; i < bars.length; i++) {
-                var bin = freqData[Math.floor(i * freqData.length / bars.length)] / 255;
-                var h = 8 + Math.pow(bin, 0.85) * 56;
-                bars[i].style.height = h.toFixed(1) + "px";
-                bars[i].style.opacity = String(0.45 + bin * 0.55);
-            }
         }
-        listenBoost += (vol - listenBoost) * 0.2;
+        listenBoost += (vol - listenBoost) * 0.22;
         var wrap = document.getElementById("aturiusCallOrbWrap");
         if (wrap) {
-            var closer = 1 + listenBoost * 0.42;
-            var down = listenBoost * 54;
-            var rot = (treble - bass) * 18 + Math.sin(Date.now() / 260) * listenBoost * 8;
+            var closer = 1 + listenBoost * 0.48;
+            var down = listenBoost * 62;
+            var rot = (treble - bass) * 22 + Math.sin(Date.now() / 240) * listenBoost * 10;
             wrap.style.transform = "translateY(" + down.toFixed(1) + "px) scale(" + closer.toFixed(3) + ") rotate(" + rot.toFixed(2) + "deg)";
         }
         drawCallFace(listenBoost, bass);
+        drawWave(listenBoost);
     }
 
     function startMic() {
@@ -28145,8 +28174,8 @@ window.loadNormCvbSettingsIntoUi = loadNormCvbSettingsIntoUi;
                 audioCtx = new AC();
                 var src = audioCtx.createMediaStreamSource(s);
                 analyser = audioCtx.createAnalyser();
-                analyser.fftSize = 256;
-                analyser.smoothingTimeConstant = 0.72;
+                analyser.fftSize = 512;
+                analyser.smoothingTimeConstant = 0.55;
                 src.connect(analyser);
                 freqData = new Uint8Array(analyser.frequencyBinCount);
                 timeData = new Uint8Array(analyser.fftSize);
@@ -28180,8 +28209,10 @@ window.loadNormCvbSettingsIntoUi = loadNormCvbSettingsIntoUi;
             finalText = finalText.trim();
             if (finalText && finalText !== lastSent) {
                 lastSent = finalText;
-                setLive("Aturius is reading: “" + finalText + "”");
+                said.push(finalText);
+                setLive(finalText);
                 if (typeof sendAturiusMessage === "function") sendAturiusMessage(finalText);
+                speakText(finalText);
             }
         };
         rec.onerror = function (e) {
@@ -28195,8 +28226,28 @@ window.loadNormCvbSettingsIntoUi = loadNormCvbSettingsIntoUi;
         try { rec.start(); } catch (e) {}
     }
 
-    function stopAll() {
+    function hideCallStage(showTranscript) {
+        var stage = document.querySelector(".aturius-call-stage");
+        var sheet = document.getElementById("aturiusCallTranscript");
+        var list = document.getElementById("aturiusCallTranscriptList");
+        if (showTranscript) {
+            if (stage) stage.style.display = "none";
+            if (sheet) sheet.style.display = "block";
+            if (list) {
+                if (!said.length) list.innerHTML = "<p>Nothing was converted into text this time.</p>";
+                else list.innerHTML = said.map(function (line) {
+                    return "<p>" + String(line).replace(/</g, "&lt;") + "</p>";
+                }).join("");
+            }
+        } else {
+            if (stage) stage.style.display = "";
+            if (sheet) sheet.style.display = "none";
+        }
+    }
+
+    function stopMicOnly() {
         callOpen = false;
+        window._aturiusCallActive = false;
         if (raf) { cancelAnimationFrame(raf); raf = 0; }
         try { if (rec) rec.stop(); } catch (e) {}
         rec = null;
@@ -28211,14 +28262,19 @@ window.loadNormCvbSettingsIntoUi = loadNormCvbSettingsIntoUi;
         analyser = null;
         var wrap = document.getElementById("aturiusCallOrbWrap");
         if (wrap) wrap.style.transform = "";
+        var btn = document.getElementById("aturiusPhoneBtn");
+        if (btn) btn.classList.remove("on-call");
+    }
+
+    function closeOverlay() {
         var ov = document.getElementById("aturiusCallOverlay");
         if (ov) {
             ov.style.display = "none";
             ov.classList.remove("open");
             ov.setAttribute("aria-hidden", "true");
         }
-        var btn = document.getElementById("aturiusPhoneBtn");
-        if (btn) btn.classList.remove("on-call");
+        hideCallStage(false);
+        window._aturiusCallJustEnded = false;
     }
 
     window.openAturiusCall = function () {
@@ -28230,12 +28286,16 @@ window.loadNormCvbSettingsIntoUi = loadNormCvbSettingsIntoUi;
         ov.style.display = "flex";
         ov.classList.add("open");
         ov.setAttribute("aria-hidden", "false");
+        hideCallStage(false);
         callOpen = true;
+        window._aturiusCallActive = true;
+        window._aturiusCallJustEnded = false;
         lastSent = "";
         listenBoost = 0;
-        buildBars();
+        said = [];
         drawCallFace(0, 0);
-        setLive("Tap Allow, then speak. Your speech becomes words Aturius can read.");
+        drawWave(0);
+        setLive("Allow the mic, then speak. Your words become text that Aturius reads out loud.");
         var btn = document.getElementById("aturiusPhoneBtn");
         if (btn) btn.classList.add("on-call");
         startMic().then(function () {
@@ -28247,7 +28307,15 @@ window.loadNormCvbSettingsIntoUi = loadNormCvbSettingsIntoUi;
     };
 
     window.closeAturiusCall = function () {
-        stopAll();
+        stopMicOnly();
+        window._aturiusCallJustEnded = true;
+        hideCallStage(true);
         setLive("Call ended.");
+        try { if (typeof renderAturiusMessages === "function") renderAturiusMessages(); } catch (e) {}
+    };
+
+    window.finishAturiusCallTranscript = function () {
+        closeOverlay();
+        try { if (typeof renderAturiusMessages === "function") renderAturiusMessages(); } catch (e) {}
     };
 })();

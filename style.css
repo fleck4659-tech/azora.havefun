@@ -6148,23 +6148,30 @@ html[data-theme="dark"] .azora-bg-wave { background: transparent; }
     flex: 1;
 }
 .aturius-phone-btn {
-    width: 44px;
-    height: 44px;
-    min-width: 44px;
+    width: auto;
+    height: auto;
+    min-width: 0;
     border: 0;
-    border-radius: 50%;
-    background: rgba(255,255,255,0.12);
+    border-radius: 0;
+    background: transparent;
     color: #ffffff;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    box-shadow: 0 0 0 1px rgba(255,255,255,0.35);
-    padding: 0;
+    box-shadow: none;
+    padding: 4px;
+    line-height: 0;
+}
+.aturius-phone-btn svg {
+    width: 28px;
+    height: 28px;
+    display: block;
+    filter: drop-shadow(0 1px 2px rgba(0,0,0,0.35));
 }
 .aturius-phone-btn svg path { fill: #ffffff; }
-.aturius-phone-btn:hover { transform: scale(1.06); background: rgba(255,255,255,0.22); }
-.aturius-phone-btn.on-call { background: #22c55e; box-shadow: none; }
+.aturius-phone-btn:hover { transform: scale(1.08); background: transparent; }
+.aturius-phone-btn.on-call svg path { fill: #4ade80; }
 
 .aturius-call-overlay {
     position: fixed;
@@ -6235,21 +6242,27 @@ html[data-theme="dark"] .azora-bg-wave { background: transparent; }
     height: 100%;
     display: block;
 }
-.aturius-call-bars {
-    display: flex;
-    align-items: flex-end;
-    justify-content: center;
-    gap: 4px;
-    height: 64px;
-    width: min(80vw, 420px);
-}
-.aturius-call-bars i {
+.aturius-call-wave {
+    width: min(86vw, 640px);
+    height: 90px;
     display: block;
-    width: 7px;
-    height: 8px;
-    border-radius: 4px;
-    background: rgba(255,255,255,0.92);
-    transform-origin: bottom center;
+}
+.aturius-call-transcript {
+    position: relative;
+    z-index: 3;
+    margin: 0 16px 18px;
+    padding: 16px;
+    border-radius: 16px;
+    background: rgba(0,0,0,0.45);
+    max-height: 40vh;
+    overflow: auto;
+}
+.aturius-call-transcript h3 { margin: 0 0 10px; }
+.aturius-call-transcript p {
+    margin: 0 0 8px;
+    padding: 8px 10px;
+    border-radius: 10px;
+    background: rgba(255,255,255,0.12);
 }
 .aturius-call-live {
     max-width: 520px;
