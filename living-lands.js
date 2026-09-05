@@ -853,7 +853,15 @@
             ty = (Math.random() * H) | 0;
             p = idx(tx, ty);
             if (elev[p] && owner[p] !== fromC.id) {
-                crafts.push({ type: type, x: sx + 0.5, y: sy + 0.5, tx: tx + 0.5, ty: ty + 0.5, from: fromC.id });
+                crafts.push({
+                    type: type,
+                    x: sx + 0.5,
+                    y: sy + 0.5,
+                    tx: tx + 0.5,
+                    ty: ty + 0.5,
+                    from: fromC.id,
+                    life: 90
+                });
                 if (Math.random() < 0.25) addNote(fromC.name + " sent a " + type + " across the water.");
                 return;
             }
@@ -862,6 +870,7 @@
     function maybeLaunchCrafts() {
         if (crafts.length > 36) return;
         countries.forEach(function (c) {
+            if (!countryAlive(c) || !c.willInvade) return;
             if (Math.random() > 0.35) return;
             var i, x, y, p, n;
             for (i = 0; i < 24; i++) {
@@ -873,40 +882,59 @@
             }
         });
     }
+    function landCraft(cr) {
+        var px = Math.max(0, Math.min(W - 1, cr.tx | 0));
+        var py = Math.max(0, Math.min(H - 1, cr.ty | 0));
+        var p = idx(px, py);
+        var me = findCountry(cr.from);
+        if (!elev[p] || !me || !countryAlive(me)) return;
+        var them = owner[p] ? findCountry(owner[p]) : null;
+        if (them && areAllied(me, them)) return;
+        if (them && them.id === me.id) return;
+        if (them && (!me.willInvade || !countryAlive(them))) return;
+        if (them) {
+            if (!findWar(me, them.id)) {
+                if (!canStartWar(me, them) || !startWar(me, them)) return;
+            }
+            if (finishWarIfDone(me, them)) return;
+        }
+        var landFee = claimPrice(me, elev[p]);
+        var atk = power(me) + Math.random() * 6;
+        var def = them ? defense(them) + Math.random() * 8 : 3;
+        if ((Number(me.money) || 0) >= landFee && (!them || atk > def)) {
+            me.money -= landFee;
+            owner[p] = me.id;
+            cityOwn[p] = 0;
+            landAge[p] = 0;
+            if (them) {
+                var w = findWar(me, them.id);
+                if (w) w.taken = (w.taken || 0) + 1;
+                if (Math.random() < 0.4) addNote(me.name + " landed and took ground from " + them.name);
+                finishWarIfDone(me, them);
+                if (landCount(them.id) <= 0) handleTerritoryFall(them);
+            }
+        } else if (them && Math.random() < 0.3) {
+            addNote(them.name + " military stopped a " + cr.type);
+        }
+    }
     function moveCrafts() {
         var keep = [];
         crafts.forEach(function (cr) {
-            var dx = cr.tx - cr.x, dy = cr.ty - cr.y;
-            var dist = Math.sqrt(dx * dx + dy * dy) || 1;
+            cr.life = (cr.life == null ? 90 : cr.life) - 1;
+            if (cr.life <= 0) return;
+            var dx = cr.tx - cr.x;
+            var dy = cr.ty - cr.y;
+            var dist = Math.sqrt(dx * dx + dy * dy);
             var spd = cr.type === "plane" ? 2.4 : (cr.type === "sub" ? 1.1 : 1.6);
+            if (dist <= spd || dist < 1.2) {
+                cr.x = cr.tx;
+                cr.y = cr.ty;
+                landCraft(cr);
+                return;
+            }
             cr.x += dx / dist * spd;
             cr.y += dy / dist * spd;
-            if (dist < 2.2) {
-                var px = Math.max(0, Math.min(W - 1, cr.tx | 0));
-                var py = Math.max(0, Math.min(H - 1, cr.ty | 0));
-                var p = idx(px, py);
-                var me = findCountry(cr.from);
-                if (elev[p] && me) {
-                    var them = findCountry(owner[p]);
-                    var landFee = claimPrice(me, elev[p]);
-                    var atk = power(me) + Math.random() * 6;
-                    var def = them ? defense(them) + Math.random() * 8 : 3;
-                    if (them && areAllied(me, them)) { keep.push(cr); return; }
-                    if (them && countryAlive(them) && me.willInvade) {
-                        if (!findWar(me, them.id)) {
-                            if (!canStartWar(me, them) || !startWar(me, them)) { keep.push(cr); return; }
-                        }
-                        if (finishWarIfDone(me, them)) { keep.push(cr); return; }
-                    } else if (them && owner[p]) { keep.push(cr); return; }
-                    if ((Number(me.money) || 0) >= landFee && (!owner[p] || atk > def)) {
-                        me.money -= landFee;
-                        owner[p] = me.id;
-                        if (them && Math.random() < 0.4) addNote(me.name + " landed and took ground from " + them.name);
-                    } else if (them && Math.random() < 0.3) {
-                        addNote(them.name + " military stopped a " + cr.type);
-                    }
-                }
-            } else keep.push(cr);
+            keep.push(cr);
         });
         crafts = keep;
     }
