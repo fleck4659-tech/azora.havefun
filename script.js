@@ -3741,6 +3741,21 @@ function azoraRoundedBoxGeometry(w, h, d, radius) {
 }
 window.azoraRoundedBoxGeometry = azoraRoundedBoxGeometry;
 
+function roundCharacterParts(root) {
+    if (!root || typeof THREE === "undefined") return;
+    root.traverse(function (obj) {
+        if (!obj || !obj.isMesh || !obj.geometry) return;
+        var g = obj.geometry;
+        var isBox = g.type === "BoxGeometry" || (g.parameters && g.parameters.width && g.parameters.height && g.parameters.depth && !g.parameters.radiusTop);
+        if (!isBox) return;
+        var w = g.parameters.width, h = g.parameters.height, d = g.parameters.depth;
+        if (!(w > 0 && h > 0 && d > 0)) return;
+        try { g.dispose(); } catch (e) {}
+        obj.geometry = azoraRoundedBoxGeometry(w, h, d, Math.min(w, h, d) * 0.24);
+    });
+}
+window.roundCharacterParts = roundCharacterParts;
+
 function azoraGirlCutTorsoGeometry(w, h, d) {
     w = w || 0.78; h = h || 1.12; d = d || 0.42;
     if (typeof THREE === "undefined") return new THREE.BoxGeometry(w, h, d);
@@ -3791,7 +3806,7 @@ function applyBoyTorsoBox(mesh, w, h, d) {
 }
 
 function makeBox(w, h, d, color) {
-    var radius = Math.min(w, h, d) * 0.22;
+    var radius = Math.min(w, h, d) * 0.24;
     return new THREE.Mesh(
         azoraRoundedBoxGeometry(w, h, d, radius),
         azoraGlossMaterial(color)
@@ -4445,7 +4460,11 @@ function buildRealisticHumanoidMeshes(gender, colors) {
         return m;
     }
     function box(w, h, d, hex, name) {
-        var m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), _azoraLimbMat(hex));
+        var radius = Math.min(w, h, d) * 0.24;
+        var geo = (typeof azoraRoundedBoxGeometry === "function")
+            ? azoraRoundedBoxGeometry(w, h, d, radius)
+            : new THREE.BoxGeometry(w, h, d);
+        var m = new THREE.Mesh(geo, _azoraLimbMat(hex));
         m.name = name || "";
         return m;
     }
