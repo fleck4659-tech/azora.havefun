@@ -13,7 +13,7 @@
     <link rel="manifest" href="manifest-azora.json">
     <link rel="apple-touch-icon" href="logo.jpg?v=70.2">
     <link rel="icon" href="logo.jpg?v=70.2">
-    <link rel="stylesheet" href="style.css?v=72.36">
+    <link rel="stylesheet" href="style.css?v=72.37">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 </head>
 <body>
@@ -537,8 +537,8 @@
                 <button type="button" class="coins-drop-item coins-drop-buy" onclick="openBuyAzoraCoins(); closeCoinsDropdown();">Buy AzoraCoins</button>
                 <button type="button" class="coins-drop-item" onclick="openPendingCoins()">Pending AzoraCoins <span id="coinsDropPending">0</span></button>
                 <div class="coins-drop-row"><span>HalloCoins</span><strong><span id="halloCoinBalance">0</span> 🎃</strong></div>
-                <div class="coins-drop-row"><span>HalloSeeds</span><strong><span id="halloSeedBalance">0</span> 🌱</strong></div>
                 <button type="button" class="coins-drop-item" onclick="openHalloConvert(); closeCoinsDropdown();">Convert coins</button>
+                <button type="button" class="coins-drop-item" onclick="openEventCalendar(); closeCoinsDropdown();">Event calendar</button>
                 <button type="button" class="coins-drop-item" onclick="openMarketplace(); closeCoinsDropdown();">Open Shop</button>
                 <button type="button" class="coins-drop-item" onclick="openCreateAd(); closeCoinsDropdown();">Create an Ad</button>
                 <button type="button" class="coins-drop-item" onclick="openInventory(); closeCoinsDropdown();">Open Inventory</button>
@@ -865,8 +865,8 @@
                 <div class="norm-game-icon">🎃</div>
                 <div class="norm-game-info">
                     <h4>Pumpkin Smash</h4>
-                    <p><span class="by-creator">By Azora</span>. Tap pumpkins before they hop away. Earn free limited-time <strong>HalloSeeds</strong> for Halloween shop items.</p>
-                    <span class="norm-game-meta">Halloween · Tap · HalloSeeds</span>
+                    <p><span class="by-creator">By Azora</span>. Tap pumpkins before they hop away. Earn free limited-time <strong>HalloCoins</strong> for Halloween shop items.</p>
+                    <span class="norm-game-meta">Halloween · Tap · HalloCoins</span>
                 </div>
                 <button type="button" class="norm-join-btn" onclick="openPumpkinSmash()">Play</button>
             </article>
@@ -1705,7 +1705,7 @@
 
 <!-- Optional: trained Aturius brain (export from Azora account → Settings → Export code files) -->
 <script src="aturius-training-pack.js"></script>
-<script src="script.js?v=72.72"></script>
+<script src="script.js?v=72.74"></script>
 <script src="political-earth-data.js?v=72.24"></script>
 <script src="political-earth-hd.js?v=72.24"></script>
 <script src="political-earth-hyper.js?v=72.26"></script>
@@ -1783,11 +1783,18 @@ if ("serviceWorker" in navigator) {
     </div>
 </div>
 
+<div id="eventCalendarOverlay" class="overlay" style="display:none;">
+    <div class="popup" style="max-width:440px;text-align:left;">
+        <h2 style="text-align:center;">Event calendar</h2>
+        <ul id="eventCalendarList" class="event-cal-list"></ul>
+        <button type="button" onclick="closeEventCalendar()" style="width:100%;margin-top:8px;">Close</button>
+    </div>
+</div>
 <div id="halloConvertOverlay" class="overlay" style="display:none;">
     <div class="popup" style="max-width:420px;text-align:left;">
         <h2 style="text-align:center;">Convert coins</h2>
         <p class="settings-hint">HalloCoins are event coins. You can keep them as long as you like. After Nov 2, 2026 you can still hold them; the only extra action is converting to AzoraCoins if you want.</p>
-        <p>AzoraCoins: <strong id="convAz">0</strong> · HalloCoins: <strong id="convHallo">0</strong> · HalloSeeds: <strong id="convSeeds">0</strong></p>
+        <p>AzoraCoins: <strong id="convAz">0</strong> · HalloCoins: <strong id="convHallo">0</strong></p>
         <label>Amount <input id="halloConvertAmt" class="settings-input" type="number" min="1" value="1"></label>
         <button type="button" onclick="convertAzoraToHallo()">AzoraCoins → HalloCoins</button>
         <button type="button" onclick="convertHalloToAzora()">HalloCoins → AzoraCoins</button>

@@ -7757,7 +7757,7 @@ function applyHalloweenEvent(on) {
         if (on && !layer.dataset.ready) {
             layer.dataset.ready = "1";
             var bits = ["🦇","🎃","🦇","🌙","🎃","✨","🦇"];
-            for (var i = 0; i < 18; i++) {
+            for (var i = 0; i < 7; i++) {
                 var s = document.createElement("span");
                 s.className = "hallo-float";
                 s.textContent = bits[i % bits.length];
@@ -11600,7 +11600,7 @@ window.aturiusWatchTyping = aturiusWatchTyping;
 
 function parseAturiusImageCommand(userText) {
     var raw = String(userText || "").trim();
-    var m = raw.match(/^:?\s*generate\s+an?\s+(image|picture|photo|video|clip|movie)s?\s+of\s+(.+)$/i);
+    var m = raw.match(/^:?\s*generate\s+an?\s+(image|picture|photo|video|clip|movie)s?\s+(?:of\s+|about\s+|showing\s+|with\s+)?(.+)$/i);
     if (!m || !m[2]) return null;
     var kind = String(m[1] || "video").toLowerCase();
     var prompt = String(m[2] || "").trim();
@@ -11643,40 +11643,59 @@ function understandAturiusClip(prompt) {
         red: "#ef4444", orange: "#f97316", yellow: "#facc15", gold: "#f59e0b",
         green: "#22c55e", blue: "#3b82f6", purple: "#a855f7", pink: "#fb7185",
         black: "#1f2937", white: "#f8fafc", brown: "#92400e", gray: "#9ca3af",
-        grey: "#9ca3af", teal: "#14b8a6"
+        grey: "#9ca3af", teal: "#14b8a6", cyan: "#22d3ee", lime: "#84cc16"
     };
     var color = "#facc15";
     Object.keys(colorMap).forEach(function (name) {
         if (new RegExp("\\b" + name + "\\b").test(low)) color = colorMap[name];
     });
     var place = "park";
-    if (/\b(space|star|moon|galaxy|planet)\b/.test(low)) place = "space";
-    else if (/\b(ocean|sea|beach|fish)\b/.test(low)) place = "ocean";
+    if (/\b(space|star|moon|galaxy|planet|sky island)\b/.test(low)) place = "space";
+    else if (/\b(ocean|sea|beach|wave|fish)\b/.test(low)) place = "ocean";
     else if (/\b(city|town|street|building)\b/.test(low)) place = "city";
-    else if (/\b(snow|winter|ice)\b/.test(low)) place = "snow";
+    else if (/\b(snow|winter|ice|cold)\b/.test(low)) place = "snow";
+    else if (/\b(rain|storm|cloud)\b/.test(low)) place = "rain";
     else if (/\b(night|dark)\b/.test(low)) place = "night";
-    else if (/\b(halloween|pumpkin|spooky|bat)\b/.test(low)) place = "halloween";
+    else if (/\b(halloween|pumpkin|spooky|bat|smash)\b/.test(low)) place = "halloween";
     else if (/\b(sunset|evening)\b/.test(low)) place = "sunset";
+    else if (/\b(shop|market|store|coins?|hallocoin)\b/.test(low)) place = "shop";
+    else if (/\b(house|home|room|cafe)\b/.test(low)) place = "house";
+    else if (/\b(desert|sand)\b/.test(low)) place = "desert";
+    else if (/\b(forest|tree|woods|parkour)\b/.test(low)) place = "forest";
+    else if (/\b(azora|lobby|dashboard)\b/.test(low)) place = "lobby";
     var actor = "sphere";
-    if (/\b(cat|kitten)\b/.test(low)) actor = "cat";
+    if (/\b(aturius|yellow sphere|ai)\b/.test(low)) actor = "aturius";
+    else if (/\b(cat|kitten)\b/.test(low)) actor = "cat";
     else if (/\b(dog|puppy)\b/.test(low)) actor = "dog";
+    else if (/\b(bunny|rabbit)\b/.test(low)) actor = "bunny";
+    else if (/\b(duck)\b/.test(low)) actor = "duck";
+    else if (/\b(fox)\b/.test(low)) actor = "fox";
+    else if (/\b(bear)\b/.test(low)) actor = "bear";
     else if (/\b(bird)\b/.test(low)) actor = "bird";
     else if (/\b(fish)\b/.test(low)) actor = "fish";
     else if (/\b(car|bus|truck)\b/.test(low)) actor = "car";
-    else if (/\b(house|home|cabin)\b/.test(low)) actor = "house";
+    else if (/\b(house|home|cabin)\b/.test(low) && place !== "house") actor = "house";
     else if (/\b(tree)\b/.test(low)) actor = "tree";
     else if (/\b(pumpkin)\b/.test(low)) actor = "pumpkin";
     else if (/\b(ghost)\b/.test(low)) actor = "ghost";
     else if (/\b(robot)\b/.test(low)) actor = "robot";
+    else if (/\b(coin)\b/.test(low)) actor = "coin";
+    else if (/\b(avatar|player|character)\b/.test(low)) actor = "avatar";
     else if (/\b(person|kid|friend|human)\b/.test(low)) actor = "kid";
     else if (/\b(sphere|ball|orb)\b/.test(low)) actor = "sphere";
     var move = "bounce";
     if (/\b(fly|flying|float)\b/.test(low)) move = "fly";
-    else if (/\b(run|running|walk)\b/.test(low)) move = "run";
-    else if (/\b(spin|spinning)\b/.test(low)) move = "spin";
+    else if (/\b(run|running|walk|walking)\b/.test(low)) move = "run";
+    else if (/\b(spin|spinning|dance|dancing)\b/.test(low)) move = "spin";
     else if (/\b(swim|swimming)\b/.test(low)) move = "swim";
-    else if (/\b(wave)\b/.test(low)) move = "wave";
-    return { color: color, place: place, actor: actor, move: move, title: String(prompt).slice(0, 48) };
+    else if (/\b(wave|waving|hello)\b/.test(low)) move = "wave";
+    else if (/\b(jump|jumping|smash)\b/.test(low)) move = "bounce";
+    else if (/\b(sit|sitting)\b/.test(low)) move = "wave";
+    var extras = [];
+    if (/\b(coin|azoracoin|hallocoin|shop)\b/.test(low)) extras.push("coins");
+    if (/\b(rain)\b/.test(low)) extras.push("rain");
+    if (/\b(friend|two|together)\b/.test(low)) extras.push("buddy");
+    return { color: color, place: place, actor: actor, move: move, extras: extras, title: String(prompt).slice(0, 52) };
 }
 
 function buildAturiusClip(prompt) {
@@ -11739,6 +11758,30 @@ function buildAturiusClip(prompt) {
             } else if (scene.actor === "kid") {
                 oval(0, -16, 10, 10, "#fde68a");
                 ctx.fillStyle = c; ctx.fillRect(-10, -6, 20, 22);
+            } else if (scene.actor === "aturius") {
+                oval(0, 0, 24, 24, "#facc15");
+                ctx.fillStyle = "#111"; ctx.fillRect(-8, -6, 5, 5); ctx.fillRect(4, -6, 5, 5);
+                ctx.beginPath(); ctx.arc(0, 8, 8, 0.15 * Math.PI, 0.85 * Math.PI); ctx.stroke();
+            } else if (scene.actor === "bunny") {
+                oval(0, 4, 16, 14, c);
+                ctx.fillStyle = c; ctx.fillRect(-10, -22, 6, 20); ctx.fillRect(4, -22, 6, 20);
+            } else if (scene.actor === "duck") {
+                oval(0, 4, 18, 12, "#facc15");
+                ctx.fillStyle = "#f97316"; ctx.fillRect(14, 0, 12, 5);
+            } else if (scene.actor === "fox") {
+                oval(0, 2, 20, 14, "#f97316");
+                ctx.beginPath(); ctx.moveTo(-14, -8); ctx.lineTo(-8, -22); ctx.lineTo(-2, -6); ctx.fill();
+                ctx.beginPath(); ctx.moveTo(14, -8); ctx.lineTo(8, -22); ctx.lineTo(2, -6); ctx.fill();
+            } else if (scene.actor === "bear") {
+                oval(0, 2, 22, 18, "#92400e");
+                oval(-16, -12, 7, 7, "#92400e"); oval(16, -12, 7, 7, "#92400e");
+            } else if (scene.actor === "coin") {
+                oval(0, 0, 16, 16, "#f59e0b");
+                ctx.fillStyle = "#fde68a"; ctx.font = "16px sans-serif"; ctx.fillText("$", -5, 6);
+            } else if (scene.actor === "avatar") {
+                ctx.fillStyle = c; ctx.fillRect(-12, -8, 24, 22);
+                oval(0, -18, 10, 10, "#fde68a");
+                ctx.fillStyle = "#1d4ed8"; ctx.fillRect(-16, -4, 8, 18); ctx.fillRect(8, -4, 8, 18);
             } else {
                 oval(0, 0, 22, 22, c);
                 ctx.fillStyle = "#111"; ctx.fillRect(-8, -6, 4, 4); ctx.fillRect(4, -6, 4, 4);
@@ -11747,7 +11790,7 @@ function buildAturiusClip(prompt) {
         }
         function draw(t) {
             var p = Math.min(1, t / seconds);
-            var skies = { park: "#7dd3fc", space: "#0f172a", ocean: "#0369a1", city: "#94a3b8", snow: "#e0f2fe", night: "#1e3a8a", halloween: "#431407", sunset: "#fdba74" };
+            var skies = { park: "#7dd3fc", space: "#0f172a", ocean: "#0369a1", city: "#94a3b8", snow: "#e0f2fe", night: "#1e3a8a", halloween: "#431407", sunset: "#fdba74", rain: "#64748b", shop: "#4c1d95", house: "#fed7aa", desert: "#fbbf24", forest: "#14532d", lobby: "#6d28d9" };
             ctx.fillStyle = skies[scene.place] || "#7dd3fc";
             ctx.fillRect(0, 0, 640, 360);
             if (scene.place === "space" || scene.place === "night") {
@@ -11784,6 +11827,33 @@ function buildAturiusClip(prompt) {
                 ctx.fillStyle = "#fff"; ctx.fillRect(0, 280, 640, 80);
                 ctx.fillStyle = "#e2e8f0";
                 for (var f = 0; f < 28; f++) ctx.fillRect((f * 28 + t * 60) % 640, (f * 36 + t * 80) % 260, 4, 4);
+            } else if (scene.place === "rain") {
+                ctx.fillStyle = "#334155"; ctx.fillRect(0, 280, 640, 80);
+                ctx.strokeStyle = "#bfdbfe";
+                for (var r = 0; r < 30; r++) {
+                    var rx = (r * 40 + t * 90) % 640, ry = (r * 50 + t * 120) % 280;
+                    ctx.beginPath(); ctx.moveTo(rx, ry); ctx.lineTo(rx + 3, ry + 12); ctx.stroke();
+                }
+            } else if (scene.place === "shop") {
+                ctx.fillStyle = "#1e1b4b"; ctx.fillRect(0, 260, 640, 100);
+                ctx.fillStyle = "#f59e0b";
+                for (var sh = 0; sh < 4; sh++) ctx.fillRect(40 + sh * 150, 180, 110, 80);
+            } else if (scene.place === "house") {
+                ctx.fillStyle = "#fdba74"; ctx.fillRect(0, 240, 640, 120);
+                ctx.fillStyle = "#92400e"; ctx.fillRect(80, 120, 200, 140);
+                ctx.fillStyle = "#7c2d12";
+                ctx.beginPath(); ctx.moveTo(70, 120); ctx.lineTo(180, 50); ctx.lineTo(290, 120); ctx.fill();
+            } else if (scene.place === "desert") {
+                ctx.fillStyle = "#f59e0b"; ctx.fillRect(0, 250, 640, 110);
+                ctx.fillStyle = "#d97706";
+                ctx.beginPath(); ctx.arc(480, 250, 50, Math.PI, 0); ctx.fill();
+            } else if (scene.place === "forest") {
+                ctx.fillStyle = "#166534"; ctx.fillRect(0, 250, 640, 110);
+                ctx.fillStyle = "#14532d";
+                for (var tr2 = 0; tr2 < 6; tr2++) { ctx.fillRect(30 + tr2 * 100, 180, 14, 80); ctx.beginPath(); ctx.arc(37 + tr2 * 100, 170, 28, 0, Math.PI * 2); ctx.fill(); }
+            } else if (scene.place === "lobby") {
+                ctx.fillStyle = "#3b0764"; ctx.fillRect(0, 260, 640, 100);
+                ctx.fillStyle = "#a855f7"; ctx.fillRect(200, 140, 240, 120);
             } else {
                 ctx.fillStyle = "rgba(255,255,255,0.95)";
                 ctx.beginPath(); ctx.arc(90, 58, 26, 0, Math.PI * 2); ctx.fill();
@@ -11804,7 +11874,12 @@ function buildAturiusClip(prompt) {
             else if (scene.move === "wave") { x = 320; y = 210 + Math.sin(p * 10) * 12; }
             else { x = 80 + p * 400; y = 230 - Math.abs(Math.sin(p * Math.PI * 5)) * 50; }
             drawActor(x, y, rot);
-            ctx.fillStyle = scene.place === "space" || scene.place === "night" || scene.place === "halloween" ? "#ffe7c4" : "#111";
+            if (scene.extras && scene.extras.indexOf("buddy") !== -1) drawActor(x - 70, y + 8, 0);
+            if (scene.extras && scene.extras.indexOf("coins") !== -1) {
+                ctx.fillStyle = "#f59e0b";
+                for (var ci = 0; ci < 8; ci++) ctx.beginPath(), ctx.arc((ci * 80 + t * 40) % 640, 40 + (ci * 30) % 80, 6, 0, Math.PI * 2), ctx.fill();
+            }
+            ctx.fillStyle = scene.place === "space" || scene.place === "night" || scene.place === "halloween" || scene.place === "shop" || scene.place === "lobby" ? "#ffe7c4" : "#111";
             ctx.font = "15px sans-serif";
             ctx.fillText(scene.title, 12, 24);
         }
@@ -22891,24 +22966,23 @@ function setHalloCoins(n) {
     updateCoinsUI();
     return n;
 }
-function getHalloSeeds() {
-    try { return Math.max(0, Number(localStorage.getItem("azoraHalloSeeds") || "0") || 0); } catch (e) { return 0; }
+function mergeHalloSeedsIntoCoins() {
+    try {
+        if (localStorage.getItem("azoraHalloSeedsMerged") === "1") return;
+        var seeds = Math.max(0, Number(localStorage.getItem("azoraHalloSeeds") || "0") || 0);
+        if (seeds) setHalloCoins(getHalloCoins() + seeds);
+        localStorage.removeItem("azoraHalloSeeds");
+        localStorage.setItem("azoraHalloSeedsMerged", "1");
+    } catch (e) {}
 }
-function setHalloSeeds(n) {
-    n = Math.max(0, Math.floor(Number(n) || 0));
-    try { localStorage.setItem("azoraHalloSeeds", String(n)); } catch (e) {}
-    updateCoinsUI();
-    return n;
-}
-function addHalloSeeds(n) { return setHalloSeeds(getHalloSeeds() + (Number(n) || 0)); }
 
 var HALLO_SHOP_ITEMS = [
-    { id: "hallo_hat_moon", name: "Moon Cap", priceSeeds: 8, desc: "A soft night cap with a tiny moon charm." },
-    { id: "hallo_cape_leaf", name: "Autumn Cape", priceSeeds: 12, desc: "Light cape with falling-leaf trim." },
+    { id: "hallo_hat_moon", name: "Moon Cap", priceHallo: 8, desc: "A soft night cap with a tiny moon charm." },
+    { id: "hallo_cape_leaf", name: "Autumn Cape", priceHallo: 12, desc: "Light cape with falling-leaf trim." },
     { id: "hallo_lantern", name: "Kind Lantern", priceHallo: 3, desc: "Glows orange. Friendly, not scary." },
-    { id: "hallo_crown_seed", name: "Seed Crown", priceSeeds: 15, desc: "A crown grown from HalloSeeds." },
+    { id: "hallo_crown_seed", name: "Seed Crown", priceHallo: 15, desc: "A crown from the Halloween shop." },
     { id: "hallo_boots", name: "Pumpkin Boots", priceHallo: 5, desc: "Chunky orange boots for smash night." },
-    { id: "hallo_batbow", name: "Bat Bow", priceSeeds: 6, desc: "A bow with tiny cartoon bats." }
+    { id: "hallo_batbow", name: "Bat Bow", priceHallo: 6, desc: "A bow with tiny cartoon bats." }
 ];
 
 function openHalloConvert() {
@@ -22926,7 +23000,7 @@ function refreshHalloConvert() {
     var s = document.getElementById("convSeeds");
     if (a) a.textContent = formatCoins(getCoins());
     if (h) h.textContent = formatCoins(getHalloCoins());
-    if (s) s.textContent = String(getHalloSeeds());
+    
 }
 function convertAzoraToHallo() {
     if (!isHalloEventLive()) {
@@ -22954,13 +23028,9 @@ function buyHalloItem(id, pay) {
     if (!item) return;
     if (!isHalloEventLive()) { alert("Halloween shop buying ended Nov 2. You still keep coins and items you already have."); return; }
     if (typeof ownsItem === "function" && ownsItem(id)) return;
-    if (pay === "seeds") {
-        if (getHalloSeeds() < (item.priceSeeds || 99)) return;
-        setHalloSeeds(getHalloSeeds() - item.priceSeeds);
-    } else {
-        if (getHalloCoins() < (item.priceHallo || 99)) return;
-        setHalloCoins(getHalloCoins() - item.priceHallo);
-    }
+    var cost = item.priceHallo || 0;
+    if (getHalloCoins() < cost) return;
+    setHalloCoins(getHalloCoins() - cost);
     try { grantItem(id); } catch (e) {
         try {
             var inv = JSON.parse(localStorage.getItem("azoraInventory") || "[]");
@@ -22976,6 +23046,26 @@ window.closeHalloConvert = closeHalloConvert;
 window.convertAzoraToHallo = convertAzoraToHallo;
 window.convertHalloToAzora = convertHalloToAzora;
 window.buyHalloItem = buyHalloItem;
+
+function openEventCalendar() {
+    var ov = document.getElementById("eventCalendarOverlay");
+    var list = document.getElementById("eventCalendarList");
+    if (list) {
+        list.innerHTML =
+            "<li><strong>Now</strong> — Halloween Update. Pumpkin Smash earns HalloCoins. Shop Halloween tab is open.</li>" +
+            "<li><strong>Oct 31, 2026</strong> — Peak spooky night. Extra smash coins feel luckier (same rules, just festive).</li>" +
+            "<li><strong>Nov 1, 2026</strong> — You still keep every HalloCoin. Shop still sells Halloween items.</li>" +
+            "<li><strong>Nov 2, 2026</strong> — Halloween shop stops charging HalloCoins. You may convert HalloCoins to AzoraCoins. Nothing is taken.</li>" +
+            "<li><strong>Later events</strong> — New event coins can stack. Old HalloCoins stay in your wallet.</li>";
+    }
+    if (ov) ov.style.display = "flex";
+}
+function closeEventCalendar() {
+    var ov = document.getElementById("eventCalendarOverlay");
+    if (ov) ov.style.display = "none";
+}
+window.openEventCalendar = openEventCalendar;
+window.closeEventCalendar = closeEventCalendar;
 
 var _pumpkins = [];
 var _pumpkinTimer = null;
@@ -23029,11 +23119,11 @@ function startPumpkinSmash() {
         if (_pumpkinLeft % 2 === 0) spawn();
         draw();
         var hud = document.getElementById("pumpkinSmashHud");
-        if (hud) hud.textContent = "Time " + _pumpkinLeft + " · Smashed " + _pumpkinScore + " · Seeds " + getHalloSeeds();
+        if (hud) hud.textContent = "Time " + _pumpkinLeft + " · Smashed " + _pumpkinScore + " · HalloCoins " + formatCoins(getHalloCoins());
         if (_pumpkinLeft <= 0) {
             clearInterval(_pumpkinTimer);
             _pumpkinTimer = null;
-            alert("Smash over! You keep " + _pumpkinScore + " HalloSeeds.");
+            alert("Smash over! You earned " + _pumpkinScore + " HalloCoins.");
         }
     }, 1000);
     canvas.onclick = function (ev) {
@@ -23046,7 +23136,7 @@ function startPumpkinSmash() {
             if (dx * dx + dy * dy <= p.r * p.r) {
                 _pumpkins.splice(i, 1);
                 _pumpkinScore += 1;
-                addHalloSeeds(1);
+                setHalloCoins(getHalloCoins() + 1);
                 draw();
                 break;
             }
@@ -23059,6 +23149,7 @@ window.closePumpkinSmash = closePumpkinSmash;
 window.startPumpkinSmash = startPumpkinSmash;
 
 function updateCoinsUI() {
+    try { mergeHalloSeedsIntoCoins(); } catch (eM) {}
     try {
         var el = document.getElementById("bucks");
         if (el) el.textContent = formatCoins(getCoins());
@@ -23068,8 +23159,7 @@ function updateCoinsUI() {
         if (mBal) mBal.textContent = formatCoins(getCoins());
         var hc = document.getElementById("halloCoinBalance");
         if (hc) hc.textContent = formatCoins(getHalloCoins());
-        var hs = document.getElementById("halloSeedBalance");
-        if (hs) hs.textContent = String(getHalloSeeds());
+
         var btn = document.getElementById("coinsMenuBtn");
         if (btn) {
             var label = btn.childNodes[0];
@@ -24046,9 +24136,7 @@ function renderMarketplace() {
     if (category === "halloween") {
         HALLO_SHOP_ITEMS.forEach(function (item) {
             var owned = ownsItem(item.id);
-            var seedPrice = item.priceSeeds || 0;
-            var halloPrice = item.priceHallo || 0;
-            var canSeed = seedPrice && getHalloSeeds() >= seedPrice && isHalloEventLive();
+            var halloPrice = item.priceHallo || item.priceSeeds || 0;
             var canHallo = halloPrice && getHalloCoins() >= halloPrice && isHalloEventLive();
             html += '<div class="market-card' + (owned ? " owned" : "") + '">';
             html += '<div class="market-thumb-3d" aria-hidden="true"><div class="market-thumb-cube hallo"></div></div>';
@@ -24056,11 +24144,9 @@ function renderMarketplace() {
             html += '<div class="market-card-meta">Halloween · <span class="by-creator">By Azora</span></div>';
             html += '<div class="market-card-desc">' + (item.desc || "") + '</div>';
             html += '<div class="market-card-footer"><span class="market-price">';
-            if (seedPrice) html += seedPrice + " 🌱 ";
-            if (halloPrice) html += halloPrice + " 🎃";
+            html += halloPrice + " 🎃";
             html += "</span>";
             if (owned) html += ownedBtn();
-            else if (canSeed) html += '<button type="button" class="market-btn" onclick="buyHalloItem(\'' + item.id + '\',\'seeds\')">Buy with Seeds</button>';
             else if (canHallo) html += '<button type="button" class="market-btn" onclick="buyHalloItem(\'' + item.id + '\',\'hallo\')">Buy with HalloCoins</button>';
             else html += '<button type="button" class="market-btn disabled" disabled>' + (isHalloEventLive() ? "Need more" : "Event shop closed") + "</button>";
             html += "</div></div>";
