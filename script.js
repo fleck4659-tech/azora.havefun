@@ -23182,6 +23182,134 @@ function closeEventCalendar() {
 window.openEventCalendar = openEventCalendar;
 window.closeEventCalendar = closeEventCalendar;
 
+var _azoraRec = { rec: null, chunks: [], lastId: null, stream: null };
+function azoraRecDb() {
+    return new Promise(function (resolve, reject) {
+        var req = indexedDB.open("azoraRecordingsDB", 1);
+        req.onupgradeneeded = function () {
+            var db = req.result;
+            if (!db.objectStoreNames.contains("clips")) db.createObjectStore("clips", { keyPath: "id" });
+        };
+        req.onsuccess = function () { resolve(req.result); };
+        req.onerror = function () { reject(req.error); };
+    });
+}
+function saveAzoraRecordingBlob(id, blob, name) {
+    return azoraRecDb().then(function (db) {
+        return new Promise(function (resolve, reject) {
+            var tx = db.transaction("clips", "readwrite");
+            tx.objectStore("clips").put({ id: id, blob: blob, name: name, at: Date.now() });
+            tx.oncomplete = function () { resolve(id); };
+            tx.onerror = function () { reject(tx.error); };
+        });
+    });
+}
+function listAzoraRecordingMeta() {
+    try { return JSON.parse(localStorage.getItem("azoraRecordingList") || "[]"); } catch (e) { return []; }
+}
+function pushAzoraRecordingMeta(item) {
+    var list = listAzoraRecordingMeta();
+    list.unshift(item);
+    localStorage.setItem("azoraRecordingList", JSON.stringify(list.slice(0, 40)));
+}
+function toggleAzoraRecording() {
+    if (_azoraRec.rec && _azoraRec.rec.state === "recording") {
+        try { _azoraRec.rec.stop(); } catch (e) {}
+        return;
+    }
+    var btn = document.getElementById("azoraRecordBtn");
+    function startRec(stream) {
+        _azoraRec.stream = stream;
+        _azoraRec.chunks = [];
+        var rec;
+        try { rec = new MediaRecorder(stream, { mimeType: "video/webm" }); }
+        catch (e0) { rec = new MediaRecorder(stream); }
+        _azoraRec.rec = rec;
+        rec.ondataavailable = function (ev) { if (ev.data && ev.data.size) _azoraRec.chunks.push(ev.data); };
+        rec.onstop = function () {
+            try { stream.getTracks().forEach(function (t) { t.stop(); }); } catch (e2) {}
+            if (btn) { btn.textContent = "⏺ Record"; btn.classList.remove("recording"); }
+            var blob = new Blob(_azoraRec.chunks, { type: rec.mimeType || "video/webm" });
+            var id = "rec_" + Date.now();
+            var name = "Azora recording " + new Date().toLocaleString();
+            _azoraRec.lastId = id;
+            saveAzoraRecordingBlob(id, blob, name).then(function () {
+                pushAzoraRecordingMeta({ id: id, name: name, at: Date.now() });
+                var ov = document.getElementById("azoraRecordDoneOverlay");
+                if (ov) ov.style.display = "flex";
+            }).catch(function () {
+                _azoraRec.lastUrl = URL.createObjectURL(blob);
+                pushAzoraRecordingMeta({ id: id, name: name, at: Date.now(), url: _azoraRec.lastUrl });
+                var ov = document.getElementById("azoraRecordDoneOverlay");
+                if (ov) ov.style.display = "flex";
+            });
+            _azoraRec.rec = null;
+        };
+        rec.start(1000);
+        if (btn) { btn.textContent = "⏹ Stop"; btn.classList.add("recording"); }
+    }
+    if (navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia) {
+        navigator.mediaDevices.getDisplayMedia({
+            video: { frameRate: 24, displaySurface: "browser" },
+            audio: true,
+            preferCurrentTab: true,
+            selfBrowserSurface: "include"
+        }).then(startRec).catch(function () {
+            alert("Pick this Azora tab so the recording stays in the app.");
+        });
+    } else alert("This browser cannot record the screen.");
+}
+function downloadAzoraRecordingById(id) {
+    azoraRecDb().then(function (db) {
+        var tx = db.transaction("clips", "readonly");
+        var req = tx.objectStore("clips").get(id);
+        req.onsuccess = function () {
+            var row = req.result;
+            if (!row || !row.blob) return;
+            var a = document.createElement("a");
+            a.href = URL.createObjectURL(row.blob);
+            a.download = "azora-recording.webm";
+            a.click();
+        };
+    }).catch(function () {
+        if (_azoraRec.lastUrl) {
+            var a = document.createElement("a");
+            a.href = _azoraRec.lastUrl;
+            a.download = "azora-recording.webm";
+            a.click();
+        }
+    });
+}
+function downloadLastAzoraRecording() {
+    if (_azoraRec.lastId) downloadAzoraRecordingById(_azoraRec.lastId);
+    closeAzoraRecordDone();
+}
+function closeAzoraRecordDone() {
+    var ov = document.getElementById("azoraRecordDoneOverlay");
+    if (ov) ov.style.display = "none";
+}
+function openAzoraRecordings() {
+    var ov = document.getElementById("azoraRecordingsOverlay");
+    var box = document.getElementById("azoraRecordingsList");
+    var list = listAzoraRecordingMeta();
+    if (box) {
+        box.innerHTML = list.length ? list.map(function (r) {
+            return "<div class='coins-drop-row'><span>" + String(r.name || "Recording") + "</span><button type='button' onclick=\"downloadAzoraRecordingById('" + r.id + "')\">Download</button></div>";
+        }).join("") : "<p>No recordings yet.</p>";
+    }
+    if (ov) ov.style.display = "flex";
+}
+function closeAzoraRecordings() {
+    var ov = document.getElementById("azoraRecordingsOverlay");
+    if (ov) ov.style.display = "none";
+}
+window.toggleAzoraRecording = toggleAzoraRecording;
+window.downloadLastAzoraRecording = downloadLastAzoraRecording;
+window.closeAzoraRecordDone = closeAzoraRecordDone;
+window.openAzoraRecordings = openAzoraRecordings;
+window.closeAzoraRecordings = closeAzoraRecordings;
+window.downloadAzoraRecordingById = downloadAzoraRecordingById;
+
 var _pumpkins = [];
 var _pumpkinTimer = null;
 var _pumpkinLeft = 0;
