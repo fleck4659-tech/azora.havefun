@@ -11600,10 +11600,10 @@ window.aturiusWatchTyping = aturiusWatchTyping;
 
 function parseAturiusImageCommand(userText) {
     var raw = String(userText || "").trim();
-    var m = raw.match(/^:?\s*generate\s+an?\s+(image|picture|photo|video|clip|movie)s?\s+(?:of\s+|about\s+|showing\s+|with\s+)?(.+)$/i);
+    var m = raw.match(/^:?\s*generate(?:\s+me)?(?:\s+please)?\s+an?\s+(image|picture|photo|video|clip|movie)s?\s+(?:of\s+|about\s+|showing\s+|with\s+)?(.+)$/i);
     if (!m || !m[2]) return null;
     var kind = String(m[1] || "video").toLowerCase();
-    var prompt = String(m[2] || "").trim();
+    var prompt = expandAturiusClipEmojis(String(m[2] || "").trim());
     if (!prompt) {
         return "Say it like this: :Generate a video of a yellow sphere bouncing in a park";
     }
@@ -11616,6 +11616,35 @@ function parseAturiusImageCommand(userText) {
         clipPrompt: prompt,
         clipKind: kind
     };
+}
+
+function expandAturiusClipEmojis(prompt) {
+    var s = String(prompt || "");
+    var map = [
+        [/😊|🙂|😄|😃|😁|😀|🤗/g, " happy yellow sphere "],
+        [/😂|🤣/g, " laughing yellow sphere "],
+        [/😎/g, " cool yellow sphere "],
+        [/🐱|🐈/g, " cat "],
+        [/🐶|🐕/g, " dog "],
+        [/🐰/g, " bunny "],
+        [/🦆/g, " duck "],
+        [/🐦/g, " bird "],
+        [/🐟/g, " fish "],
+        [/🎃/g, " pumpkin "],
+        [/👻/g, " friendly ghost "],
+        [/🤖/g, " robot "],
+        [/🏠/g, " house "],
+        [/🌳|🌲/g, " tree "],
+        [/🌙|⭐|✨/g, " space "],
+        [/🌊/g, " ocean "],
+        [/☀️/g, " park "],
+        [/🌧️|☔/g, " rain "],
+        [/❄️/g, " snow "],
+        [/🪙|💰/g, " coin "]
+    ];
+    for (var i = 0; i < map.length; i++) s = s.replace(map[i][0], map[i][1]);
+    if (!/[a-z0-9]/i.test(s)) s = "happy yellow sphere in a park";
+    return s.replace(/\s+/g, " ").trim();
 }
 
 function moderateAturiusImagePrompt(prompt) {
