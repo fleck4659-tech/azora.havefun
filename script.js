@@ -11792,7 +11792,7 @@ function buildAturiusClip(prompt) {
         var ctx = canvas.getContext("2d");
         var scene = understandAturiusClip(prompt);
         var start = Date.now();
-        var seconds = 5;
+        var seconds = 15;
         function oval(x, y, rx, ry, fill) {
             ctx.fillStyle = fill;
             ctx.beginPath();
@@ -11974,6 +11974,21 @@ function buildAturiusClip(prompt) {
             ctx.fillStyle = scene.place === "space" || scene.place === "night" || scene.place === "halloween" || scene.place === "shop" || scene.place === "lobby" ? "#ffe7c4" : "#111";
             ctx.font = "15px sans-serif";
             ctx.fillText(scene.title, 12, 24);
+            var fade = 0.28;
+            var seg = t % 6;
+            var light = 1;
+            if (seg < fade) light = seg / fade;
+            else if (seg < 3) light = 1;
+            else if (seg < 3 + fade) light = 1 - (seg - 3) / fade;
+            else light = 0;
+            var c255 = Math.round(light * 255);
+            ctx.font = "bold 22px sans-serif";
+            ctx.textAlign = "right";
+            ctx.fillStyle = "rgba(" + (255 - c255) + "," + (255 - c255) + "," + (255 - c255) + ",0.35)";
+            ctx.fillText("Aturius", 628, 348);
+            ctx.fillStyle = "rgb(" + c255 + "," + c255 + "," + c255 + ")";
+            ctx.fillText("Aturius", 626, 346);
+            ctx.textAlign = "left";
         }
         if (typeof MediaRecorder === "undefined" || !canvas.captureStream) {
             draw(1);
