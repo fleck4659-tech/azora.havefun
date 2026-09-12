@@ -11727,6 +11727,63 @@ function understandAturiusClip(prompt) {
     return { color: color, place: place, actor: actor, move: move, extras: extras, title: String(prompt).slice(0, 52) };
 }
 
+function startAturiusClipMusic(scene) {
+    try {
+        var AC = window.AudioContext || window.webkitAudioContext;
+        if (!AC) return null;
+        var ctx = new AC();
+        var dest = ctx.createMediaStreamDestination();
+        var master = ctx.createGain();
+        master.gain.value = 0.12;
+        master.connect(dest);
+        master.connect(ctx.destination);
+        var place = (scene && scene.place) || "park";
+        var move = (scene && scene.move) || "bounce";
+        var scales = {
+            park: [523, 587, 659, 784],
+            lobby: [392, 494, 587, 740],
+            shop: [659, 784, 880, 1046],
+            halloween: [392, 466, 523, 622],
+            space: [220, 277, 330, 440],
+            ocean: [262, 311, 349, 415],
+            rain: [247, 294, 370, 440],
+            snow: [349, 392, 523, 587],
+            forest: [294, 349, 392, 466],
+            desert: [330, 392, 440, 494],
+            house: [392, 440, 523, 587],
+            city: [349, 440, 523, 698],
+            night: [196, 247, 294, 370],
+            sunset: [330, 415, 494, 622]
+        };
+        var notes = scales[place] || scales.park;
+        var beat = move === "spin" || move === "run" ? 0.22 : (place === "space" || place === "night" ? 0.55 : 0.32);
+        var i = 0;
+        function beep() {
+            if (!ctx || ctx.state === "closed") return;
+            var o = ctx.createOscillator();
+            var g = ctx.createGain();
+            o.type = (place === "halloween" || place === "night") ? "triangle" : "sine";
+            o.frequency.value = notes[i % notes.length];
+            g.gain.setValueAtTime(0.0001, ctx.currentTime);
+            g.gain.exponentialRampToValueAtTime(0.18, ctx.currentTime + 0.03);
+            g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + beat * 0.9);
+            o.connect(g); g.connect(master);
+            o.start();
+            o.stop(ctx.currentTime + beat);
+            i++;
+        }
+        beep();
+        var timer = setInterval(beep, beat * 1000);
+        return {
+            stream: dest.stream,
+            stop: function () {
+                clearInterval(timer);
+                try { ctx.close(); } catch (e) {}
+            }
+        };
+    } catch (e) { return null; }
+}
+
 function buildAturiusClip(prompt) {
     return new Promise(function (resolve) {
         var canvas = document.createElement("canvas");
@@ -11735,7 +11792,7 @@ function buildAturiusClip(prompt) {
         var ctx = canvas.getContext("2d");
         var scene = understandAturiusClip(prompt);
         var start = Date.now();
-        var seconds = 4;
+        var seconds = 5;
         function oval(x, y, rx, ry, fill) {
             ctx.fillStyle = fill;
             ctx.beginPath();
@@ -11752,6 +11809,7 @@ function buildAturiusClip(prompt) {
                 ctx.fillStyle = c;
                 ctx.beginPath(); ctx.moveTo(-16, -8); ctx.lineTo(-8, -24); ctx.lineTo(-2, -8); ctx.fill();
                 ctx.beginPath(); ctx.moveTo(16, -8); ctx.lineTo(8, -24); ctx.lineTo(2, -8); ctx.fill();
+                ctx.beginPath(); ctx.moveTo(-20, 6); ctx.quadraticCurveTo(-36, -10, -28, 16); ctx.lineTo(-16, 8); ctx.fill();
                 ctx.fillStyle = "#111"; ctx.fillRect(-8, -4, 4, 4); ctx.fillRect(4, -4, 4, 4);
             } else if (scene.actor === "dog") {
                 oval(0, 4, 24, 16, c);
@@ -11788,9 +11846,14 @@ function buildAturiusClip(prompt) {
                 oval(0, -16, 10, 10, "#fde68a");
                 ctx.fillStyle = c; ctx.fillRect(-10, -6, 20, 22);
             } else if (scene.actor === "aturius") {
-                oval(0, 0, 24, 24, "#facc15");
-                ctx.fillStyle = "#111"; ctx.fillRect(-8, -6, 5, 5); ctx.fillRect(4, -6, 5, 5);
-                ctx.beginPath(); ctx.arc(0, 8, 8, 0.15 * Math.PI, 0.85 * Math.PI); ctx.stroke();
+                oval(0, 2, 26, 26, "#facc15");
+                oval(-1, 4, 22, 22, "#fde047");
+                ctx.fillStyle = "#111";
+                ctx.beginPath(); ctx.ellipse(-8, -4, 4, 5, 0, 0, Math.PI * 2); ctx.fill();
+                ctx.beginPath(); ctx.ellipse(8, -4, 4, 5, 0, 0, Math.PI * 2); ctx.fill();
+                ctx.fillStyle = "#fff"; ctx.fillRect(-9, -6, 2, 2); ctx.fillRect(7, -6, 2, 2);
+                ctx.strokeStyle = "#111"; ctx.lineWidth = 2;
+                ctx.beginPath(); ctx.arc(0, 6, 9, 0.12 * Math.PI, 0.88 * Math.PI); ctx.stroke();
             } else if (scene.actor === "bunny") {
                 oval(0, 4, 16, 14, c);
                 ctx.fillStyle = c; ctx.fillRect(-10, -22, 6, 20); ctx.fillRect(4, -22, 6, 20);
@@ -11918,12 +11981,19 @@ function buildAturiusClip(prompt) {
             return;
         }
         var stream = canvas.captureStream(24);
+        var music = startAturiusClipMusic(scene);
+        if (music && music.stream) {
+            try {
+                music.stream.getAudioTracks().forEach(function (tr) { stream.addTrack(tr); });
+            } catch (eMix) {}
+        }
         var rec;
         try { rec = new MediaRecorder(stream, { mimeType: "video/webm" }); }
         catch (e) { rec = new MediaRecorder(stream); }
         var chunks = [];
         rec.ondataavailable = function (ev) { if (ev.data && ev.data.size) chunks.push(ev.data); };
         rec.onstop = function () {
+            try { if (music && music.stop) music.stop(); } catch (eS) {}
             var blob = new Blob(chunks, { type: rec.mimeType || "video/webm" });
             resolve(URL.createObjectURL(blob));
         };
@@ -14778,8 +14848,9 @@ function renderAturiusMessages() {
             vid.controls = true;
             vid.autoplay = true;
             vid.loop = true;
-            vid.muted = true;
+            vid.muted = false;
             vid.playsInline = true;
+            vid.volume = 0.6;
             vid.className = "aturius-gen-vid";
             vid.setAttribute("aria-label", "Cartoon clip");
             var cached = window._aturiusClipCache && m.clipPrompt && window._aturiusClipCache[m.clipPrompt];
