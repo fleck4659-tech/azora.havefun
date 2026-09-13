@@ -11,7 +11,7 @@
 })();
 var AZORA_DEV_STAGE = "mid-alpha";
 var AZORA_DEV_STAGE_LABEL = "Mid Alpha";
-var AZORA_APP_VERSION = "72.9";
+var AZORA_APP_VERSION = "72.91";
 var AZORA_WHATS_NEW = [
     "Rounded-corner blocky avatars + hourglass girl torso restored",
     "Offline tiles slowly cover Azora, then peel off when Wi‑Fi returns",
@@ -84,6 +84,11 @@ function hideFeatureLoadError() {
 
 function showFeatureLoadError(featureName, detail) {
     try {
+        var pinned = pinFeatureFailOnTarget(featureName, detail);
+        if (pinned) {
+            console.warn("[Azora] Feature could not be loaded:", featureName || "(unknown)", detail || "");
+            return;
+        }
         var ov = ensureFeatureFailOverlay();
         var dark = isAzoraDarkAppearance();
         ov.classList.toggle("is-dark", dark);
@@ -113,12 +118,39 @@ window.showFeatureLoadError = showFeatureLoadError;
 window.hideFeatureLoadError = hideFeatureLoadError;
 window.runAzoraFeature = runAzoraFeature;
 
+var AZORA_FEATURE_TARGETS = [
+    { id: "avatar", name: "3D Avatar", sels: [".avatar-customizer-container", "#avatar3d-canvas"] },
+    { id: "games", name: "Norm Games", sels: ["#normGamesList", "#normGameOverlay"] },
+    { id: "living", name: "Living Lands", sels: ["[data-game-id='living-lands']"] },
+    { id: "pumpkin", name: "Pumpkin Smash", sels: ["[data-game-id='pumpkin-smash']"] },
+    { id: "world", name: "3D World", sels: ["#normGameOverlay", "#normGamesList"] },
+    { id: "aturius", name: "Aturius", sels: ["#aturiusOverlay", "#aturiusButton", "#aturiusCanvas"] },
+    { id: "chat", name: "Chat", sels: ["#chatOverlay", "#chatButton"] },
+    { id: "feed", name: "Feed", sels: ["#publicFeedOverlay", "#publicFeedButton"] },
+    { id: "marketplace", name: "Marketplace", sels: ["#marketplaceOverlay", "#marketplaceBtn"] },
+    { id: "inventory", name: "Inventory", sels: ["#inventoryOverlay", "#inventoryBtn"] },
+    { id: "coins", name: "AzoraCoins", sels: ["#coinsMenuWrap", "#coinsMenuBtn"] },
+    { id: "record", name: "Screen recording", sels: ["#azoraRecordBtn"] },
+    { id: "search", name: "Search", sels: ["#searchOverlay", "#searchButton"] },
+    { id: "settings", name: "Settings", sels: ["#settingsOverlay", "#settingsButton"] },
+    { id: "profile", name: "Profile", sels: ["#profileOverlay", "#profileButton"] },
+    { id: "create", name: "Creator Studio", sels: ["#createGameBtn"] },
+    { id: "welcome", name: "Welcome banner", sels: ["#azoraWelcomeBanner", ".community-banner"] },
+    { id: "daily", name: "Daily Gift", sels: ["#dailyGiftBtn", ".fun-chip"] },
+    { id: "surprise", name: "Surprise game", sels: ["#surpriseGameBtn"] },
+    { id: "streak", name: "Streak", sels: ["#streakChip"] },
+    { id: "notif", name: "Notifications", sels: ["#notifOverlay", "#notifButton"] },
+    { id: "topbar", name: "Top bar", sels: [".topbar", ".topbar-shell"] },
+    { id: "script", name: "Azora app", sels: ["body"] }
+];
+
 var _azoraSpread = {
     tiles: [],
     tick: null,
     startedAt: 0,
-    mode: "idle", // idle | slow | boot | clearing
-    fullMs: 10 * 60 * 1000
+    mode: "idle",
+    fullMs: 10 * 60 * 1000,
+    covered: {}
 };
 
 function azoraSpreadLayer() {
@@ -132,93 +164,170 @@ function azoraSpreadLayer() {
     return layer;
 }
 
-function azoraSpreadTileStyle(tile, dark) {
-    tile.classList.toggle("is-dark", !!dark);
-    tile.classList.toggle("is-light", !dark);
-}
-
-function makeAzoraSpreadTile(opts) {
-    opts = opts || {};
-    var tile = document.createElement("div");
-    tile.className = "azora-offline-spread-tile";
-    tile.innerHTML = '<p class="azora-offline-spread-title">Feature could not be loaded</p><p class="azora-offline-spread-sub">No connection</p>';
-    azoraSpreadTileStyle(tile, isAzoraDarkAppearance());
-    if (opts.grid) {
-        tile.style.left = opts.x + "%";
-        tile.style.top = opts.y + "%";
-        tile.style.width = opts.w + "%";
-        tile.style.height = opts.h + "%";
-        tile.style.transform = "none";
-    } else {
-        tile.style.left = (4 + Math.random() * 82) + "vw";
-        tile.style.top = (4 + Math.random() * 78) + "vh";
-        tile.style.width = (18 + Math.random() * 22) + "vw";
-        tile.style.minHeight = (70 + Math.random() * 50) + "px";
-        tile.style.transform = "rotate(" + ((Math.random() * 10) - 5) + "deg)";
+function azoraFeatureElUsable(el) {
+    if (!el) return false;
+    try {
+        var st = window.getComputedStyle(el);
+        if (st.display === "none" || st.visibility === "hidden") return false;
+        var r = el.getBoundingClientRect();
+        return r.width >= 8 && r.height >= 8;
+    } catch (e) {
+        return false;
     }
-    return tile;
 }
 
-function addAzoraSpreadTile(opts) {
-    var layer = azoraSpreadLayer();
-    var tile = makeAzoraSpreadTile(opts);
-    layer.appendChild(tile);
-    _azoraSpread.tiles.push(tile);
-    requestAnimationFrame(function () { tile.classList.add("on"); });
-    return tile;
+function findAzoraFeatureDef(name) {
+    var raw = String(name || "").toLowerCase();
+    var i, def;
+    for (i = 0; i < AZORA_FEATURE_TARGETS.length; i++) {
+        def = AZORA_FEATURE_TARGETS[i];
+        if (raw === def.id || raw === def.name.toLowerCase()) return def;
+        if (raw.indexOf(def.id) !== -1 || raw.indexOf(def.name.toLowerCase()) !== -1) return def;
+    }
+    if (/living|map/.test(raw)) return findAzoraFeatureDef("living");
+    if (/avatar|3d avatar/.test(raw)) return findAzoraFeatureDef("avatar");
+    if (/world|norm/.test(raw)) return findAzoraFeatureDef("world");
+    if (/market|shop/.test(raw)) return findAzoraFeatureDef("marketplace");
+    return null;
 }
 
-function desiredOfflineSpreadCount(elapsed) {
-    var p = Math.max(0, Math.min(1, elapsed / _azoraSpread.fullMs));
-    p = p * p;
-    return Math.max(1, Math.round(p * 48));
-}
-
-function fillAzoraSpreadGrid() {
-    var layer = azoraSpreadLayer();
-    layer.innerHTML = "";
-    _azoraSpread.tiles = [];
-    var cols = 6, rows = 8;
-    var i, j;
-    for (j = 0; j < rows; j++) {
-        for (i = 0; i < cols; i++) {
-            addAzoraSpreadTile({
-                grid: true,
-                x: (i * 100) / cols,
-                y: (j * 100) / rows,
-                w: 100 / cols,
-                h: 100 / rows
-            });
+function resolveAzoraFeatureEl(def) {
+    if (!def) return null;
+    var i, el, best = null;
+    for (i = 0; i < def.sels.length; i++) {
+        try { el = document.querySelector(def.sels[i]); } catch (e) { el = null; }
+        if (!azoraFeatureElUsable(el)) continue;
+        var r = el.getBoundingClientRect();
+        if (!best || (r.width * r.height > best.area)) {
+            best = { el: el, area: r.width * r.height };
         }
     }
-    layer.classList.add("covering");
+    return best ? best.el : null;
+}
+
+function placeTileOnEl(tile, el) {
+    if (!tile || !el) return false;
+    var r = el.getBoundingClientRect();
+    if (r.width < 8 || r.height < 8) return false;
+    tile.style.position = "fixed";
+    tile.style.left = Math.max(0, r.left) + "px";
+    tile.style.top = Math.max(0, r.top) + "px";
+    tile.style.width = Math.max(24, r.width) + "px";
+    tile.style.height = Math.max(24, r.height) + "px";
+    tile.style.minHeight = "0";
+    tile.style.transform = "none";
+    tile.style.margin = "0";
+    return true;
+}
+
+function syncAzoraFeatureOverlays() {
+    _azoraSpread.tiles.forEach(function (tile) {
+        var id = tile.getAttribute("data-feature-id");
+        if (!id || id === "shell") return;
+        var def = findAzoraFeatureDef(id);
+        var el = resolveAzoraFeatureEl(def);
+        if (el) placeTileOnEl(tile, el);
+    });
+}
+
+function makePinnedFeatureTile(def, detail) {
+    var tile = document.createElement("div");
+    tile.className = "azora-offline-spread-tile pinned-feature";
+    tile.setAttribute("data-feature-id", def.id);
+    tile.innerHTML = '<p class="azora-offline-spread-title">Feature could not be loaded</p>' +
+        '<p class="azora-offline-spread-sub">' + (def.name || "Feature") + '</p>';
+    tile.classList.toggle("is-dark", isAzoraDarkAppearance());
+    tile.classList.toggle("is-light", !isAzoraDarkAppearance());
+    tile.addEventListener("click", function (ev) {
+        ev.preventDefault();
+        ev.stopPropagation();
+    });
+    return tile;
+}
+
+function pinFeatureFailOnTarget(featureName, detail) {
+    var def = findAzoraFeatureDef(featureName) || { id: "unknown", name: featureName || "Feature", sels: [] };
+    if (_azoraSpread.covered[def.id]) {
+        syncAzoraFeatureOverlays();
+        return true;
+    }
+    var el = resolveAzoraFeatureEl(def);
+    if (!el && def.sels && def.sels.length) {
+        try { el = document.querySelector(def.sels[0]); } catch (e) { el = null; }
+    }
+    if (!el) return false;
+    var layer = azoraSpreadLayer();
+    var tile = makePinnedFeatureTile(def, detail);
+    if (!placeTileOnEl(tile, el)) return false;
+    layer.appendChild(tile);
+    layer.classList.add("active");
+    _azoraSpread.tiles.push(tile);
+    _azoraSpread.covered[def.id] = true;
+    requestAnimationFrame(function () { tile.classList.add("on"); });
+    return true;
+}
+
+function coverNextOfflineFeature() {
+    var i, def, el;
+    for (i = 0; i < AZORA_FEATURE_TARGETS.length; i++) {
+        def = AZORA_FEATURE_TARGETS[i];
+        if (_azoraSpread.covered[def.id]) continue;
+        if (def.id === "script") continue;
+        el = resolveAzoraFeatureEl(def);
+        if (!el) continue;
+        pinFeatureFailOnTarget(def.name, "No connection");
+        return true;
+    }
+    return false;
+}
+
+function coverAllAzoraFeatures() {
+    AZORA_FEATURE_TARGETS.forEach(function (def) {
+        if (def.id === "script") return;
+        pinFeatureFailOnTarget(def.name, "No connection");
+    });
+    if (!_azoraSpread.covered.shell) {
+        var layer = azoraSpreadLayer();
+        var tile = document.createElement("div");
+        tile.className = "azora-offline-spread-tile pinned-feature shell-cover";
+        tile.setAttribute("data-feature-id", "shell");
+        tile.innerHTML = '<p class="azora-offline-spread-title">Feature could not be loaded</p><p class="azora-offline-spread-sub">Azora</p>';
+        tile.classList.toggle("is-dark", isAzoraDarkAppearance());
+        tile.style.position = "fixed";
+        tile.style.left = "0";
+        tile.style.top = "0";
+        tile.style.width = "100vw";
+        tile.style.height = "100vh";
+        tile.style.transform = "none";
+        layer.appendChild(tile);
+        _azoraSpread.tiles.push(tile);
+        _azoraSpread.covered.shell = true;
+        requestAnimationFrame(function () { tile.classList.add("on"); });
+        layer.classList.add("covering", "active");
+    }
 }
 
 function startAzoraOfflineSpread() {
     if (_azoraSpread.mode === "slow" || _azoraSpread.mode === "boot") return;
-    if (_azoraSpread.mode === "clearing") {
-        _azoraSpread.tiles.forEach(function (t) { t.style.transitionDelay = "0s"; t.classList.add("on"); });
-    }
     _azoraSpread.mode = "slow";
     _azoraSpread.startedAt = Date.now();
-    var layer = azoraSpreadLayer();
-    layer.classList.add("active");
+    azoraSpreadLayer().classList.add("active");
     if (_azoraSpread.tick) clearInterval(_azoraSpread.tick);
+    coverNextOfflineFeature();
     _azoraSpread.tick = setInterval(function () {
         if (_azoraSpread.mode !== "slow") return;
-        if (azoraHasInternet()) {
+        if (typeof azoraHasInternet === "function" && azoraHasInternet()) {
             clearAzoraOfflineSpreadFast();
             return;
         }
         var elapsed = Date.now() - _azoraSpread.startedAt;
         if (elapsed >= _azoraSpread.fullMs) {
-            fillAzoraSpreadGrid();
+            coverAllAzoraFeatures();
             return;
         }
-        var want = desiredOfflineSpreadCount(elapsed);
-        while (_azoraSpread.tiles.length < want) addAzoraSpreadTile();
-    }, 1600);
-    if (!_azoraSpread.tiles.length) addAzoraSpreadTile();
+        coverNextOfflineFeature();
+        syncAzoraFeatureOverlays();
+    }, 1800);
 }
 
 function clearAzoraOfflineSpreadFast() {
@@ -237,6 +346,7 @@ function clearAzoraOfflineSpreadFast() {
     });
     setTimeout(function () {
         _azoraSpread.tiles = [];
+        _azoraSpread.covered = {};
         _azoraSpread.mode = "idle";
         if (layer) {
             layer.classList.remove("active", "covering");
@@ -246,18 +356,20 @@ function clearAzoraOfflineSpreadFast() {
 }
 
 function playBootFeatureSpread() {
-    if (!azoraHasInternet()) {
+    if (typeof azoraHasInternet === "function" && !azoraHasInternet()) {
         startAzoraOfflineSpread();
         return;
     }
     _azoraSpread.mode = "boot";
-    fillAzoraSpreadGrid();
-    var layer = azoraSpreadLayer();
-    layer.classList.add("active");
+    coverAllAzoraFeatures();
+    azoraSpreadLayer().classList.add("active");
     setTimeout(function () {
         clearAzoraOfflineSpreadFast();
-    }, 260);
+    }, 280);
 }
+
+window.addEventListener("resize", function () { try { syncAzoraFeatureOverlays(); } catch (e) {} });
+window.addEventListener("scroll", function () { try { syncAzoraFeatureOverlays(); } catch (e) {} }, true);
 
 window.startAzoraOfflineSpread = startAzoraOfflineSpread;
 window.clearAzoraOfflineSpreadFast = clearAzoraOfflineSpreadFast;

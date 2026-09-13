@@ -8141,18 +8141,19 @@ html[data-theme="dark"] .azora-feature-fail-close,
     pointer-events: none;
     overflow: hidden;
 }
+.azora-offline-spread.active,
 .azora-offline-spread.covering {
-    pointer-events: auto;
+    pointer-events: none;
 }
 .azora-offline-spread-tile {
-    position: absolute;
+    position: fixed;
     box-sizing: border-box;
-    border-radius: 14px;
-    padding: 12px 10px;
+    border-radius: 10px;
+    padding: 8px;
     text-align: center;
     opacity: 0;
-    transform: scale(0.86);
-    transition: opacity 0.22s ease, transform 0.22s ease;
+    transform: none;
+    transition: opacity 0.22s ease;
     box-shadow: 0 10px 24px rgba(0,0,0,0.18);
     background: #ffffff;
     color: #0f172a;
@@ -8160,6 +8161,10 @@ html[data-theme="dark"] .azora-feature-fail-close,
     display: flex;
     flex-direction: column;
     justify-content: center;
+    align-items: center;
+    overflow: hidden;
+    pointer-events: auto;
+    z-index: 2147483001;
 }
 .azora-offline-spread-tile.is-dark {
     background: #6b7280;
@@ -8184,9 +8189,8 @@ html[data-theme="dark"] .azora-feature-fail-close,
     font-size: 0.78rem;
     opacity: 0.8;
 }
-.azora-offline-spread.covering .azora-offline-spread-tile {
+.azora-offline-spread-tile.shell-cover {
     border-radius: 0;
-    transform: none;
 }
 
 /* Soft Rainbow theme — pastel wash, not neon */
