@@ -791,6 +791,11 @@ input:checked + .slider:before {
     margin: 5px 0;
     white-space: nowrap;
     text-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+    font-family: Arial, Helvetica, sans-serif;
+    transition: font-family 0.05s linear;
+}
+.slide-text.welcome-new-font {
+    font-family: "Javelin Obsidian", "Azora Halloween", Arial, sans-serif;
 }
 
 /* Welcome text ~3 seconds on screen total */
@@ -8126,4 +8131,82 @@ html[data-theme="dark"] .azora-feature-fail-close,
 .azora-feature-fail-overlay.is-dark .azora-feature-fail-close {
     background: #111827;
     color: #f8fafc;
+}
+
+/* Offline / boot feature-fail tiles */
+.azora-offline-spread {
+    position: fixed;
+    inset: 0;
+    z-index: 2147483000;
+    pointer-events: none;
+    overflow: hidden;
+}
+.azora-offline-spread.covering {
+    pointer-events: auto;
+}
+.azora-offline-spread-tile {
+    position: absolute;
+    box-sizing: border-box;
+    border-radius: 14px;
+    padding: 12px 10px;
+    text-align: center;
+    opacity: 0;
+    transform: scale(0.86);
+    transition: opacity 0.22s ease, transform 0.22s ease;
+    box-shadow: 0 10px 24px rgba(0,0,0,0.18);
+    background: #ffffff;
+    color: #0f172a;
+    border: 1px solid #e5e7eb;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+.azora-offline-spread-tile.is-dark {
+    background: #6b7280;
+    color: #f8fafc;
+    border-color: #4b5563;
+}
+.azora-offline-spread-tile.on {
+    opacity: 1;
+    transform: scale(1);
+}
+.azora-offline-spread-tile.off {
+    opacity: 0;
+    transform: scale(0.9);
+}
+.azora-offline-spread-title {
+    margin: 0;
+    font-weight: 800;
+    font-size: 0.95rem;
+}
+.azora-offline-spread-sub {
+    margin: 4px 0 0;
+    font-size: 0.78rem;
+    opacity: 0.8;
+}
+.azora-offline-spread.covering .azora-offline-spread-tile {
+    border-radius: 0;
+    transform: none;
+}
+
+/* Soft Rainbow theme — pastel wash, not neon */
+html[data-theme="softrainbow"] .azora-bg-base,
+html.theme-soft-rainbow .azora-bg-base,
+html[data-theme="softrainbow"] body {
+    background: linear-gradient(135deg, #c4b5fd, #93c5fd, #86efac, #fde68a, #f9a8d4) !important;
+    background-size: 280% 280% !important;
+    animation: softRainbowShift 22s ease-in-out infinite;
+}
+html[data-theme="softrainbow"] .topbar,
+html[data-theme="softrainbow"] .topbar-shell {
+    background: linear-gradient(90deg, rgba(196,181,253,0.85), rgba(147,197,253,0.85), rgba(253,230,138,0.8)) !important;
+}
+html[data-theme="softrainbow"] button {
+    background: linear-gradient(180deg, #f9a8d4, #93c5fd);
+    border-color: #c4b5fd;
+}
+@keyframes softRainbowShift {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
 }

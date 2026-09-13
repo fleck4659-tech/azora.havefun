@@ -11,9 +11,12 @@
 })();
 var AZORA_DEV_STAGE = "mid-alpha";
 var AZORA_DEV_STAGE_LABEL = "Mid Alpha";
-var AZORA_APP_VERSION = "72.8";
+var AZORA_APP_VERSION = "72.9";
 var AZORA_WHATS_NEW = [
-    "Classic blocky characters restored (no rounded blob bodies)",
+    "Rounded-corner blocky avatars + hourglass girl torso restored",
+    "Offline tiles slowly cover Azora, then peel off when Wi‑Fi returns",
+    "Welcome to Azora starts in the original font, then switches mid-way",
+    "New Soft Rainbow theme (pastel, not neon-bright)",
     "Feature-fail overlay if a part of Azora does not load",
     "Mid Alpha stage shown in Settings",
     "Aturius training pack + learned replies",
@@ -109,6 +112,159 @@ function runAzoraFeature(featureName, fn) {
 window.showFeatureLoadError = showFeatureLoadError;
 window.hideFeatureLoadError = hideFeatureLoadError;
 window.runAzoraFeature = runAzoraFeature;
+
+var _azoraSpread = {
+    tiles: [],
+    tick: null,
+    startedAt: 0,
+    mode: "idle", // idle | slow | boot | clearing
+    fullMs: 10 * 60 * 1000
+};
+
+function azoraSpreadLayer() {
+    var layer = document.getElementById("azoraOfflineSpread");
+    if (layer) return layer;
+    layer = document.createElement("div");
+    layer.id = "azoraOfflineSpread";
+    layer.className = "azora-offline-spread";
+    layer.setAttribute("aria-hidden", "true");
+    (document.body || document.documentElement).appendChild(layer);
+    return layer;
+}
+
+function azoraSpreadTileStyle(tile, dark) {
+    tile.classList.toggle("is-dark", !!dark);
+    tile.classList.toggle("is-light", !dark);
+}
+
+function makeAzoraSpreadTile(opts) {
+    opts = opts || {};
+    var tile = document.createElement("div");
+    tile.className = "azora-offline-spread-tile";
+    tile.innerHTML = '<p class="azora-offline-spread-title">Feature could not be loaded</p><p class="azora-offline-spread-sub">No connection</p>';
+    azoraSpreadTileStyle(tile, isAzoraDarkAppearance());
+    if (opts.grid) {
+        tile.style.left = opts.x + "%";
+        tile.style.top = opts.y + "%";
+        tile.style.width = opts.w + "%";
+        tile.style.height = opts.h + "%";
+        tile.style.transform = "none";
+    } else {
+        tile.style.left = (4 + Math.random() * 82) + "vw";
+        tile.style.top = (4 + Math.random() * 78) + "vh";
+        tile.style.width = (18 + Math.random() * 22) + "vw";
+        tile.style.minHeight = (70 + Math.random() * 50) + "px";
+        tile.style.transform = "rotate(" + ((Math.random() * 10) - 5) + "deg)";
+    }
+    return tile;
+}
+
+function addAzoraSpreadTile(opts) {
+    var layer = azoraSpreadLayer();
+    var tile = makeAzoraSpreadTile(opts);
+    layer.appendChild(tile);
+    _azoraSpread.tiles.push(tile);
+    requestAnimationFrame(function () { tile.classList.add("on"); });
+    return tile;
+}
+
+function desiredOfflineSpreadCount(elapsed) {
+    var p = Math.max(0, Math.min(1, elapsed / _azoraSpread.fullMs));
+    p = p * p;
+    return Math.max(1, Math.round(p * 48));
+}
+
+function fillAzoraSpreadGrid() {
+    var layer = azoraSpreadLayer();
+    layer.innerHTML = "";
+    _azoraSpread.tiles = [];
+    var cols = 6, rows = 8;
+    var i, j;
+    for (j = 0; j < rows; j++) {
+        for (i = 0; i < cols; i++) {
+            addAzoraSpreadTile({
+                grid: true,
+                x: (i * 100) / cols,
+                y: (j * 100) / rows,
+                w: 100 / cols,
+                h: 100 / rows
+            });
+        }
+    }
+    layer.classList.add("covering");
+}
+
+function startAzoraOfflineSpread() {
+    if (_azoraSpread.mode === "slow" || _azoraSpread.mode === "boot") return;
+    if (_azoraSpread.mode === "clearing") {
+        _azoraSpread.tiles.forEach(function (t) { t.style.transitionDelay = "0s"; t.classList.add("on"); });
+    }
+    _azoraSpread.mode = "slow";
+    _azoraSpread.startedAt = Date.now();
+    var layer = azoraSpreadLayer();
+    layer.classList.add("active");
+    if (_azoraSpread.tick) clearInterval(_azoraSpread.tick);
+    _azoraSpread.tick = setInterval(function () {
+        if (_azoraSpread.mode !== "slow") return;
+        if (azoraHasInternet()) {
+            clearAzoraOfflineSpreadFast();
+            return;
+        }
+        var elapsed = Date.now() - _azoraSpread.startedAt;
+        if (elapsed >= _azoraSpread.fullMs) {
+            fillAzoraSpreadGrid();
+            return;
+        }
+        var want = desiredOfflineSpreadCount(elapsed);
+        while (_azoraSpread.tiles.length < want) addAzoraSpreadTile();
+    }, 1600);
+    if (!_azoraSpread.tiles.length) addAzoraSpreadTile();
+}
+
+function clearAzoraOfflineSpreadFast() {
+    _azoraSpread.mode = "clearing";
+    if (_azoraSpread.tick) { clearInterval(_azoraSpread.tick); _azoraSpread.tick = null; }
+    var layer = document.getElementById("azoraOfflineSpread");
+    var tiles = _azoraSpread.tiles.slice();
+    tiles.forEach(function (tile, i) {
+        setTimeout(function () {
+            tile.classList.remove("on");
+            tile.classList.add("off");
+            setTimeout(function () {
+                if (tile.parentNode) tile.parentNode.removeChild(tile);
+            }, 220);
+        }, i * 42);
+    });
+    setTimeout(function () {
+        _azoraSpread.tiles = [];
+        _azoraSpread.mode = "idle";
+        if (layer) {
+            layer.classList.remove("active", "covering");
+            layer.innerHTML = "";
+        }
+    }, tiles.length * 42 + 280);
+}
+
+function playBootFeatureSpread() {
+    if (!azoraHasInternet()) {
+        startAzoraOfflineSpread();
+        return;
+    }
+    _azoraSpread.mode = "boot";
+    fillAzoraSpreadGrid();
+    var layer = azoraSpreadLayer();
+    layer.classList.add("active");
+    setTimeout(function () {
+        clearAzoraOfflineSpreadFast();
+    }, 260);
+}
+
+window.startAzoraOfflineSpread = startAzoraOfflineSpread;
+window.clearAzoraOfflineSpreadFast = clearAzoraOfflineSpreadFast;
+window.playBootFeatureSpread = playBootFeatureSpread;
+
+window.addEventListener("offline", function () { startAzoraOfflineSpread(); });
+window.addEventListener("online", function () { clearAzoraOfflineSpreadFast(); });
 
 window.addEventListener("error", function (ev) {
     try {
@@ -283,7 +439,7 @@ function applyDefaultBodyShapeToMeshes(gender, avatar, meshes) {
         if (head) head.scale.set(1, 1, 1);
         if (torso) {
             torso.scale.set(1, 1, 1);
-            applyBoyTorsoBox(torso, 0.70, 1.02, 0.38);
+            applyGirlTorsoCut(torso, 0.70, 1.02, 0.38);
         }
         if (la) { la.scale.set(1, 1, 1); if (la.position) la.position.x = -0.56; }
         if (ra) { ra.scale.set(1, 1, 1); if (ra.position) ra.position.x = 0.56; }
@@ -3839,8 +3995,17 @@ function azoraRoundedBoxGeometry(w, h, d, radius) {
 window.azoraRoundedBoxGeometry = azoraRoundedBoxGeometry;
 
 function roundCharacterParts(root) {
-    // Restored classic look: do not reshape blocky avatars into rounded blobs.
-    return;
+    if (!root || typeof THREE === "undefined") return;
+    root.traverse(function (obj) {
+        if (!obj || !obj.isMesh || !obj.geometry) return;
+        var g = obj.geometry;
+        var isBox = g.type === "BoxGeometry" || (g.parameters && g.parameters.width && g.parameters.height && g.parameters.depth && !g.parameters.radiusTop);
+        if (!isBox) return;
+        var w = g.parameters.width, h = g.parameters.height, d = g.parameters.depth;
+        if (!(w > 0 && h > 0 && d > 0)) return;
+        try { g.dispose(); } catch (e) {}
+        obj.geometry = azoraRoundedBoxGeometry(w, h, d, Math.min(w, h, d) * 0.18);
+    });
 }
 window.roundCharacterParts = roundCharacterParts;
 
@@ -3877,20 +4042,23 @@ function azoraGirlCutTorsoGeometry(w, h, d) {
 window.azoraGirlCutTorsoGeometry = azoraGirlCutTorsoGeometry;
 
 function applyGirlTorsoCut(mesh, w, h, d) {
-    // Classic blocky girl torso — slimmer box, no cut-out shape
-    applyBoyTorsoBox(mesh, w || 0.70, h || 1.02, d || 0.38);
+    if (!mesh || typeof THREE === "undefined") return;
+    w = w || 0.70; h = h || 1.02; d = d || 0.38;
+    try { if (mesh.geometry) mesh.geometry.dispose(); } catch (e) {}
+    mesh.geometry = azoraGirlCutTorsoGeometry(w, h, d);
 }
 
 function applyBoyTorsoBox(mesh, w, h, d) {
     if (!mesh || typeof THREE === "undefined") return;
     w = w || 0.78; h = h || 1.12; d = d || 0.42;
     try { if (mesh.geometry) mesh.geometry.dispose(); } catch (e) {}
-    mesh.geometry = new THREE.BoxGeometry(w, h, d);
+    mesh.geometry = azoraRoundedBoxGeometry(w, h, d, Math.min(w, h, d) * 0.18);
 }
 
 function makeBox(w, h, d, color) {
+    var radius = Math.min(w, h, d) * 0.18;
     return new THREE.Mesh(
-        new THREE.BoxGeometry(w, h, d),
+        azoraRoundedBoxGeometry(w, h, d, radius),
         new THREE.MeshLambertMaterial({ color: color })
     );
 }
@@ -4015,7 +4183,9 @@ function makeAvatarHair(hairColor, headY, headSize, styleId) {
     var mat = new THREE.MeshLambertMaterial({ color: hairColor });
 
     function addPart(name, x, y, z, w, h, d) {
-        var m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat.clone());
+        var radius = Math.min(w, h, d) * 0.18;
+        var geo = azoraRoundedBoxGeometry(w, h, d, radius);
+        var m = new THREE.Mesh(geo, mat.clone());
         m.position.set(x, y, z);
         m.name = name;
         group.add(m);
@@ -4264,6 +4434,7 @@ function buildBlockyAvatarMeshes(gender, colors) {
     torsoMesh = makeBox(isGirl ? 0.70 : 0.78, isGirl ? 1.02 : 1.12, isGirl ? 0.38 : 0.42, torsoC);
     torsoMesh.name = "torso";
     torsoMesh.position.y = 0.42;
+    if (isGirl) applyGirlTorsoCut(torsoMesh, 0.70, 1.02, 0.38);
     avatarCharacterGroup.add(torsoMesh);
 
     // Short neck — mostly hidden under the head, a sliver still shows
@@ -7119,7 +7290,8 @@ var AZORA_THEME_PRESETS = {
     sparkle:   { bg1:"#020617", bg2:"#0b1220", bg3:"#1e1b4b", text1:"#ffffff", text2:"#e2e8f0", accent:"#f8fafc", accent2:"#c7d2fe", card:"rgba(2,6,23,0.72)", border:"#e2e8f0", top:"#020617", grad:"linear-gradient(90deg,#020617,#1e1b4b,#334155)", pop:"#020617", foot:"#020617", ban:"rgba(248,250,252,0.16)" },
     bronze:    { bg1:"#3b2410", bg2:"#7c4a1e", bg3:"#b87333", text1:"#fff7ed", text2:"#fed7aa", accent:"#d97706", accent2:"#92400e", card:"rgba(59,36,16,0.92)", border:"#d97706", top:"#3b2410", grad:"linear-gradient(90deg,#7c4a1e,#d97706,#3b2410)", pop:"#24160a", foot:"#3b2410", ban:"rgba(217,119,6,0.2)" },
     rosegold:  { bg1:"#4a1d2a", bg2:"#9d4e5c", bg3:"#e8b4b8", text1:"#fff1f2", text2:"#fecdd3", accent:"#f9a8d4", accent2:"#e8b4b8", card:"rgba(74,29,42,0.9)", border:"#f9a8d4", top:"#4a1d2a", grad:"linear-gradient(90deg,#9d4e5c,#e8b4b8,#4a1d2a)", pop:"#2a1018", foot:"#4a1d2a", ban:"rgba(249,168,212,0.2)" },
-    chrome:    { bg1:"#111827", bg2:"#334155", bg3:"#94a3b8", text1:"#f8fafc", text2:"#cbd5e1", accent:"#f1f5f9", accent2:"#38bdf8", card:"rgba(17,24,39,0.92)", border:"#e2e8f0", top:"#0f172a", grad:"linear-gradient(90deg,#334155,#f1f5f9,#38bdf8)", pop:"#0b1220", foot:"#0f172a", ban:"rgba(241,245,249,0.18)" }
+    chrome:    { bg1:"#111827", bg2:"#334155", bg3:"#94a3b8", text1:"#f8fafc", text2:"#cbd5e1", accent:"#f1f5f9", accent2:"#38bdf8", card:"rgba(17,24,39,0.92)", border:"#e2e8f0", top:"#0f172a", grad:"linear-gradient(90deg,#334155,#f1f5f9,#38bdf8)", pop:"#0b1220", foot:"#0f172a", ban:"rgba(241,245,249,0.18)" },
+    softrainbow:{ bg1:"#4a3f6b", bg2:"#3f5c7a", bg3:"#3f6b62", text1:"#f8fafc", text2:"#efe6ff", accent:"#f9a8d4", accent2:"#93c5fd", card:"rgba(255,255,255,0.12)", border:"#c4b5fd", top:"#4a3f6b", grad:"linear-gradient(90deg,#c4b5fd,#93c5fd,#86efac,#fde68a,#f9a8d4)", pop:"#3b3560", foot:"#3a3f66", ban:"rgba(196,181,253,0.25)" }
 };
 
 function resolveAzoraTheme(theme) {
@@ -7237,9 +7409,9 @@ function paintThemeGrid(active) {
         forest:"Forest", mint:"Mint", ember:"Ember", sunset:"Sunset", candy:"Candy",
         blueberry:"Blueberry", prism:"Prism", lava:"Lava", classic603:"Old Azora (603blox Web)",
         gold:"Gold", silver:"Silver", neon:"Neon Night", sparkle:"Nostalgic Sparkles",
-        bronze:"Bronze", rosegold:"Rose Gold", chrome:"Chrome"
+        bronze:"Bronze", rosegold:"Rose Gold", chrome:"Chrome", softrainbow:"Soft Rainbow"
     };
-    var ids = ["auto","midnight","void","ocean","cobalt","sapphire","storm","royal","grape","amethyst","orchid","nebula","galaxy","aurora","twilight","indigo","cyber","ice","moonlight","slate","forest","mint","ember","sunset","candy","blueberry","prism","lava","classic603","gold","silver","neon","sparkle","bronze","rosegold","chrome"];
+    var ids = ["auto","midnight","void","ocean","cobalt","sapphire","storm","royal","grape","amethyst","orchid","nebula","galaxy","aurora","twilight","indigo","cyber","ice","moonlight","slate","forest","mint","ember","sunset","candy","blueberry","prism","lava","classic603","gold","silver","neon","sparkle","bronze","rosegold","chrome","softrainbow"];
     var html = ids.map(function (id) {
         var prev = id === "auto" ? "linear-gradient(135deg,#1d4ed8,#6d28d9)" : (AZORA_THEME_PRESETS[id] ? AZORA_THEME_PRESETS[id].grad : "#1e3a8a");
         var slow = id === "classic603" ? "applyOldAzoraTheme()" : ("changeTheme('" + id + "')");
@@ -7722,6 +7894,7 @@ function applyThemeFx(id) {
     }
     if (id === "sparkle") startAzoraSparkles();
     if (id === "neon") startAzoraNeonPulse();
+    document.documentElement.classList.toggle("theme-soft-rainbow", id === "softrainbow");
 }
 
 function startAzoraNeonPulse() {
@@ -8201,6 +8374,12 @@ function hideAzoraLoadingScreen() {
     el.style.visibility = "hidden";
     el.style.pointerEvents = "none";
     el.setAttribute("aria-hidden", "true");
+    try {
+        if (!window._azoraBootSpreadPlayed) {
+            window._azoraBootSpreadPlayed = true;
+            playBootFeatureSpread();
+        }
+    } catch (eSpread) {}
 }
 
 function azoraHasInternet() {
@@ -8218,6 +8397,7 @@ function showAzoraOfflineError() {
     if (err) err.style.display = "block";
     // Keep earth spinning in background
     if (canvas) canvas.style.opacity = "0.45";
+    try { startAzoraOfflineSpread(); } catch (eOff) {}
 }
 
 function retryAzoraInternetCheck() {
@@ -8315,7 +8495,19 @@ function dismissIntroSplash(openAccount) {
     }, 350);
 }
 
+function startWelcomeFontSwap() {
+    var nodes = document.querySelectorAll("#introSplash .slide-text");
+    if (!nodes.length) return;
+    nodes.forEach(function (el) { el.classList.remove("welcome-new-font"); });
+    setTimeout(function () {
+        nodes.forEach(function (el) { el.classList.add("welcome-new-font"); });
+    }, 1500);
+}
+window.startWelcomeFontSwap = startWelcomeFontSwap;
+try { startWelcomeFontSwap(); } catch (eFont) {}
+
 window.addEventListener("DOMContentLoaded", function () {
+    try { startWelcomeFontSwap(); } catch (eFont2) {}
     setTimeout(function () {
         try {
             var splash = document.getElementById("introSplash");
@@ -17599,7 +17791,7 @@ function makeNormAvatar(colors) {
 
     function box(w, h, d, color) {
         return new THREE.Mesh(
-            new THREE.BoxGeometry(w, h, d),
+            azoraRoundedBoxGeometry(w, h, d, Math.min(w, h, d) * 0.18),
             new THREE.MeshLambertMaterial({ color: color })
         );
     }
@@ -17619,6 +17811,7 @@ function makeNormAvatar(colors) {
 
     // Torso — girl cube is slightly smaller, with taller inward triangle cuts
     var torso = box(torsoW, torsoH, torsoDepth, colors.torso);
+    if (isGirl) applyGirlTorsoCut(torso, torsoW, torsoH, torsoDepth);
     torso.position.y = legH + torsoH / 2;
     torso.name = "torso";
     g.add(torso);
@@ -17709,7 +17902,7 @@ function makeNormCatAvatar(colors) {
 
     function box(w, h, d, color) {
         return new THREE.Mesh(
-            new THREE.BoxGeometry(w, h, d),
+            azoraRoundedBoxGeometry(w, h, d, Math.min(w, h, d) * 0.18),
             new THREE.MeshLambertMaterial({ color: color })
         );
     }
@@ -28251,7 +28444,10 @@ function _profile3dMat(color) {
 }
 
 function _profile3dBox(w, h, d, color) {
-    return new THREE.Mesh(new THREE.BoxGeometry(w, h, d), new THREE.MeshLambertMaterial({ color: color }));
+    return new THREE.Mesh(
+        azoraRoundedBoxGeometry(w, h, d, Math.min(w, h, d) * 0.18),
+        new THREE.MeshLambertMaterial({ color: color })
+    );
 }
 
 function buildProfile3DCharacter(avatar) {
@@ -28329,16 +28525,10 @@ function buildProfile3DCharacter(avatar) {
 
     var torso = _profile3dBox(torsoW, torsoH, torsoD, torsoC);
     torso.position.y = torsoY;
-    group.add(torso);
-
-    if (girlDef) {
-        try {
-            var flare = _profile3dBox(0.80, 0.24, 0.44, torsoC);
-            flare.position.set(0, -0.02, 0);
-            flare.name = "girlHipFlare";
-            group.add(flare);
-        } catch (eFl) {}
+    if (girlDef && typeof applyGirlTorsoCut === "function") {
+        try { applyGirlTorsoCut(torso, torsoW, torsoH, torsoD); } catch (eCut) {}
     }
+    group.add(torso);
 
     var leftArm = _profile3dBox(armS, 1.08, armS, la);
     leftArm.position.set(-armX, armY, 0);

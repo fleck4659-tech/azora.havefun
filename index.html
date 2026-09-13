@@ -13,11 +13,12 @@
     <link rel="manifest" href="manifest-azora.json">
     <link rel="apple-touch-icon" href="logo.jpg?v=70.2">
     <link rel="icon" href="logo.jpg?v=70.2">
-    <link rel="stylesheet" href="style.css?v=72.40">
+    <link rel="stylesheet" href="style.css?v=72.41">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 </head>
 <body>
 
+<div id="azoraOfflineSpread" class="azora-offline-spread" aria-hidden="true"></div>
 <div id="azoraFeatureFailOverlay" class="azora-feature-fail-overlay" style="display:none;" aria-hidden="true" role="alertdialog" aria-labelledby="azoraFeatureFailTitle">
     <div class="azora-feature-fail-card">
         <p class="azora-feature-fail-title" id="azoraFeatureFailTitle">Feature could not be loaded</p>
@@ -313,6 +314,7 @@
                     <option value="bronze">Bronze</option>
                     <option value="rosegold">Rose Gold</option>
                     <option value="chrome">Chrome</option>
+                    <option value="softrainbow">Soft Rainbow</option>
                 </select>
                 <div class="theme-grid" id="themeGrid"></div>
             </div>
@@ -1716,7 +1718,7 @@
 
 <!-- Optional: trained Aturius brain (export from Azora account → Settings → Export code files) -->
 <script src="aturius-training-pack.js"></script>
-<script src="script.js?v=72.80"></script>
+<script src="script.js?v=72.90"></script>
 <script src="political-earth-data.js?v=72.24"></script>
 <script src="political-earth-hd.js?v=72.24"></script>
 <script src="political-earth-hyper.js?v=72.26"></script>
@@ -1727,7 +1729,7 @@
 // Register Azora as installable app (not the staff website)
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", function () {
-    navigator.serviceWorker.register("./sw-azora.js?v=72.80").then(function (reg) {
+    navigator.serviceWorker.register("./sw-azora.js?v=72.90").then(function (reg) {
       try { if (typeof onAzoraServiceWorkerReady === "function") onAzoraServiceWorkerReady(reg); } catch (e) {}
     }).catch(function () {});
   });
