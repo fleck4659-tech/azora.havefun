@@ -11,8 +11,9 @@
 })();
 var AZORA_DEV_STAGE = "mid-alpha";
 var AZORA_DEV_STAGE_LABEL = "Mid Alpha";
-var AZORA_APP_VERSION = "72.94";
+var AZORA_APP_VERSION = "72.95";
 var AZORA_WHATS_NEW = [
+    "Avatar lives in its own file (azora-avatar.js) so it can keep working if other Azora code breaks",
     "Studio shapes get 3 scale squares on every side",
     "Click away to deselect a shape and hide the squares",
     "More shape animations plus fill, outline, eye, and mouth colors",
@@ -4065,6 +4066,9 @@ function azoraGlossMaterial(color) {
  * Only edges + corners are rounded (not a sphere, capsule, or extruded blob).
  */
 function azoraRoundedBoxGeometry(w, h, d, radius) {
+    if (window.AzoraAvatar && typeof window.AzoraAvatar.roundedBoxGeometry === "function") {
+        return window.AzoraAvatar.roundedBoxGeometry(w, h, d, radius);
+    }
     w = Math.max(0.04, Number(w) || 0.3);
     h = Math.max(0.04, Number(h) || 0.3);
     d = Math.max(0.04, Number(d) || 0.3);
@@ -4163,6 +4167,9 @@ function azoraGirlCutTorsoGeometry(w, h, d) {
 window.azoraGirlCutTorsoGeometry = azoraGirlCutTorsoGeometry;
 
 function applyGirlTorsoCut(mesh, w, h, d) {
+    if (window.AzoraAvatar && typeof window.AzoraAvatar.applyGirlTorsoCut === "function") {
+        return window.AzoraAvatar.applyGirlTorsoCut(mesh, w, h, d);
+    }
     if (!mesh || typeof THREE === "undefined") return;
     w = w || 0.70; h = h || 1.02; d = d || 0.38;
     try { if (mesh.geometry) mesh.geometry.dispose(); } catch (e) {}
@@ -4170,6 +4177,9 @@ function applyGirlTorsoCut(mesh, w, h, d) {
 }
 
 function applyBoyTorsoBox(mesh, w, h, d) {
+    if (window.AzoraAvatar && typeof window.AzoraAvatar.applyBoyTorsoBox === "function") {
+        return window.AzoraAvatar.applyBoyTorsoBox(mesh, w, h, d);
+    }
     if (!mesh || typeof THREE === "undefined") return;
     w = w || 0.78; h = h || 1.12; d = d || 0.42;
     try { if (mesh.geometry) mesh.geometry.dispose(); } catch (e) {}
@@ -4177,6 +4187,9 @@ function applyBoyTorsoBox(mesh, w, h, d) {
 }
 
 function makeBox(w, h, d, color) {
+    if (window.AzoraAvatar && typeof window.AzoraAvatar.makeBox === "function") {
+        return window.AzoraAvatar.makeBox(w, h, d, color);
+    }
     var radius = Math.min(w, h, d) * 0.18;
     return new THREE.Mesh(
         azoraRoundedBoxGeometry(w, h, d, radius),
@@ -4542,6 +4555,29 @@ function _azoraLimbMat(hex) {
 
 /** Classic blocky R6-style limbs (current default) */
 function buildBlockyAvatarMeshes(gender, colors) {
+    if (window.AzoraAvatar && typeof window.AzoraAvatar.buildBlockyInto === "function" && typeof avatarCharacterGroup !== "undefined" && avatarCharacterGroup) {
+        var refs = window.AzoraAvatar.buildBlockyInto(avatarCharacterGroup, gender, colors || {});
+        if (refs) {
+            headMesh = refs.head;
+            torsoMesh = refs.torso;
+            neckMesh = refs.neck;
+            leftArmMesh = refs.leftArm;
+            rightArmMesh = refs.rightArm;
+            leftLegMesh = refs.leftLeg;
+            rightLegMesh = refs.rightLeg;
+            faceGroup = refs.face || null;
+            try {
+                if (typeof applyGenderVisualsToCustomizer === "function") applyGenderVisualsToCustomizer(gender, colors || {});
+            } catch (eG) {}
+            try {
+                if (typeof applySavedExtraPartsToMesh === "function") {
+                    var parts = (colors && colors.extraParts) ? colors.extraParts : (typeof getSavedExtraParts === "function" ? getSavedExtraParts() : []);
+                    applySavedExtraPartsToMesh(avatarCharacterGroup, parts);
+                }
+            } catch (ePartsMain) {}
+            return;
+        }
+    }
     colors = colors || {};
     gender = (gender === "girl" || gender === "female") ? "girl" : "boy";
     var headC = colors.head || "#e0a870";
@@ -18004,6 +18040,18 @@ window.bindGameAvatarLimbs = bindGameAvatarLimbs;
 window.animateGameAvatar = animateGameAvatar;
 
 function makeNormAvatar(colors) {
+    if (window.AzoraAvatar && typeof window.AzoraAvatar.makeNormAvatar === "function") {
+        var built = window.AzoraAvatar.makeNormAvatar(colors || (typeof getNormAvatarColors === "function" ? getNormAvatarColors() : {}));
+        if (built) {
+            try { if (typeof bindGameAvatarLimbs === "function") bindGameAvatarLimbs(built); } catch (eB) {}
+            try {
+                if (typeof applySavedExtraPartsToMesh === "function") {
+                    applySavedExtraPartsToMesh(built, colors && colors.extraParts);
+                }
+            } catch (eParts) {}
+            return built;
+        }
+    }
     colors = colors || getNormAvatarColors();
     var g = new THREE.Group();
     g.name = "normAvatar";
