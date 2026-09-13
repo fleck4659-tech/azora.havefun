@@ -4144,25 +4144,119 @@ function setAvatarRenderStyle(style) {
     if (btn) btn.style.display = "none";
 }
 
+function _azoraDisposeMeshDeep(obj) {
+    if (!obj) return;
+    try {
+        if (obj.geometry) obj.geometry.dispose();
+        if (obj.material) {
+            if (Array.isArray(obj.material)) obj.material.forEach(function (m) { try { m.dispose(); } catch (e) {} });
+            else obj.material.dispose();
+        }
+    } catch (eD) {}
+    // Detail parts (hands, shoes, shoulder caps, collar/belt accents, etc.)
+    // are nested children of the primary limb/torso meshes, so dispose the
+    // whole subtree, not just the top mesh, to avoid leaking their buffers.
+    if (obj.children && obj.children.length) {
+        for (var i = 0; i < obj.children.length; i++) {
+            _azoraDisposeMeshDeep(obj.children[i]);
+        }
+    }
+}
+
 function clearAvatarCharacterMeshes() {
     if (!avatarCharacterGroup) return;
     try {
         while (avatarCharacterGroup.children.length) {
             var ch = avatarCharacterGroup.children[0];
             avatarCharacterGroup.remove(ch);
-            try {
-                if (ch.geometry) ch.geometry.dispose();
-                if (ch.material) {
-                    if (Array.isArray(ch.material)) ch.material.forEach(function (m) { try { m.dispose(); } catch (e) {} });
-                    else ch.material.dispose();
-                }
-            } catch (eD) {}
+            _azoraDisposeMeshDeep(ch);
         }
     } catch (e) {}
     headMesh = torsoMesh = leftArmMesh = rightArmMesh = leftLegMesh = rightLegMesh = null;
     faceGroup = null;
     neckMesh = null;
 }
+
+/** Darken/lighten a hex color by a multiplier (0-1 darkens, >1 lightens). Used for detail accents. */
+function _azoraShadeHex(hex, factor) {
+    try {
+        var c = new THREE.Color(hex);
+        c.r = Math.max(0, Math.min(1, c.r * factor));
+        c.g = Math.max(0, Math.min(1, c.g * factor));
+        c.b = Math.max(0, Math.min(1, c.b * factor));
+        return "#" + c.getHexString();
+    } catch (e) {
+        return hex;
+    }
+}
+window._azoraShadeHex = _azoraShadeHex;
+
+/**
+ * Adds hands, shoes, shoulder caps, and a collar/belt band to an existing
+ * blocky rig. Shared by the customizer avatar (buildBlockyAvatarMeshes) and
+ * the in-game player avatar (makeNormAvatar) so both look equally detailed.
+ * Every part is a CHILD of its parent limb/torso mesh, so it automatically
+ * follows that mesh's existing position/rotation/scale (idle animation,
+ * walking, jumping, size sliders) with no other code needing to change.
+ */
+function _azoraAddCharacterDetailParts(o) {
+    o = o || {};
+    var torsoMesh = o.torso, leftArmMesh = o.leftArm, rightArmMesh = o.rightArm,
+        leftLegMesh = o.leftLeg, rightLegMesh = o.rightLeg;
+    var torsoC = o.torsoColor || "#1d4ed8";
+    var laC = o.leftArmColor || torsoC, raC = o.rightArmColor || torsoC;
+    var torsoH = o.torsoHeight || 1.12;
+    var armH = o.armHeight || 1.08;
+    var legH = o.legHeight || 1.12;
+
+    if (torsoMesh) {
+        var collarAccent = makeBox(0.42, 0.09, 0.44, _azoraShadeHex(torsoC, 0.72));
+        collarAccent.name = "collarAccent";
+        collarAccent.position.set(0, torsoH / 2 - 0.06, 0);
+        torsoMesh.add(collarAccent);
+
+        var beltAccent = makeBox(0.80, 0.09, 0.44, _azoraShadeHex(torsoC, 0.55));
+        beltAccent.name = "beltAccent";
+        beltAccent.position.set(0, -torsoH / 2 + 0.14, 0);
+        torsoMesh.add(beltAccent);
+    }
+    if (leftArmMesh) {
+        var handL = makeBox(0.27, 0.22, 0.29, laC);
+        handL.name = "handL";
+        handL.position.set(0, -armH / 2 - 0.09, 0.01);
+        leftArmMesh.add(handL);
+
+        var shoulderL = makeBox(0.22, 0.16, 0.34, torsoC);
+        shoulderL.name = "shoulderL";
+        shoulderL.position.set(0.02, armH / 2 - 0.05, 0);
+        leftArmMesh.add(shoulderL);
+    }
+    if (rightArmMesh) {
+        var handR = makeBox(0.27, 0.22, 0.29, raC);
+        handR.name = "handR";
+        handR.position.set(0, -armH / 2 - 0.09, 0.01);
+        rightArmMesh.add(handR);
+
+        var shoulderR = makeBox(0.22, 0.16, 0.34, torsoC);
+        shoulderR.name = "shoulderR";
+        shoulderR.position.set(-0.02, armH / 2 - 0.05, 0);
+        rightArmMesh.add(shoulderR);
+    }
+    var shoeColor = "#20232a";
+    if (leftLegMesh) {
+        var shoeL = makeBox(0.34, 0.16, 0.46, shoeColor);
+        shoeL.name = "shoeL";
+        shoeL.position.set(0, -legH / 2 - 0.08, 0.07);
+        leftLegMesh.add(shoeL);
+    }
+    if (rightLegMesh) {
+        var shoeR = makeBox(0.34, 0.16, 0.46, shoeColor);
+        shoeR.name = "shoeR";
+        shoeR.position.set(0, -legH / 2 - 0.08, 0.07);
+        rightLegMesh.add(shoeR);
+    }
+}
+window._azoraAddCharacterDetailParts = _azoraAddCharacterDetailParts;
 
 function _azoraLimbMat(hex) {
     try {
@@ -4185,7 +4279,8 @@ function buildBlockyAvatarMeshes(gender, colors) {
     torsoMesh = makeBox(0.78, 1.12, 0.42, torsoC);
     torsoMesh.name = "torso";
     torsoMesh.position.y = 0.42;
-    if (gender === "girl") applyGirlTorsoCut(torsoMesh, 0.70, 1.02, 0.38);
+    var _torsoHForDetail = 1.12;
+    if (gender === "girl") { applyGirlTorsoCut(torsoMesh, 0.70, 1.02, 0.38); _torsoHForDetail = 1.02; }
     avatarCharacterGroup.add(torsoMesh);
 
     // Short neck — mostly hidden under the head, a sliver still shows
@@ -4238,6 +4333,14 @@ function buildBlockyAvatarMeshes(gender, colors) {
     rightLegMesh.name = "rightLeg";
     rightLegMesh.position.set(0.18, -0.70, 0);
     avatarCharacterGroup.add(rightLegMesh);
+
+    // —— Extra detail parts: hands, shoes, shoulder caps, collar/belt ——
+    _azoraAddCharacterDetailParts({
+        torso: torsoMesh, leftArm: leftArmMesh, rightArm: rightArmMesh,
+        leftLeg: leftLegMesh, rightLeg: rightLegMesh,
+        torsoColor: torsoC, leftArmColor: laC, rightArmColor: raC,
+        torsoHeight: _torsoHForDetail, armHeight: 1.08, legHeight: 1.12
+    });
 
     avatarCharacterGroup.userData = avatarCharacterGroup.userData || {};
     avatarCharacterGroup.userData.animStyle = "blocky";
@@ -5259,6 +5362,8 @@ function syncAvatarExtraColors(head, torso, leftArm, rightArm, leftLeg, rightLeg
         if ((n === "handL" || n === "upperArmL" || n === "lowerArmL" || n === "leftArm") && leftArm) obj.material.color.set(leftArm);
         if ((n === "handR" || n === "upperArmR" || n === "lowerArmR" || n === "rightArm") && rightArm) obj.material.color.set(rightArm);
         if ((n === "shoulderL" || n === "shoulderR" || n === "chest" || n === "hips" || n === "torso") && torso) obj.material.color.set(torso);
+        if (n === "collarAccent" && torso) obj.material.color.set(_azoraShadeHex(torso, 0.72));
+        if (n === "beltAccent" && torso) obj.material.color.set(_azoraShadeHex(torso, 0.55));
         if ((n === "thighL" || n === "shinL" || n === "footL" || n === "leftLeg") && leftLeg) obj.material.color.set(leftLeg);
         if ((n === "thighR" || n === "shinR" || n === "footR" || n === "rightLeg") && rightLeg) obj.material.color.set(rightLeg);
     });
@@ -17591,6 +17696,22 @@ function makeNormAvatar(colors) {
     var rightArmPivot = addLimbPivot("rightArmPivot", "rightArm", armX, shoulderY, armH, armThick, colors.rightArm);
     var leftLegPivot = addLimbPivot("leftLegPivot", "leftLeg", -legX, hipY, legH, legThick, colors.leftLeg);
     var rightLegPivot = addLimbPivot("rightLegPivot", "rightLeg", legX, hipY, legH, legThick, colors.rightLeg);
+
+    // —— Extra detail parts: hands, shoes, shoulder caps, collar/belt ——
+    // Same treatment as the customizer avatar so the in-game character matches.
+    try {
+        if (typeof _azoraAddCharacterDetailParts === "function") {
+            _azoraAddCharacterDetailParts({
+                torso: torso,
+                leftArm: leftArmPivot.getObjectByName("leftArm"),
+                rightArm: rightArmPivot.getObjectByName("rightArm"),
+                leftLeg: leftLegPivot.getObjectByName("leftLeg"),
+                rightLeg: rightLegPivot.getObjectByName("rightLeg"),
+                torsoColor: colors.torso, leftArmColor: colors.leftArm, rightArmColor: colors.rightArm,
+                torsoHeight: torsoH, armHeight: armH, legHeight: legH
+            });
+        }
+    } catch (eDetail) {}
 
     // girl torso cut is already applied on the cube; no extra hip piece
     // Hair only if explicitly equipped (not default) — both genders bald on default
