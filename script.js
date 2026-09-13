@@ -11,8 +11,10 @@
 })();
 var AZORA_DEV_STAGE = "mid-alpha";
 var AZORA_DEV_STAGE_LABEL = "Mid Alpha";
-var AZORA_APP_VERSION = "72.97";
+var AZORA_APP_VERSION = "72.98";
 var AZORA_WHATS_NEW = [
+    "Device notifications are Aturius check-ins, like “if you're having a bad day, hop on Azora”",
+    "Aturius messages now show a tiny date and time stamp",
     "Device notifications: a Yes/No popup, lock-screen alerts, and an iPhone-style red badge count",
     "Avatar on screen is the assembled rounded character again (OBJ + MTL stay as saved model files)",
     "Avatar lives in its own file (azora-avatar.js) so it can keep working if other Azora code breaks",
@@ -15340,6 +15342,14 @@ window.closeAturiusGeneratedGame = closeAturiusGeneratedGame;
 window.aturiusHandleFilePick = aturiusHandleFilePick;
 window.renderAturiusHistoryList = renderAturiusHistoryList;
 
+function formatAturiusStamp(ms) {
+    var d = new Date(ms || Date.now());
+    if (isNaN(d.getTime())) d = new Date();
+    function pad(n) { return (n < 10 ? "0" : "") + n; }
+    var months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    return months[d.getMonth()] + " " + d.getDate() + ", " + d.getFullYear() + " · " + pad(d.getHours()) + ":" + pad(d.getMinutes()) + ":" + pad(d.getSeconds());
+}
+
 function renderAturiusMessages() {
     var box = document.getElementById("aturiusMessages");
     if (!box) return;
@@ -15439,6 +15449,10 @@ function renderAturiusMessages() {
             })(m.gameId);
             div.appendChild(playBtn);
         }
+        var timeEl = document.createElement("div");
+        timeEl.className = "aturius-msg-time";
+        timeEl.textContent = formatAturiusStamp(m.at);
+        div.appendChild(timeEl);
         if (m.websiteId) {
             var webBtn = document.createElement("button");
             webBtn.type = "button";
@@ -16709,7 +16723,7 @@ function pushNotification(toUsername, message, type, meta) {
     // Update badge if it's me
     if (toUsername === getMyUsername()) {
         updateNotifBadge();
-        try { showAzoraDeviceNotif("Azora", message); } catch (eDev) {}
+        try { /* device lock-screen alerts stay Aturius templates, not raw system lines */ } catch (eDev) {}
     }
 }
 
@@ -16893,7 +16907,8 @@ function enableAzoraDeviceNotifs() {
     }
     function after(perm) {
         if (perm === "granted") {
-            showAzoraDeviceNotif("Azora", "Notifications are on. New alerts can pop up here.");
+            showAzoraDeviceNotif("Aturius", pickAturiusNotifTemplate());
+            startAturiusNotifCheckins();
             try { if (typeof updateNotifBadge === "function") updateNotifBadge(); } catch (e3) {}
         } else {
             try { localStorage.setItem("azoraDeviceNotifs", "blocked"); } catch (e4) {}
@@ -16925,6 +16940,27 @@ function setAzoraAppBadge(count) {
         }
     } catch (e2) {}
 }
+var ATURIUS_NOTIF_TEMPLATES = [
+    "If you're having a bad day, just come hop on Azora.",
+    "Hey, it's Aturius. A short visit to Azora can help.",
+    "Want to build something? I'll be here when you open Azora.",
+    "If today felt long, hop on Azora and take a breather.",
+    "I saved you a spot. Come hang out on Azora.",
+    "Quick reminder from Aturius: you're welcome here.",
+    "Come say hi when you're ready. Azora isn't going anywhere.",
+    "Need a reset? Open Azora and we'll start simple."
+];
+function pickAturiusNotifTemplate() {
+    return ATURIUS_NOTIF_TEMPLATES[Math.floor(Math.random() * ATURIUS_NOTIF_TEMPLATES.length)];
+}
+var _aturiusNotifTimer = null;
+function startAturiusNotifCheckins() {
+    if (_aturiusNotifTimer) return;
+    _aturiusNotifTimer = setInterval(function () {
+        if (azoraDeviceNotifChoice() !== "yes") return;
+        showAzoraDeviceNotif("Aturius", pickAturiusNotifTemplate());
+    }, 90 * 60 * 1000);
+}
 function showAzoraDeviceNotif(title, body) {
     if (azoraDeviceNotifChoice() !== "yes") return;
     if (!("Notification" in window) || Notification.permission !== "granted") return;
@@ -16932,7 +16968,7 @@ function showAzoraDeviceNotif(title, body) {
         body: String(body || ""),
         icon: "logo.jpg",
         badge: "logo.jpg",
-        tag: "azora-alert",
+        tag: "aturius-checkin",
         renotify: true
     };
     try {
@@ -16950,6 +16986,7 @@ function showAzoraDeviceNotif(title, body) {
 }
 setTimeout(function () {
     try { askAzoraDeviceNotifs(false); } catch (e) {}
+    try { if (azoraDeviceNotifChoice() === "yes") startAturiusNotifCheckins(); } catch (e2) {}
 }, 4000);
 window.askAzoraDeviceNotifs = askAzoraDeviceNotifs;
 window.enableAzoraDeviceNotifs = enableAzoraDeviceNotifs;

@@ -6362,6 +6362,14 @@ html[data-theme="dark"] .azora-bg-wave { background: transparent; }
     word-break: break-word;
     display: block;
 }
+.aturius-msg-time {
+    margin-top: 6px;
+    font-size: 10px;
+    line-height: 1.2;
+    opacity: 0.42;
+    color: inherit;
+    font-weight: 500;
+}
 .aturius-msg-ai {
     background: rgba(250, 204, 21, 0.28);
     border: 1px solid rgba(250, 204, 21, 0.55);
