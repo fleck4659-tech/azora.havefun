@@ -13,7 +13,7 @@
     <link rel="manifest" href="manifest-azora.json">
     <link rel="apple-touch-icon" href="logo.jpg?v=70.2">
     <link rel="icon" href="logo.jpg?v=70.2">
-    <link rel="stylesheet" href="style.css?v=72.44">
+    <link rel="stylesheet" href="style.css?v=72.45">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 </head>
 <body>
@@ -563,6 +563,7 @@
                 <button type="button" class="coins-drop-item" onclick="openMarketplace(); closeCoinsDropdown();">Open Shop</button>
                 <button type="button" class="coins-drop-item" onclick="openCreateAd(); closeCoinsDropdown();">Create an Ad</button>
                 <button type="button" class="coins-drop-item" onclick="openAzoraRecordings(); closeCoinsDropdown();">Recordings</button>
+                <button type="button" class="coins-drop-item studio-myvideos-quiet" onclick="openAzoraMyVideos(); closeCoinsDropdown();" title="Private Studio saves">My Videos</button>
                 <button type="button" class="coins-drop-item" onclick="openInventory(); closeCoinsDropdown();">Open Inventory</button>
                 <div id="pendingCoinsPanel" class="pending-coins-panel" style="display:none;"></div>
             </div>
@@ -959,11 +960,14 @@
     <div class="azafn-header">
         <h2><img src="logo.jpg?v=70.2" alt="Azora"> Game Feed</h2>
         <div class="azafn-tabs">
+            <button type="button" onclick="setPublicFeedTab('games')">Games</button>
+            <button type="button" onclick="setPublicFeedTab('videos')">Videos</button>
             <button onclick="closePublicFeed()" style="margin:0;background:#ff3b30;color:#fff;">✕ Close</button>
         </div>
     </div>
     <div class="azafn-body">
         <div class="azafn-feed-panel active" id="publicFeedPanel" style="display:flex;"></div>
+        <div class="azafn-feed-panel" id="publicVideosPanel" style="display:none;"></div>
     </div>
 </div>
 
@@ -1730,7 +1734,7 @@
 
 <!-- Optional: trained Aturius brain (export from Azora account → Settings → Export code files) -->
 <script src="aturius-training-pack.js"></script>
-<script src="script.js?v=72.93"></script>
+<script src="script.js?v=72.94"></script>
 <script src="political-earth-data.js?v=72.24"></script>
 <script src="political-earth-hd.js?v=72.24"></script>
 <script src="political-earth-hyper.js?v=72.26"></script>
@@ -1741,7 +1745,7 @@
 // Register Azora as installable app (not the staff website)
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", function () {
-    navigator.serviceWorker.register("./sw-azora.js?v=72.93").then(function (reg) {
+    navigator.serviceWorker.register("./sw-azora.js?v=72.94").then(function (reg) {
       try { if (typeof onAzoraServiceWorkerReady === "function") onAzoraServiceWorkerReady(reg); } catch (e) {}
     }).catch(function () {});
   });
@@ -1849,16 +1853,31 @@ if ("serviceWorker" in navigator) {
                 </div>
                 <p class="azora-studio-label">Shapes</p>
                 <div class="azora-studio-row">
+                    <button type="button" onclick="studioAddShape('aturius')">Aturius</button>
                     <button type="button" onclick="studioAddShape('sphere')">Sphere</button>
                     <button type="button" onclick="studioAddShape('box')">Box</button>
                     <button type="button" onclick="studioAddShape('star')">Star</button>
                     <button type="button" onclick="studioAddShape('triangle')">Triangle</button>
+                </div>
+                <div id="azoraStudioShapeColors" class="azora-studio-colors" style="display:none;">
+                    <label>Fill <input type="color" id="studioColorFill" value="#facc15" oninput="studioSetShapeColor('fill', this.value)"></label>
+                    <label>Outline <input type="color" id="studioColorOutline" value="#0f172a" oninput="studioSetShapeColor('outline', this.value)"></label>
+                    <label>Eyes <input type="color" id="studioColorEyes" value="#0f172a" oninput="studioSetShapeColor('eyes', this.value)"></label>
+                    <label>Mouth <input type="color" id="studioColorMouth" value="#0f172a" oninput="studioSetShapeColor('mouth', this.value)"></label>
                 </div>
                 <p class="azora-studio-label">Animate shape</p>
                 <div class="azora-studio-row">
                     <button type="button" onclick="studioAnimSelected('bounce')">Bounce</button>
                     <button type="button" onclick="studioAnimSelected('spin')">Spin</button>
                     <button type="button" onclick="studioAnimSelected('float')">Float</button>
+                    <button type="button" onclick="studioAnimSelected('slide')">Slide</button>
+                    <button type="button" onclick="studioAnimSelected('pulse')">Pulse</button>
+                    <button type="button" onclick="studioAnimSelected('wiggle')">Wiggle</button>
+                    <button type="button" onclick="studioAnimSelected('hop')">Hop</button>
+                    <button type="button" onclick="studioAnimSelected('orbit')">Orbit</button>
+                    <button type="button" onclick="studioAnimSelected('shake')">Shake</button>
+                    <button type="button" onclick="studioAnimSelected('wave')">Wave</button>
+                    <button type="button" onclick="studioAnimSelected('grow')">Grow</button>
                     <button type="button" onclick="studioAnimSelected('none')">Stop</button>
                 </div>
                 <p class="azora-studio-hint" id="azoraStudioHint">Import a clip or open an Aturius video to start.</p>
@@ -1868,9 +1887,37 @@ if ("serviceWorker" in navigator) {
             <button type="button" onclick="studioPlayToggle()" id="azoraStudioPlayBtn">Play</button>
             <input id="azoraStudioSeek" type="range" min="0" max="1000" value="0" oninput="studioSeek(this.value)">
             <span id="azoraStudioTime">0.0s</span>
-            <button type="button" onclick="studioExport()">Export</button>
+            <button type="button" onclick="studioOpenFinish()">Done</button>
         </div>
         <div class="azora-studio-timeline" id="azoraStudioTimeline"></div>
+    </div>
+    <div id="azoraStudioFinish" class="azora-studio-finish" style="display:none;">
+        <div class="azora-studio-finish-card">
+            <h3>Finish this video</h3>
+            <p id="azoraStudioEstimate">23 KB (Estimated)</p>
+            <p id="azoraStudioEta">Ready time: about 1 minute</p>
+            <div class="azora-studio-row">
+                <button type="button" onclick="studioFinish('download')">Download</button>
+                <button type="button" onclick="studioFinish('public')">Post publicly</button>
+                <button type="button" onclick="studioFinish('myvideos')">Save to My Videos</button>
+            </div>
+            <button type="button" class="azora-studio-quiet" onclick="studioCloseFinish()">Back to editing</button>
+        </div>
+    </div>
+    <div id="azoraStudioBusy" class="azora-studio-finish" style="display:none;">
+        <div class="azora-studio-finish-card">
+            <h3 id="azoraStudioBusyTitle">Preparing your video…</h3>
+            <div class="azora-studio-bar"><span id="azoraStudioBar"></span></div>
+            <p id="azoraStudioBusyHint">This usually takes about 1 minute.</p>
+        </div>
+    </div>
+</div>
+<div id="azoraMyVideosOverlay" class="overlay" style="display:none;">
+    <div class="popup" style="max-width:480px;text-align:left;">
+        <h2 style="text-align:center;">My Videos</h2>
+        <p class="azora-studio-hint">Private clips saved from Studio.</p>
+        <div id="azoraMyVideosList"></div>
+        <button type="button" onclick="closeAzoraMyVideos()" style="width:100%;margin-top:10px;">Close</button>
     </div>
 </div>
 <div id="eventCalendarOverlay" class="overlay" style="display:none;">
