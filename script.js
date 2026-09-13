@@ -11,8 +11,9 @@
 })();
 var AZORA_DEV_STAGE = "mid-alpha";
 var AZORA_DEV_STAGE_LABEL = "Mid Alpha";
-var AZORA_APP_VERSION = "72.96";
+var AZORA_APP_VERSION = "72.97";
 var AZORA_WHATS_NEW = [
+    "Device notifications: a Yes/No popup, lock-screen alerts, and an iPhone-style red badge count",
     "Avatar on screen is the assembled rounded character again (OBJ + MTL stay as saved model files)",
     "Avatar lives in its own file (azora-avatar.js) so it can keep working if other Azora code breaks",
     "Studio shapes get 3 scale squares on every side",
@@ -16706,7 +16707,10 @@ function pushNotification(toUsername, message, type, meta) {
     saveNotifications(toUsername, list);
     try { pushNotifToCloud(toUsername, notif); } catch (e) {}
     // Update badge if it's me
-    if (toUsername === getMyUsername()) updateNotifBadge();
+    if (toUsername === getMyUsername()) {
+        updateNotifBadge();
+        try { showAzoraDeviceNotif("Azora", message); } catch (eDev) {}
+    }
 }
 
 function updateNotifBadge() {
@@ -16721,6 +16725,7 @@ function updateNotifBadge() {
     } else {
         badge.style.display = "none";
     }
+    try { setAzoraAppBadge(unread); } catch (eB) {}
 }
 
 function toggleNotifPanel() {
@@ -16865,6 +16870,90 @@ document.addEventListener("input", function (e) {
         run();
     }
 })();
+
+function azoraDeviceNotifChoice() {
+    try { return localStorage.getItem("azoraDeviceNotifs") || ""; } catch (e) { return ""; }
+}
+function askAzoraDeviceNotifs(force) {
+    if (!("Notification" in window) && !force) return;
+    if (!force && azoraDeviceNotifChoice()) return;
+    var ov = document.getElementById("azoraDeviceNotifOverlay");
+    if (ov) ov.style.display = "flex";
+}
+function closeAzoraDeviceNotifPrompt() {
+    var ov = document.getElementById("azoraDeviceNotifOverlay");
+    if (ov) ov.style.display = "none";
+}
+function enableAzoraDeviceNotifs() {
+    closeAzoraDeviceNotifPrompt();
+    try { localStorage.setItem("azoraDeviceNotifs", "yes"); } catch (e) {}
+    if (!("Notification" in window)) {
+        try { if (typeof showAzoraToast === "function") showAzoraToast("This device cannot show lock-screen alerts, but the bell badge still works."); } catch (e2) {}
+        return;
+    }
+    function after(perm) {
+        if (perm === "granted") {
+            showAzoraDeviceNotif("Azora", "Notifications are on. New alerts can pop up here.");
+            try { if (typeof updateNotifBadge === "function") updateNotifBadge(); } catch (e3) {}
+        } else {
+            try { localStorage.setItem("azoraDeviceNotifs", "blocked"); } catch (e4) {}
+        }
+    }
+    try {
+        var p = Notification.requestPermission();
+        if (p && typeof p.then === "function") p.then(after);
+        else after(Notification.permission);
+    } catch (e5) {
+        after(Notification.permission);
+    }
+}
+function denyAzoraDeviceNotifs() {
+    try { localStorage.setItem("azoraDeviceNotifs", "no"); } catch (e) {}
+    closeAzoraDeviceNotifPrompt();
+}
+function setAzoraAppBadge(count) {
+    count = Math.max(0, Number(count) || 0);
+    try {
+        if (navigator.setAppBadge) {
+            if (count > 0) navigator.setAppBadge(count);
+            else if (navigator.clearAppBadge) navigator.clearAppBadge();
+        }
+    } catch (e) {}
+    try {
+        if (navigator.serviceWorker && navigator.serviceWorker.controller) {
+            navigator.serviceWorker.controller.postMessage({ type: "AZORA_BADGE", count: count });
+        }
+    } catch (e2) {}
+}
+function showAzoraDeviceNotif(title, body) {
+    if (azoraDeviceNotifChoice() !== "yes") return;
+    if (!("Notification" in window) || Notification.permission !== "granted") return;
+    var opts = {
+        body: String(body || ""),
+        icon: "logo.jpg",
+        badge: "logo.jpg",
+        tag: "azora-alert",
+        renotify: true
+    };
+    try {
+        if (navigator.serviceWorker && navigator.serviceWorker.ready) {
+            navigator.serviceWorker.ready.then(function (reg) {
+                if (reg && reg.showNotification) reg.showNotification(String(title || "Azora"), opts);
+                else new Notification(String(title || "Azora"), opts);
+            }).catch(function () {
+                try { new Notification(String(title || "Azora"), opts); } catch (eN) {}
+            });
+            return;
+        }
+    } catch (e) {}
+    try { new Notification(String(title || "Azora"), opts); } catch (e2) {}
+}
+setTimeout(function () {
+    try { askAzoraDeviceNotifs(false); } catch (e) {}
+}, 4000);
+window.askAzoraDeviceNotifs = askAzoraDeviceNotifs;
+window.enableAzoraDeviceNotifs = enableAzoraDeviceNotifs;
+window.denyAzoraDeviceNotifs = denyAzoraDeviceNotifs;
 
 window.saveProfileBio = saveProfileBio;
 window.setManualStatus = setManualStatus;
