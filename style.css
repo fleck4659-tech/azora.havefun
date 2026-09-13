@@ -8019,11 +8019,22 @@ html.halloween {
     --footer: #1c1917 !important;
     --banner: rgba(249, 115, 22, 0.28) !important;
 }
-html.halloween .topbar h2::after {
-    content: " · Halloween Update";
+html.halloween .topbar h2::after,
+html[data-holiday="halloween"] .topbar h2::after {
+    content: " · Halloween";
     font-size: 0.55em;
     color: #fdba74;
 }
+html[data-holiday="thanksgiving"] .topbar h2::after { content: " · Thanksgiving"; font-size: 0.55em; color: #fed7aa; }
+html[data-holiday="christmas"] .topbar h2::after { content: " · Christmas"; font-size: 0.55em; color: #86efac; }
+html[data-holiday="easter"] .topbar h2::after { content: " · Easter"; font-size: 0.55em; color: #f9a8d4; }
+html[data-holiday="newyear"] .topbar h2::after { content: " · New Year"; font-size: 0.55em; color: #fde68a; }
+html[data-holiday="valentines"] .topbar h2::after { content: " · Valentine's"; font-size: 0.55em; color: #fecdd3; }
+html[data-holiday="stpatricks"] .topbar h2::after { content: " · St. Patrick's"; font-size: 0.55em; color: #86efac; }
+html[data-holiday="july4"] .topbar h2::after { content: " · Independence Day"; font-size: 0.55em; color: #fecaca; }
+html[data-holiday="hanukkah"] .topbar h2::after { content: " · Hanukkah"; font-size: 0.55em; color: #fde68a; }
+html[data-holiday="none"] .topbar h2::after,
+html[data-theme="original"] .topbar h2::after { content: none; }
 html.halloween #avatar3d-canvas,
 html.halloween #avatar3d-canvas * {
     font-family: inherit;

@@ -13,7 +13,7 @@
     <link rel="manifest" href="manifest-azora.json">
     <link rel="apple-touch-icon" href="logo.jpg?v=70.2">
     <link rel="icon" href="logo.jpg?v=70.2">
-    <link rel="stylesheet" href="style.css?v=72.42">
+    <link rel="stylesheet" href="style.css?v=72.43">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 </head>
 <body>
@@ -315,6 +315,16 @@
                     <option value="rosegold">Rose Gold</option>
                     <option value="chrome">Chrome</option>
                     <option value="softrainbow">Soft Rainbow</option>
+                    <option value="original">Original Azora</option>
+                    <option value="halloween">Halloween</option>
+                    <option value="thanksgiving">Thanksgiving</option>
+                    <option value="christmas">Christmas</option>
+                    <option value="easter">Easter</option>
+                    <option value="newyear">New Year</option>
+                    <option value="valentines">Valentine's Day</option>
+                    <option value="stpatricks">St. Patrick's Day</option>
+                    <option value="july4">Independence Day</option>
+                    <option value="hanukkah">Hanukkah</option>
                 </select>
                 <div class="theme-grid" id="themeGrid"></div>
             </div>
@@ -406,9 +416,9 @@
 
         <div id="settingsPanelThemes" class="settings-panel" style="display:none;">
             <div class="settings-section">
-                <label class="settings-label">Azora: Halloween Update</label>
-                <p class="settings-hint" style="margin-top:0;">Friendly-spooky colors, bats, and the Halloween font. Your avatar stays the same.</p>
-                <label class="aturius-toggle-row"><input type="checkbox" id="halloweenEventToggle" checked onchange="setHalloweenEvent(this.checked)"> Turn on Halloween Update</label>
+                <label class="settings-label">Holiday themes</label>
+                <p class="settings-hint" style="margin-top:0;">Original Azora colors are the default. Pick a holiday look anytime. Avatars stay the same.</p>
+                <div class="theme-grid" id="holidayThemeGrid"></div>
             </div>
             <div class="settings-section">
                 <label class="settings-label">Themes</label>
@@ -1718,7 +1728,7 @@
 
 <!-- Optional: trained Aturius brain (export from Azora account → Settings → Export code files) -->
 <script src="aturius-training-pack.js"></script>
-<script src="script.js?v=72.91"></script>
+<script src="script.js?v=72.92"></script>
 <script src="political-earth-data.js?v=72.24"></script>
 <script src="political-earth-hd.js?v=72.24"></script>
 <script src="political-earth-hyper.js?v=72.26"></script>
@@ -1729,7 +1739,7 @@
 // Register Azora as installable app (not the staff website)
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", function () {
-    navigator.serviceWorker.register("./sw-azora.js?v=72.91").then(function (reg) {
+    navigator.serviceWorker.register("./sw-azora.js?v=72.92").then(function (reg) {
       try { if (typeof onAzoraServiceWorkerReady === "function") onAzoraServiceWorkerReady(reg); } catch (e) {}
     }).catch(function () {});
   });

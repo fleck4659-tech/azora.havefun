@@ -11,8 +11,10 @@
 })();
 var AZORA_DEV_STAGE = "mid-alpha";
 var AZORA_DEV_STAGE_LABEL = "Mid Alpha";
-var AZORA_APP_VERSION = "72.91";
+var AZORA_APP_VERSION = "72.92";
 var AZORA_WHATS_NEW = [
+    "Original Azora colors are the default again",
+    "Holiday themes you can pick: Halloween, Thanksgiving, Christmas, Easter, and more",
     "Rounded-corner blocky avatars + hourglass girl torso restored",
     "Offline tiles slowly cover Azora, then peel off when Wi‑Fi returns",
     "Welcome to Azora starts in the original font, then switches mid-way",
@@ -7403,7 +7405,17 @@ var AZORA_THEME_PRESETS = {
     bronze:    { bg1:"#3b2410", bg2:"#7c4a1e", bg3:"#b87333", text1:"#fff7ed", text2:"#fed7aa", accent:"#d97706", accent2:"#92400e", card:"rgba(59,36,16,0.92)", border:"#d97706", top:"#3b2410", grad:"linear-gradient(90deg,#7c4a1e,#d97706,#3b2410)", pop:"#24160a", foot:"#3b2410", ban:"rgba(217,119,6,0.2)" },
     rosegold:  { bg1:"#4a1d2a", bg2:"#9d4e5c", bg3:"#e8b4b8", text1:"#fff1f2", text2:"#fecdd3", accent:"#f9a8d4", accent2:"#e8b4b8", card:"rgba(74,29,42,0.9)", border:"#f9a8d4", top:"#4a1d2a", grad:"linear-gradient(90deg,#9d4e5c,#e8b4b8,#4a1d2a)", pop:"#2a1018", foot:"#4a1d2a", ban:"rgba(249,168,212,0.2)" },
     chrome:    { bg1:"#111827", bg2:"#334155", bg3:"#94a3b8", text1:"#f8fafc", text2:"#cbd5e1", accent:"#f1f5f9", accent2:"#38bdf8", card:"rgba(17,24,39,0.92)", border:"#e2e8f0", top:"#0f172a", grad:"linear-gradient(90deg,#334155,#f1f5f9,#38bdf8)", pop:"#0b1220", foot:"#0f172a", ban:"rgba(241,245,249,0.18)" },
-    softrainbow:{ bg1:"#4a3f6b", bg2:"#3f5c7a", bg3:"#3f6b62", text1:"#f8fafc", text2:"#efe6ff", accent:"#f9a8d4", accent2:"#93c5fd", card:"rgba(255,255,255,0.12)", border:"#c4b5fd", top:"#4a3f6b", grad:"linear-gradient(90deg,#c4b5fd,#93c5fd,#86efac,#fde68a,#f9a8d4)", pop:"#3b3560", foot:"#3a3f66", ban:"rgba(196,181,253,0.25)" }
+    softrainbow:{ bg1:"#4a3f6b", bg2:"#3f5c7a", bg3:"#3f6b62", text1:"#f8fafc", text2:"#efe6ff", accent:"#f9a8d4", accent2:"#93c5fd", card:"rgba(255,255,255,0.12)", border:"#c4b5fd", top:"#4a3f6b", grad:"linear-gradient(90deg,#c4b5fd,#93c5fd,#86efac,#fde68a,#f9a8d4)", pop:"#3b3560", foot:"#3a3f66", ban:"rgba(196,181,253,0.25)" },
+    original:   { bg1:"#c026d3", bg2:"#7c3aed", bg3:"#2563eb", text1:"#ffffff", text2:"#f3e8ff", accent:"#a855f7", accent2:"#3b82f6", card:"rgba(255,255,255,0.18)", border:"rgba(255,255,255,0.55)", top:"#7c3aed", grad:"linear-gradient(90deg,#c026d3 0%,#7c3aed 45%,#2563eb 100%)", pop:"rgba(255,255,255,0.96)", foot:"#4c1d95", ban:"rgba(168,85,247,0.22)" },
+    halloween:  { bg1:"#1a0b24", bg2:"#2b0f1a", bg3:"#431407", text1:"#ffe7c4", text2:"#fdba74", accent:"#f97316", accent2:"#a855f7", card:"rgba(24,10,20,0.88)", border:"#f97316", top:"#431407", grad:"linear-gradient(90deg,#431407,#6b21a8,#7c2d12)", pop:"#140810", foot:"#1c1917", ban:"rgba(249,115,22,0.28)" },
+    thanksgiving:{ bg1:"#431407", bg2:"#7c2d12", bg3:"#b45309", text1:"#fff7ed", text2:"#fed7aa", accent:"#f59e0b", accent2:"#d97706", card:"rgba(67,20,7,0.9)", border:"#f59e0b", top:"#7c2d12", grad:"linear-gradient(90deg,#7c2d12,#b45309,#f59e0b)", pop:"#2a1208", foot:"#431407", ban:"rgba(245,158,11,0.22)" },
+    christmas:  { bg1:"#14532d", bg2:"#166534", bg3:"#7f1d1d", text1:"#f0fdf4", text2:"#fecaca", accent:"#f87171", accent2:"#86efac", card:"rgba(20,83,45,0.9)", border:"#f87171", top:"#14532d", grad:"linear-gradient(90deg,#14532d,#7f1d1d,#ca8a04)", pop:"#0b1f14", foot:"#14532d", ban:"rgba(248,113,113,0.2)" },
+    easter:     { bg1:"#6d28d9", bg2:"#db2777", bg3:"#059669", text1:"#fff7fb", text2:"#fce7f3", accent:"#f9a8d4", accent2:"#86efac", card:"rgba(109,40,217,0.28)", border:"#f9a8d4", top:"#6d28d9", grad:"linear-gradient(90deg,#f9a8d4,#c4b5fd,#86efac,#fde68a)", pop:"#3b0764", foot:"#4c1d95", ban:"rgba(249,168,212,0.25)" },
+    newyear:    { bg1:"#020617", bg2:"#111827", bg3:"#92400e", text1:"#fffbeb", text2:"#fde68a", accent:"#fbbf24", accent2:"#e5e7eb", card:"rgba(2,6,23,0.92)", border:"#fbbf24", top:"#020617", grad:"linear-gradient(90deg,#020617,#fbbf24,#e5e7eb)", pop:"#020617", foot:"#000", ban:"rgba(251,191,36,0.22)" },
+    valentines: { bg1:"#4c0519", bg2:"#9f1239", bg3:"#fb7185", text1:"#fff1f2", text2:"#fecdd3", accent:"#fb7185", accent2:"#fda4af", card:"rgba(76,5,25,0.9)", border:"#fb7185", top:"#9f1239", grad:"linear-gradient(90deg,#9f1239,#fb7185,#fda4af)", pop:"#3f0a16", foot:"#4c0519", ban:"rgba(251,113,133,0.22)" },
+    stpatricks: { bg1:"#052e16", bg2:"#166534", bg3:"#ca8a04", text1:"#f0fdf4", text2:"#fef9c3", accent:"#4ade80", accent2:"#facc15", card:"rgba(5,46,22,0.9)", border:"#4ade80", top:"#14532d", grad:"linear-gradient(90deg,#14532d,#22c55e,#ca8a04)", pop:"#052e16", foot:"#052e16", ban:"rgba(74,222,128,0.2)" },
+    july4:      { bg1:"#1e3a8a", bg2:"#1d4ed8", bg3:"#b91c1c", text1:"#f8fafc", text2:"#fee2e2", accent:"#f87171", accent2:"#93c5fd", card:"rgba(30,58,138,0.9)", border:"#f87171", top:"#1e3a8a", grad:"linear-gradient(90deg,#1e3a8a,#f8fafc,#b91c1c)", pop:"#172554", foot:"#1e3a8a", ban:"rgba(248,113,113,0.2)" },
+    hanukkah:   { bg1:"#1e3a8a", bg2:"#1d4ed8", bg3:"#cbd5e1", text1:"#f8fafc", text2:"#e2e8f0", accent:"#fbbf24", accent2:"#93c5fd", card:"rgba(30,58,138,0.9)", border:"#fbbf24", top:"#1e3a8a", grad:"linear-gradient(90deg,#1e3a8a,#93c5fd,#fbbf24)", pop:"#172554", foot:"#1e3a8a", ban:"rgba(251,191,36,0.2)" }
 };
 
 function resolveAzoraTheme(theme) {
@@ -7521,9 +7533,12 @@ function paintThemeGrid(active) {
         forest:"Forest", mint:"Mint", ember:"Ember", sunset:"Sunset", candy:"Candy",
         blueberry:"Blueberry", prism:"Prism", lava:"Lava", classic603:"Old Azora (603blox Web)",
         gold:"Gold", silver:"Silver", neon:"Neon Night", sparkle:"Nostalgic Sparkles",
-        bronze:"Bronze", rosegold:"Rose Gold", chrome:"Chrome", softrainbow:"Soft Rainbow"
+        bronze:"Bronze", rosegold:"Rose Gold", chrome:"Chrome", softrainbow:"Soft Rainbow",
+        original:"Original Azora", halloween:"Halloween", thanksgiving:"Thanksgiving", christmas:"Christmas",
+        easter:"Easter", newyear:"New Year", valentines:"Valentine's Day", stpatricks:"St. Patrick's Day",
+        july4:"Independence Day", hanukkah:"Hanukkah"
     };
-    var ids = ["auto","midnight","void","ocean","cobalt","sapphire","storm","royal","grape","amethyst","orchid","nebula","galaxy","aurora","twilight","indigo","cyber","ice","moonlight","slate","forest","mint","ember","sunset","candy","blueberry","prism","lava","classic603","gold","silver","neon","sparkle","bronze","rosegold","chrome","softrainbow"];
+    var ids = ["original","auto","midnight","void","ocean","cobalt","sapphire","storm","royal","grape","amethyst","orchid","nebula","galaxy","aurora","twilight","indigo","cyber","ice","moonlight","slate","forest","mint","ember","sunset","candy","blueberry","prism","lava","classic603","gold","silver","neon","sparkle","bronze","rosegold","chrome","softrainbow","halloween","thanksgiving","christmas","easter","newyear","valentines","stpatricks","july4","hanukkah"];
     var html = ids.map(function (id) {
         var prev = id === "auto" ? "linear-gradient(135deg,#1d4ed8,#6d28d9)" : (AZORA_THEME_PRESETS[id] ? AZORA_THEME_PRESETS[id].grad : "#1e3a8a");
         var slow = id === "classic603" ? "applyOldAzoraTheme()" : ("changeTheme('" + id + "')");
@@ -7545,6 +7560,7 @@ function applyTheme(theme, opts) {
     if (sel) sel.value = theme;
     paintThemeGrid(theme);
     try { applyThemeFx(effective); } catch (eFx) {}
+    try { applyHolidayTheme(effective, { fromTheme: true }); } catch (eH) {}
 }
 
 function changeTheme(value) {
@@ -8082,58 +8098,133 @@ function startAzoraSparkles() {
 }
 
 function loadTheme() {
-    const saved = localStorage.getItem("azoraTheme") || "auto";
+    try {
+        if (!localStorage.getItem("azoraHolidayMigrated")) {
+            localStorage.setItem("azoraHoliday", "none");
+            localStorage.setItem("azoraHalloween", "off");
+            if (!localStorage.getItem("azoraTheme") || localStorage.getItem("azoraTheme") === "auto") {
+                localStorage.setItem("azoraTheme", "original");
+            }
+            localStorage.setItem("azoraHolidayMigrated", "1");
+        }
+    } catch (eMig) {}
+    const saved = localStorage.getItem("azoraTheme") || "original";
     const sel = document.getElementById("themeSelect");
     if (sel) sel.value = saved;
     applyTheme(saved);
     try { applyDecadeTheme(getDecadeTheme()); } catch (eD) {}
-    try { applyHalloweenEvent(isHalloweenEventOn()); } catch (eH) {}
+    try { paintHolidayThemeGrid(getHolidayTheme()); } catch (eH) {}
 }
 
 window.changeTheme = changeTheme;
 window.applyTheme = applyTheme;
 window.loadTheme = loadTheme;
 
+var AZORA_HOLIDAY_IDS = ["halloween","thanksgiving","christmas","easter","newyear","valentines","stpatricks","july4","hanukkah"];
+var AZORA_HOLIDAY_META = {
+    none: { label: "Original Azora", banner: "Welcome to Azora! Play together · Build worlds · Style your avatar · Make friends", bits: [] },
+    halloween: { label: "Halloween", banner: "Azora · Halloween · Friendly spooky season · Avatars stay yours", bits: ["🦇","🎃","🌙","✨"] },
+    thanksgiving: { label: "Thanksgiving", banner: "Azora · Thanksgiving · Thanks, friends, and fall colors", bits: ["🍂","🦃","🍁","🥧"] },
+    christmas: { label: "Christmas", banner: "Azora · Christmas · Warm lights and kind wishes", bits: ["🎄","❄️","⭐","🎁"] },
+    easter: { label: "Easter", banner: "Azora · Easter · Soft pastels and spring", bits: ["🐣","🌸","🥚","🌷"] },
+    newyear: { label: "New Year", banner: "Azora · Happy New Year · A fresh start", bits: ["🎆","✨","🥳","⭐"] },
+    valentines: { label: "Valentine's Day", banner: "Azora · Valentine's Day · Be kind to friends", bits: ["💗","💌","🌸","✨"] },
+    stpatricks: { label: "St. Patrick's Day", banner: "Azora · St. Patrick's Day · Lucky green day", bits: ["☘️","🌈","✨","🥇"] },
+    july4: { label: "Independence Day", banner: "Azora · Independence Day · Red, white, and blue", bits: ["🇺🇸","⭐","🎆","💙"] },
+    hanukkah: { label: "Hanukkah", banner: "Azora · Hanukkah · Lights and togetherness", bits: ["🕎","✨","⭐","💙"] }
+};
+
+function getHolidayTheme() {
+    var h = localStorage.getItem("azoraHoliday");
+    if (AZORA_HOLIDAY_IDS.indexOf(h) >= 0) return h;
+    var theme = localStorage.getItem("azoraTheme") || "";
+    if (AZORA_HOLIDAY_IDS.indexOf(theme) >= 0) return theme;
+    return "none";
+}
+
 function isHalloweenEventOn() {
-    return localStorage.getItem("azoraHalloween") !== "off";
+    return getHolidayTheme() === "halloween";
 }
 
 function setHalloweenEvent(on) {
-    localStorage.setItem("azoraHalloween", on ? "on" : "off");
-    applyHalloweenEvent(!!on);
+    setHolidayTheme(on ? "halloween" : "none");
 }
 window.setHalloweenEvent = setHalloweenEvent;
 
 function applyHalloweenEvent(on) {
-    document.documentElement.classList.toggle("halloween", !!on);
-    document.body.classList.toggle("halloween", !!on);
-    var tog = document.getElementById("halloweenEventToggle");
-    if (tog) tog.checked = !!on;
-    var ban = document.getElementById("azoraWelcomeBanner");
-    if (ban) {
-        ban.textContent = on
-            ? "Azora: Halloween Update · Friendly spooky season · Avatars stay yours"
-            : "Welcome to Azora! Play together · Build worlds · Style your avatar · Make friends";
+    setHolidayTheme(on ? "halloween" : "none");
+}
+
+function paintHolidayThemeGrid(active) {
+    var grid = document.getElementById("holidayThemeGrid");
+    if (!grid) return;
+    active = active || getHolidayTheme();
+    var ids = ["none"].concat(AZORA_HOLIDAY_IDS);
+    grid.innerHTML = ids.map(function (id) {
+        var meta = AZORA_HOLIDAY_META[id] || { label: id };
+        var prev = id === "none"
+            ? "linear-gradient(135deg,#c026d3,#7c3aed,#2563eb)"
+            : ((AZORA_THEME_PRESETS[id] && AZORA_THEME_PRESETS[id].grad) || "#7c3aed");
+        return '<button type="button" class="theme-chip' + (active === id ? " on" : "") + '" data-holiday-id="' + id + '" onclick="setHolidayTheme(\'' + id + '\')"><i style="background:' + prev + '"></i><span>' + meta.label + "</span></button>";
+    }).join("");
+}
+
+function applyHolidayTheme(id, opts) {
+    opts = opts || {};
+    if (id === "original" || id === "auto") id = "none";
+    if (AZORA_HOLIDAY_IDS.indexOf(id) < 0 && id !== "none") {
+        if (opts.fromTheme) id = AZORA_HOLIDAY_IDS.indexOf(localStorage.getItem("azoraTheme") || "") >= 0
+            ? localStorage.getItem("azoraTheme")
+            : "none";
+        else id = "none";
     }
+    try { localStorage.setItem("azoraHoliday", id); } catch (e) {}
+    try { localStorage.setItem("azoraHalloween", id === "halloween" ? "on" : "off"); } catch (e2) {}
+    document.documentElement.setAttribute("data-holiday", id);
+    document.documentElement.classList.toggle("halloween", id === "halloween");
+    if (document.body) document.body.classList.toggle("halloween", id === "halloween");
+    AZORA_HOLIDAY_IDS.forEach(function (hid) {
+        document.documentElement.classList.toggle("holiday-" + hid, hid === id);
+        if (document.body) document.body.classList.toggle("holiday-" + hid, hid === id);
+    });
+    var meta = AZORA_HOLIDAY_META[id] || AZORA_HOLIDAY_META.none;
+    var ban = document.getElementById("azoraWelcomeBanner");
+    if (ban) ban.textContent = meta.banner;
+    var tog = document.getElementById("halloweenEventToggle");
+    if (tog) tog.checked = id === "halloween";
     var layer = document.getElementById("azoraHalloweenLayer");
     if (layer) {
-        layer.style.display = on ? "block" : "none";
-        if (on && !layer.dataset.ready) {
+        layer.innerHTML = "";
+        layer.dataset.ready = "";
+        if (id !== "none" && meta.bits && meta.bits.length) {
+            layer.style.display = "block";
             layer.dataset.ready = "1";
-            var bits = ["🦇","🎃","🦇","🌙","🎃","✨","🦇"];
-            for (var i = 0; i < 7; i++) {
+            for (var i = 0; i < 8; i++) {
                 var s = document.createElement("span");
                 s.className = "hallo-float";
-                s.textContent = bits[i % bits.length];
+                s.textContent = meta.bits[i % meta.bits.length];
                 s.style.left = (Math.random() * 100) + "%";
                 s.style.animationDuration = (8 + Math.random() * 10) + "s";
                 s.style.animationDelay = (-Math.random() * 12) + "s";
                 s.style.fontSize = (14 + Math.random() * 18) + "px";
                 layer.appendChild(s);
             }
+        } else {
+            layer.style.display = "none";
         }
     }
+    paintHolidayThemeGrid(id);
+    if (!opts.fromTheme && id !== "none") {
+        applyTheme(id);
+    } else if (!opts.fromTheme && id === "none") {
+        var current = localStorage.getItem("azoraTheme") || "original";
+        if (AZORA_HOLIDAY_IDS.indexOf(current) >= 0) applyTheme("original");
+    }
 }
+window.setHolidayTheme = function (id) { applyHolidayTheme(id); };
+window.getHolidayTheme = getHolidayTheme;
+window.applyHolidayTheme = applyHolidayTheme;
+window.paintHolidayThemeGrid = paintHolidayThemeGrid;
 
 setInterval(function () {
     if ((localStorage.getItem("azoraTheme") || "auto") === "auto") {
