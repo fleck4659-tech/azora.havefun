@@ -11,8 +11,10 @@
 })();
 var AZORA_DEV_STAGE = "mid-alpha";
 var AZORA_DEV_STAGE_LABEL = "Mid Alpha";
-var AZORA_APP_VERSION = "72.7";
+var AZORA_APP_VERSION = "72.8";
 var AZORA_WHATS_NEW = [
+    "Classic blocky characters restored (no rounded blob bodies)",
+    "Feature-fail overlay if a part of Azora does not load",
     "Mid Alpha stage shown in Settings",
     "Aturius training pack + learned replies",
     "Space jumps only when you are not typing in chat",
@@ -32,6 +34,101 @@ function isAzoraHiddenAccountName(name) {
 }
 console.log("%c[Azora] script.js v" + AZORA_APP_VERSION + " " + AZORA_DEV_STAGE_LABEL, "color:#7c3aed;font-weight:bold;font-size:14px");
 try { console.log("[Azora] Cloud ready:", typeof AZORA_CLOUD !== "undefined" && AZORA_CLOUD.isReady && AZORA_CLOUD.isReady()); } catch (e) {}
+
+function isAzoraDarkAppearance() {
+    try {
+        var t = String((document.documentElement && document.documentElement.getAttribute("data-theme")) || "").toLowerCase();
+        if (t === "dark" || t === "neon" || t === "black" || t === "midnight") return true;
+        if (t.indexOf("dark") !== -1) return true;
+        if (document.body && document.body.classList && document.body.classList.contains("dark")) return true;
+        var stored = String(localStorage.getItem("azoraTheme") || localStorage.getItem("theme") || "").toLowerCase();
+        if (stored === "dark" || stored === "neon" || stored === "black") return true;
+    } catch (e) {}
+    return false;
+}
+
+function ensureFeatureFailOverlay() {
+    var ov = document.getElementById("azoraFeatureFailOverlay");
+    if (ov) return ov;
+    ov = document.createElement("div");
+    ov.id = "azoraFeatureFailOverlay";
+    ov.className = "azora-feature-fail-overlay";
+    ov.setAttribute("aria-live", "assertive");
+    ov.setAttribute("role", "alertdialog");
+    ov.style.display = "none";
+    ov.innerHTML = '<div class="azora-feature-fail-card">' +
+        '<p class="azora-feature-fail-title">Feature could not be loaded</p>' +
+        '<p class="azora-feature-fail-name" id="azoraFeatureFailName"></p>' +
+        '<p class="azora-feature-fail-detail" id="azoraFeatureFailDetail"></p>' +
+        '<button type="button" class="azora-feature-fail-close" id="azoraFeatureFailClose">Close</button>' +
+        "</div>";
+    (document.body || document.documentElement).appendChild(ov);
+    var btn = document.getElementById("azoraFeatureFailClose");
+    if (btn) btn.onclick = function () { hideFeatureLoadError(); };
+    ov.addEventListener("click", function (ev) {
+        if (ev.target === ov) hideFeatureLoadError();
+    });
+    return ov;
+}
+
+function hideFeatureLoadError() {
+    var ov = document.getElementById("azoraFeatureFailOverlay");
+    if (ov) {
+        ov.style.display = "none";
+        ov.setAttribute("aria-hidden", "true");
+    }
+}
+
+function showFeatureLoadError(featureName, detail) {
+    try {
+        var ov = ensureFeatureFailOverlay();
+        var dark = isAzoraDarkAppearance();
+        ov.classList.toggle("is-dark", dark);
+        ov.classList.toggle("is-light", !dark);
+        var nameEl = document.getElementById("azoraFeatureFailName");
+        var detEl = document.getElementById("azoraFeatureFailDetail");
+        if (nameEl) nameEl.textContent = featureName ? String(featureName) : "";
+        if (detEl) detEl.textContent = detail ? String(detail) : "This part of Azora did not start. You can keep using the rest of the site.";
+        ov.style.display = "flex";
+        ov.setAttribute("aria-hidden", "false");
+        console.warn("[Azora] Feature could not be loaded:", featureName || "(unknown)", detail || "");
+    } catch (e) {
+        try { alert("Feature could not be loaded"); } catch (e2) {}
+    }
+}
+
+function runAzoraFeature(featureName, fn) {
+    try {
+        return fn();
+    } catch (e) {
+        showFeatureLoadError(featureName, (e && e.message) ? e.message : "Unexpected error");
+        return null;
+    }
+}
+
+window.showFeatureLoadError = showFeatureLoadError;
+window.hideFeatureLoadError = hideFeatureLoadError;
+window.runAzoraFeature = runAzoraFeature;
+
+window.addEventListener("error", function (ev) {
+    try {
+        var src = (ev && ev.filename) || (ev && ev.target && ev.target.src) || "";
+        var msg = (ev && ev.message) || "";
+        if (ev && ev.target && ev.target.tagName === "SCRIPT") {
+            var file = String(ev.target.getAttribute("src") || src || "script");
+            var nice = "Script";
+            if (/three/i.test(file)) nice = "3D engine";
+            else if (/living-lands/i.test(file)) nice = "Living Lands";
+            else if (/script\.js/i.test(file)) nice = "Azora app";
+            else if (/aturius/i.test(file)) nice = "Aturius";
+            showFeatureLoadError(nice, "Feature could not be loaded");
+            return;
+        }
+        if (/THREE is not defined|WebGL/i.test(msg)) {
+            showFeatureLoadError("3D Avatar", "Feature could not be loaded");
+        }
+    } catch (e) {}
+}, true);
 // Configuration - Adjust these to change speed and phrases
 const fallSpeed = 2; // Higher number = faster fall
 const rotationSpeed = 0.5; // Higher number = faster rotation
@@ -186,7 +283,7 @@ function applyDefaultBodyShapeToMeshes(gender, avatar, meshes) {
         if (head) head.scale.set(1, 1, 1);
         if (torso) {
             torso.scale.set(1, 1, 1);
-            applyGirlTorsoCut(torso, 0.70, 1.02, 0.38);
+            applyBoyTorsoBox(torso, 0.70, 1.02, 0.38);
         }
         if (la) { la.scale.set(1, 1, 1); if (la.position) la.position.x = -0.56; }
         if (ra) { ra.scale.set(1, 1, 1); if (ra.position) ra.position.x = 0.56; }
@@ -3742,17 +3839,8 @@ function azoraRoundedBoxGeometry(w, h, d, radius) {
 window.azoraRoundedBoxGeometry = azoraRoundedBoxGeometry;
 
 function roundCharacterParts(root) {
-    if (!root || typeof THREE === "undefined") return;
-    root.traverse(function (obj) {
-        if (!obj || !obj.isMesh || !obj.geometry) return;
-        var g = obj.geometry;
-        var isBox = g.type === "BoxGeometry" || (g.parameters && g.parameters.width && g.parameters.height && g.parameters.depth && !g.parameters.radiusTop);
-        if (!isBox) return;
-        var w = g.parameters.width, h = g.parameters.height, d = g.parameters.depth;
-        if (!(w > 0 && h > 0 && d > 0)) return;
-        try { g.dispose(); } catch (e) {}
-        obj.geometry = azoraRoundedBoxGeometry(w, h, d, Math.min(w, h, d) * 0.24);
-    });
+    // Restored classic look: do not reshape blocky avatars into rounded blobs.
+    return;
 }
 window.roundCharacterParts = roundCharacterParts;
 
@@ -3789,27 +3877,21 @@ function azoraGirlCutTorsoGeometry(w, h, d) {
 window.azoraGirlCutTorsoGeometry = azoraGirlCutTorsoGeometry;
 
 function applyGirlTorsoCut(mesh, w, h, d) {
-    if (!mesh || typeof THREE === "undefined") return;
-    w = w || 0.78; h = h || 1.12; d = d || 0.42;
-    try { if (mesh.geometry) mesh.geometry.dispose(); } catch (e) {}
-    mesh.geometry = azoraGirlCutTorsoGeometry(w, h, d);
+    // Classic blocky girl torso — slimmer box, no cut-out shape
+    applyBoyTorsoBox(mesh, w || 0.70, h || 1.02, d || 0.38);
 }
 
 function applyBoyTorsoBox(mesh, w, h, d) {
     if (!mesh || typeof THREE === "undefined") return;
     w = w || 0.78; h = h || 1.12; d = d || 0.42;
     try { if (mesh.geometry) mesh.geometry.dispose(); } catch (e) {}
-    var radius = Math.min(w, h, d) * 0.22;
-    mesh.geometry = (typeof azoraRoundedBoxGeometry === "function")
-        ? azoraRoundedBoxGeometry(w, h, d, radius)
-        : new THREE.BoxGeometry(w, h, d);
+    mesh.geometry = new THREE.BoxGeometry(w, h, d);
 }
 
 function makeBox(w, h, d, color) {
-    var radius = Math.min(w, h, d) * 0.24;
     return new THREE.Mesh(
-        azoraRoundedBoxGeometry(w, h, d, radius),
-        azoraGlossMaterial(color)
+        new THREE.BoxGeometry(w, h, d),
+        new THREE.MeshLambertMaterial({ color: color })
     );
 }
 
@@ -3930,14 +4012,10 @@ function makeAvatarHair(hairColor, headY, headSize, styleId) {
     group.name = "hair";
     group.userData = group.userData || {};
     group.userData.hairStyle = styleId;
-    var mat = (typeof azoraGlossMaterial === 'function') ? azoraGlossMaterial(hairColor) : ((typeof azoraGlossMaterial==="function")?azoraGlossMaterial(hairColor ):new THREE.MeshLambertMaterial({color:hairColor }));
+    var mat = new THREE.MeshLambertMaterial({ color: hairColor });
 
     function addPart(name, x, y, z, w, h, d) {
-        var radius = Math.min(w, h, d) * 0.22;
-        var geo = (typeof azoraRoundedBoxGeometry === "function")
-            ? azoraRoundedBoxGeometry(w, h, d, radius)
-            : new THREE.BoxGeometry(w, h, d);
-        var m = new THREE.Mesh(geo, mat.clone());
+        var m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat.clone());
         m.position.set(x, y, z);
         m.name = name;
         group.add(m);
@@ -4144,119 +4222,25 @@ function setAvatarRenderStyle(style) {
     if (btn) btn.style.display = "none";
 }
 
-function _azoraDisposeMeshDeep(obj) {
-    if (!obj) return;
-    try {
-        if (obj.geometry) obj.geometry.dispose();
-        if (obj.material) {
-            if (Array.isArray(obj.material)) obj.material.forEach(function (m) { try { m.dispose(); } catch (e) {} });
-            else obj.material.dispose();
-        }
-    } catch (eD) {}
-    // Detail parts (hands, shoes, shoulder caps, collar/belt accents, etc.)
-    // are nested children of the primary limb/torso meshes, so dispose the
-    // whole subtree, not just the top mesh, to avoid leaking their buffers.
-    if (obj.children && obj.children.length) {
-        for (var i = 0; i < obj.children.length; i++) {
-            _azoraDisposeMeshDeep(obj.children[i]);
-        }
-    }
-}
-
 function clearAvatarCharacterMeshes() {
     if (!avatarCharacterGroup) return;
     try {
         while (avatarCharacterGroup.children.length) {
             var ch = avatarCharacterGroup.children[0];
             avatarCharacterGroup.remove(ch);
-            _azoraDisposeMeshDeep(ch);
+            try {
+                if (ch.geometry) ch.geometry.dispose();
+                if (ch.material) {
+                    if (Array.isArray(ch.material)) ch.material.forEach(function (m) { try { m.dispose(); } catch (e) {} });
+                    else ch.material.dispose();
+                }
+            } catch (eD) {}
         }
     } catch (e) {}
     headMesh = torsoMesh = leftArmMesh = rightArmMesh = leftLegMesh = rightLegMesh = null;
     faceGroup = null;
     neckMesh = null;
 }
-
-/** Darken/lighten a hex color by a multiplier (0-1 darkens, >1 lightens). Used for detail accents. */
-function _azoraShadeHex(hex, factor) {
-    try {
-        var c = new THREE.Color(hex);
-        c.r = Math.max(0, Math.min(1, c.r * factor));
-        c.g = Math.max(0, Math.min(1, c.g * factor));
-        c.b = Math.max(0, Math.min(1, c.b * factor));
-        return "#" + c.getHexString();
-    } catch (e) {
-        return hex;
-    }
-}
-window._azoraShadeHex = _azoraShadeHex;
-
-/**
- * Adds hands, shoes, shoulder caps, and a collar/belt band to an existing
- * blocky rig. Shared by the customizer avatar (buildBlockyAvatarMeshes) and
- * the in-game player avatar (makeNormAvatar) so both look equally detailed.
- * Every part is a CHILD of its parent limb/torso mesh, so it automatically
- * follows that mesh's existing position/rotation/scale (idle animation,
- * walking, jumping, size sliders) with no other code needing to change.
- */
-function _azoraAddCharacterDetailParts(o) {
-    o = o || {};
-    var torsoMesh = o.torso, leftArmMesh = o.leftArm, rightArmMesh = o.rightArm,
-        leftLegMesh = o.leftLeg, rightLegMesh = o.rightLeg;
-    var torsoC = o.torsoColor || "#1d4ed8";
-    var laC = o.leftArmColor || torsoC, raC = o.rightArmColor || torsoC;
-    var torsoH = o.torsoHeight || 1.12;
-    var armH = o.armHeight || 1.08;
-    var legH = o.legHeight || 1.12;
-
-    if (torsoMesh) {
-        var collarAccent = makeBox(0.42, 0.09, 0.44, _azoraShadeHex(torsoC, 0.72));
-        collarAccent.name = "collarAccent";
-        collarAccent.position.set(0, torsoH / 2 - 0.06, 0);
-        torsoMesh.add(collarAccent);
-
-        var beltAccent = makeBox(0.80, 0.09, 0.44, _azoraShadeHex(torsoC, 0.55));
-        beltAccent.name = "beltAccent";
-        beltAccent.position.set(0, -torsoH / 2 + 0.14, 0);
-        torsoMesh.add(beltAccent);
-    }
-    if (leftArmMesh) {
-        var handL = makeBox(0.27, 0.22, 0.29, laC);
-        handL.name = "handL";
-        handL.position.set(0, -armH / 2 - 0.09, 0.01);
-        leftArmMesh.add(handL);
-
-        var shoulderL = makeBox(0.22, 0.16, 0.34, torsoC);
-        shoulderL.name = "shoulderL";
-        shoulderL.position.set(0.02, armH / 2 - 0.05, 0);
-        leftArmMesh.add(shoulderL);
-    }
-    if (rightArmMesh) {
-        var handR = makeBox(0.27, 0.22, 0.29, raC);
-        handR.name = "handR";
-        handR.position.set(0, -armH / 2 - 0.09, 0.01);
-        rightArmMesh.add(handR);
-
-        var shoulderR = makeBox(0.22, 0.16, 0.34, torsoC);
-        shoulderR.name = "shoulderR";
-        shoulderR.position.set(-0.02, armH / 2 - 0.05, 0);
-        rightArmMesh.add(shoulderR);
-    }
-    var shoeColor = "#20232a";
-    if (leftLegMesh) {
-        var shoeL = makeBox(0.34, 0.16, 0.46, shoeColor);
-        shoeL.name = "shoeL";
-        shoeL.position.set(0, -legH / 2 - 0.08, 0.07);
-        leftLegMesh.add(shoeL);
-    }
-    if (rightLegMesh) {
-        var shoeR = makeBox(0.34, 0.16, 0.46, shoeColor);
-        shoeR.name = "shoeR";
-        shoeR.position.set(0, -legH / 2 - 0.08, 0.07);
-        rightLegMesh.add(shoeR);
-    }
-}
-window._azoraAddCharacterDetailParts = _azoraAddCharacterDetailParts;
 
 function _azoraLimbMat(hex) {
     try {
@@ -4276,11 +4260,10 @@ function buildBlockyAvatarMeshes(gender, colors) {
     var llC = colors.leftLeg || "#334155";
     var rlC = colors.rightLeg || "#334155";
 
-    torsoMesh = makeBox(0.78, 1.12, 0.42, torsoC);
+    var isGirl = gender === "girl";
+    torsoMesh = makeBox(isGirl ? 0.70 : 0.78, isGirl ? 1.02 : 1.12, isGirl ? 0.38 : 0.42, torsoC);
     torsoMesh.name = "torso";
     torsoMesh.position.y = 0.42;
-    var _torsoHForDetail = 1.12;
-    if (gender === "girl") { applyGirlTorsoCut(torsoMesh, 0.70, 1.02, 0.38); _torsoHForDetail = 1.02; }
     avatarCharacterGroup.add(torsoMesh);
 
     // Short neck — mostly hidden under the head, a sliver still shows
@@ -4333,14 +4316,6 @@ function buildBlockyAvatarMeshes(gender, colors) {
     rightLegMesh.name = "rightLeg";
     rightLegMesh.position.set(0.18, -0.70, 0);
     avatarCharacterGroup.add(rightLegMesh);
-
-    // —— Extra detail parts: hands, shoes, shoulder caps, collar/belt ——
-    _azoraAddCharacterDetailParts({
-        torso: torsoMesh, leftArm: leftArmMesh, rightArm: rightArmMesh,
-        leftLeg: leftLegMesh, rightLeg: rightLegMesh,
-        torsoColor: torsoC, leftArmColor: laC, rightArmColor: raC,
-        torsoHeight: _torsoHForDetail, armHeight: 1.08, legHeight: 1.12
-    });
 
     avatarCharacterGroup.userData = avatarCharacterGroup.userData || {};
     avatarCharacterGroup.userData.animStyle = "blocky";
@@ -5169,6 +5144,7 @@ function init3DAvatar() {
     if (!container) return;
     if (typeof THREE === "undefined") {
         console.warn("[Azora] Three.js not loaded — avatar preview unavailable");
+        showFeatureLoadError("3D Avatar", "Feature could not be loaded");
         return;
     }
 
@@ -5362,8 +5338,6 @@ function syncAvatarExtraColors(head, torso, leftArm, rightArm, leftLeg, rightLeg
         if ((n === "handL" || n === "upperArmL" || n === "lowerArmL" || n === "leftArm") && leftArm) obj.material.color.set(leftArm);
         if ((n === "handR" || n === "upperArmR" || n === "lowerArmR" || n === "rightArm") && rightArm) obj.material.color.set(rightArm);
         if ((n === "shoulderL" || n === "shoulderR" || n === "chest" || n === "hips" || n === "torso") && torso) obj.material.color.set(torso);
-        if (n === "collarAccent" && torso) obj.material.color.set(_azoraShadeHex(torso, 0.72));
-        if (n === "beltAccent" && torso) obj.material.color.set(_azoraShadeHex(torso, 0.55));
         if ((n === "thighL" || n === "shinL" || n === "footL" || n === "leftLeg") && leftLeg) obj.material.color.set(leftLeg);
         if ((n === "thighR" || n === "shinR" || n === "footR" || n === "rightLeg") && rightLeg) obj.material.color.set(rightLeg);
     });
@@ -8408,6 +8382,7 @@ window.addEventListener("DOMContentLoaded", function () {
         init3DAvatar();
     } catch (e) {
         console.warn("Avatar init failed:", e);
+        try { showFeatureLoadError("3D Avatar", "Feature could not be loaded"); } catch (e2) {}
     }
 
     try {
@@ -15551,7 +15526,11 @@ function paintAturiusFace() {
 
 function initAturius3D() {
     var canvas = document.getElementById("aturiusCanvas");
-    if (!canvas || typeof THREE === "undefined") return;
+    if (typeof THREE === "undefined") {
+        try { showFeatureLoadError("Aturius", "Feature could not be loaded"); } catch (e) {}
+        return;
+    }
+    if (!canvas) return;
 
     // Always rebuild face paint if already initialized
     if (_aturiusRenderer && _aturiusSphere) {
@@ -17619,13 +17598,9 @@ function makeNormAvatar(colors) {
     g.name = "normAvatar";
 
     function box(w, h, d, color) {
-        var radius = Math.min(w, h, d) * 0.22;
-        var geo = (typeof azoraRoundedBoxGeometry === "function")
-            ? azoraRoundedBoxGeometry(w, h, d, radius)
-            : new THREE.BoxGeometry(w, h, d);
         return new THREE.Mesh(
-            geo,
-            ((typeof azoraGlossMaterial==="function")?azoraGlossMaterial(color ):new THREE.MeshLambertMaterial({color:color }))
+            new THREE.BoxGeometry(w, h, d),
+            new THREE.MeshLambertMaterial({ color: color })
         );
     }
 
@@ -17644,7 +17619,6 @@ function makeNormAvatar(colors) {
 
     // Torso — girl cube is slightly smaller, with taller inward triangle cuts
     var torso = box(torsoW, torsoH, torsoDepth, colors.torso);
-    if (isGirl) applyGirlTorsoCut(torso, torsoW, torsoH, torsoDepth);
     torso.position.y = legH + torsoH / 2;
     torso.name = "torso";
     g.add(torso);
@@ -17697,22 +17671,6 @@ function makeNormAvatar(colors) {
     var leftLegPivot = addLimbPivot("leftLegPivot", "leftLeg", -legX, hipY, legH, legThick, colors.leftLeg);
     var rightLegPivot = addLimbPivot("rightLegPivot", "rightLeg", legX, hipY, legH, legThick, colors.rightLeg);
 
-    // —— Extra detail parts: hands, shoes, shoulder caps, collar/belt ——
-    // Same treatment as the customizer avatar so the in-game character matches.
-    try {
-        if (typeof _azoraAddCharacterDetailParts === "function") {
-            _azoraAddCharacterDetailParts({
-                torso: torso,
-                leftArm: leftArmPivot.getObjectByName("leftArm"),
-                rightArm: rightArmPivot.getObjectByName("rightArm"),
-                leftLeg: leftLegPivot.getObjectByName("leftLeg"),
-                rightLeg: rightLegPivot.getObjectByName("rightLeg"),
-                torsoColor: colors.torso, leftArmColor: colors.leftArm, rightArmColor: colors.rightArm,
-                torsoHeight: torsoH, armHeight: armH, legHeight: legH
-            });
-        }
-    } catch (eDetail) {}
-
     // girl torso cut is already applied on the cube; no extra hip piece
     // Hair only if explicitly equipped (not default) — both genders bald on default
     try {
@@ -17750,13 +17708,9 @@ function makeNormCatAvatar(colors) {
     g.userData.isCat = true;
 
     function box(w, h, d, color) {
-        var radius = Math.min(w, h, d) * 0.22;
-        var geo = (typeof azoraRoundedBoxGeometry === "function")
-            ? azoraRoundedBoxGeometry(w, h, d, radius)
-            : new THREE.BoxGeometry(w, h, d);
         return new THREE.Mesh(
-            geo,
-            ((typeof azoraGlossMaterial==="function")?azoraGlossMaterial(color ):new THREE.MeshLambertMaterial({color:color }))
+            new THREE.BoxGeometry(w, h, d),
+            new THREE.MeshLambertMaterial({ color: color })
         );
     }
 
@@ -20347,6 +20301,10 @@ window.toggleNormMusicPause = toggleNormMusicPause;
 
 
 function startNormGameWorld(def) {
+    if (typeof THREE === "undefined") {
+        try { showFeatureLoadError("3D World", "Feature could not be loaded"); } catch (eW) {}
+        return;
+    }
     disposeNormWorld(false);
     try { clearNormGameInventoryRuntime(false); } catch (eClr) {}
     startNormMusic();
@@ -24742,6 +24700,12 @@ function renderInventory() {
 
 
 function openMarketplace() {
+    try {
+        if (typeof renderMarketplace !== "function") {
+            showFeatureLoadError("Marketplace", "Feature could not be loaded");
+            return;
+        }
+    } catch (eM) {}
     grantDefaultHairForGender();
     try { if (typeof grantAllOfficialItemsToOwner === "function") grantAllOfficialItemsToOwner(); } catch (e) {}
     var el = document.getElementById("marketplaceOverlay");
@@ -28287,11 +28251,7 @@ function _profile3dMat(color) {
 }
 
 function _profile3dBox(w, h, d, color) {
-    var radius = Math.min(w, h, d) * 0.22;
-    var geo = (typeof azoraRoundedBoxGeometry === "function")
-        ? azoraRoundedBoxGeometry(w, h, d, radius)
-        : new THREE.BoxGeometry(w, h, d);
-    return new THREE.Mesh(geo, _profile3dMat(color));
+    return new THREE.Mesh(new THREE.BoxGeometry(w, h, d), new THREE.MeshLambertMaterial({ color: color }));
 }
 
 function buildProfile3DCharacter(avatar) {

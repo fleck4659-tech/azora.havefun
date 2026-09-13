@@ -8060,3 +8060,70 @@ html.halloween #avatar3d-canvas * {
 }
 #azoraRecordBtn.recording { background: #b91c1c; color: #fff; animation: recPulse 1s infinite; }
 @keyframes recPulse { 50% { opacity: 0.65; } }
+
+/* Feature-fail overlay — white in light mode, grey in dark mode */
+.azora-feature-fail-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 2147483640;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    background: rgba(15, 23, 42, 0.28);
+}
+.azora-feature-fail-overlay.is-light,
+html[data-theme="light"] .azora-feature-fail-overlay {
+    background: rgba(226, 232, 240, 0.35);
+}
+.azora-feature-fail-overlay.is-dark,
+html[data-theme="dark"] .azora-feature-fail-overlay {
+    background: rgba(17, 24, 39, 0.45);
+}
+.azora-feature-fail-card {
+    width: min(440px, calc(100vw - 28px));
+    border-radius: 18px;
+    padding: 26px 22px 20px;
+    text-align: center;
+    box-shadow: 0 18px 48px rgba(0,0,0,0.22);
+    background: #ffffff;
+    color: #0f172a;
+    border: 1px solid #e5e7eb;
+}
+html[data-theme="dark"] .azora-feature-fail-card,
+.azora-feature-fail-overlay.is-dark .azora-feature-fail-card {
+    background: #6b7280;
+    color: #f8fafc;
+    border-color: #4b5563;
+}
+.azora-feature-fail-title {
+    margin: 0 0 8px;
+    font-size: 1.25rem;
+    font-weight: 800;
+    letter-spacing: 0.01em;
+}
+.azora-feature-fail-name {
+    margin: 0 0 8px;
+    font-weight: 700;
+    opacity: 0.92;
+}
+.azora-feature-fail-detail {
+    margin: 0 0 16px;
+    font-size: 0.95rem;
+    line-height: 1.45;
+    opacity: 0.88;
+}
+.azora-feature-fail-close {
+    border: 0;
+    border-radius: 12px;
+    padding: 10px 18px;
+    font-weight: 700;
+    cursor: pointer;
+    background: #1d4ed8;
+    color: #fff;
+}
+html[data-theme="dark"] .azora-feature-fail-close,
+.azora-feature-fail-overlay.is-dark .azora-feature-fail-close {
+    background: #111827;
+    color: #f8fafc;
+}

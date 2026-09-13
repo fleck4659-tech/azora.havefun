@@ -186,7 +186,14 @@
     function loadImageSrc(src, ok, fail) {
         var im = new Image();
         im.onload = function () { ok(im); };
-        im.onerror = fail;
+        im.onerror = function () {
+            try {
+                if (typeof showFeatureLoadError === "function") {
+                    showFeatureLoadError("Living Lands map", "Feature could not be loaded");
+                }
+            } catch (e) {}
+            if (typeof fail === "function") fail();
+        };
         im.src = src;
     }
     function unpackU16(b64, into) {
