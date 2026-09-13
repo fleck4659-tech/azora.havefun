@@ -11,8 +11,10 @@
 })();
 var AZORA_DEV_STAGE = "mid-alpha";
 var AZORA_DEV_STAGE_LABEL = "Mid Alpha";
-var AZORA_APP_VERSION = "72.92";
+var AZORA_APP_VERSION = "72.93";
 var AZORA_WHATS_NEW = [
+    "Azora Studio: trim, speed, delete, import, and animate shapes",
+    "Edit Aturius clips or open Studio from the main bar",
     "Original Azora colors are the default again",
     "Holiday themes you can pick: Halloween, Thanksgiving, Christmas, Easter, and more",
     "Rounded-corner blocky avatars + hourglass girl torso restored",
@@ -15357,6 +15359,15 @@ function renderAturiusMessages() {
                 });
             }
             div.appendChild(vid);
+            var editBtn = document.createElement("button");
+            editBtn.type = "button";
+            editBtn.className = "aturius-edit-studio-btn";
+            editBtn.textContent = "Edit in Studio";
+            editBtn.onclick = function () {
+                var useSrc = vid.src || src || "";
+                openAzoraStudio({ src: useSrc, prompt: m.clipPrompt || "", name: "Aturius clip" });
+            };
+            div.appendChild(editBtn);
         }
         if (m.attachment) {
             var attWrap = document.createElement("div");
@@ -23679,6 +23690,16 @@ function saveAzoraRecordingBlob(id, blob, name) {
         });
     });
 }
+function loadAzoraRecordingBlob(id) {
+    return azoraRecDb().then(function (db) {
+        return new Promise(function (resolve, reject) {
+            var tx = db.transaction("clips", "readonly");
+            var req = tx.objectStore("clips").get(id);
+            req.onsuccess = function () { resolve(req.result && req.result.blob ? req.result.blob : null); };
+            req.onerror = function () { reject(req.error); };
+        });
+    });
+}
 function listAzoraRecordingMeta() {
     try { return JSON.parse(localStorage.getItem("azoraRecordingList") || "[]"); } catch (e) { return []; }
 }
@@ -23769,7 +23790,7 @@ function openAzoraRecordings() {
     var list = listAzoraRecordingMeta();
     if (box) {
         box.innerHTML = list.length ? list.map(function (r) {
-            return "<div class='coins-drop-row'><span>" + String(r.name || "Recording") + "</span><button type='button' onclick=\"downloadAzoraRecordingById('" + r.id + "')\">Download</button></div>";
+            return "<div class='coins-drop-row'><span>" + String(r.name || "Recording") + "</span><button type='button' onclick=\"openAzoraStudioFromRecording('" + r.id + "')\">Edit</button><button type='button' onclick=\"downloadAzoraRecordingById('" + r.id + "')\">Download</button></div>";
         }).join("") : "<p>No recordings yet.</p>";
     }
     if (ov) ov.style.display = "flex";
@@ -23784,6 +23805,426 @@ window.closeAzoraRecordDone = closeAzoraRecordDone;
 window.openAzoraRecordings = openAzoraRecordings;
 window.closeAzoraRecordings = closeAzoraRecordings;
 window.downloadAzoraRecordingById = downloadAzoraRecordingById;
+
+var _studio = {
+    clips: [],
+    shapes: [],
+    selected: null,
+    playhead: 0,
+    playing: false,
+    raf: null,
+    lastTs: 0,
+    importKind: "video",
+    videoEls: {}
+};
+
+function studioHint(text) {
+    var el = document.getElementById("azoraStudioHint");
+    if (el) el.textContent = text;
+}
+
+function studioTotalDuration() {
+    var max = 3;
+    _studio.clips.forEach(function (c) {
+        var vis = (c.trimEnd - c.trimStart) / (c.speed || 1);
+        max = Math.max(max, (c.at || 0) + vis);
+    });
+    _studio.shapes.forEach(function (s) {
+        max = Math.max(max, s.end || 3);
+    });
+    return max;
+}
+
+function studioSelect(kind, id) {
+    _studio.selected = { kind: kind, id: id };
+    studioPaintTimeline();
+}
+
+function openAzoraStudio(opt) {
+    opt = opt || {};
+    var ov = document.getElementById("azoraStudioOverlay");
+    if (!ov) return;
+    ov.style.display = "flex";
+    ov.setAttribute("aria-hidden", "false");
+    if (opt.reset || (!_studio.clips.length && !opt.src)) {
+        _studio.clips = [];
+        _studio.shapes = [];
+        _studio.selected = null;
+        _studio.playhead = 0;
+    }
+    if (opt.src) {
+        studioAddClip({
+            type: "video",
+            src: opt.src,
+            name: opt.name || "Clip",
+            prompt: opt.prompt || ""
+        });
+    }
+    studioHint(opt.src ? "Clip loaded. Trim, speed up, add shapes, or import more." : "Import a video, picture, or audio — or open an Aturius clip.");
+    studioPaintTimeline();
+    studioDraw();
+}
+function closeAzoraStudio() {
+    _studio.playing = false;
+    if (_studio.raf) cancelAnimationFrame(_studio.raf);
+    var ov = document.getElementById("azoraStudioOverlay");
+    if (ov) {
+        ov.style.display = "none";
+        ov.setAttribute("aria-hidden", "true");
+    }
+}
+window.openAzoraStudio = openAzoraStudio;
+window.closeAzoraStudio = closeAzoraStudio;
+
+function openAzoraStudioFromRecording(id) {
+    if (typeof loadAzoraRecordingBlob !== "function") {
+        openAzoraStudio();
+        return;
+    }
+    loadAzoraRecordingBlob(id).then(function (blob) {
+        if (!blob) { openAzoraStudio(); return; }
+        var url = URL.createObjectURL(blob);
+        openAzoraStudio({ src: url, name: "Recording" });
+    }).catch(function () { openAzoraStudio(); });
+}
+window.openAzoraStudioFromRecording = openAzoraStudioFromRecording;
+
+function studioAddClip(info) {
+    var id = "c" + Date.now() + Math.floor(Math.random() * 99);
+    var clip = {
+        id: id,
+        type: info.type || "video",
+        src: info.src,
+        name: info.name || (info.type || "clip"),
+        at: info.at != null ? info.at : studioTotalDuration() * (_studio.clips.length ? 0 : 0),
+        trimStart: 0,
+        trimEnd: 15,
+        speed: 1,
+        duration: 15
+    };
+    if (_studio.clips.length) clip.at = studioTotalDuration();
+    _studio.clips.push(clip);
+    _studio.selected = { kind: "clip", id: id };
+    if (clip.type === "video" || clip.type === "audio") {
+        var el = document.createElement(clip.type === "audio" ? "audio" : "video");
+        el.preload = "metadata";
+        el.src = clip.src;
+        el.muted = clip.type === "video";
+        el.onloadedmetadata = function () {
+            if (isFinite(el.duration) && el.duration > 0) {
+                clip.duration = el.duration;
+                clip.trimEnd = el.duration;
+                studioPaintTimeline();
+            }
+        };
+        _studio.videoEls[id] = el;
+    } else {
+        var img = new Image();
+        img.src = clip.src;
+        _studio.videoEls[id] = img;
+        clip.duration = 4;
+        clip.trimEnd = 4;
+    }
+    studioPaintTimeline();
+}
+
+function studioImport(kind) {
+    _studio.importKind = kind || "video";
+    var inp = document.getElementById("azoraStudioFile");
+    if (!inp) return;
+    if (kind === "video") inp.accept = "video/*";
+    else if (kind === "image") inp.accept = "image/*";
+    else inp.accept = "audio/*";
+    inp.value = "";
+    inp.click();
+}
+window.studioImport = studioImport;
+
+function studioHandleImport(ev) {
+    var file = ev.target && ev.target.files && ev.target.files[0];
+    if (!file) return;
+    var kind = _studio.importKind || "video";
+    if (file.type.indexOf("image/") === 0) kind = "image";
+    else if (file.type.indexOf("audio/") === 0) kind = "audio";
+    else if (file.type.indexOf("video/") === 0) kind = "video";
+    var url = URL.createObjectURL(file);
+    studioAddClip({ type: kind, src: url, name: file.name || kind });
+    studioHint("Added " + kind + ": " + (file.name || "file"));
+}
+window.studioHandleImport = studioHandleImport;
+
+function studioSelectedClip() {
+    if (!_studio.selected || _studio.selected.kind !== "clip") return null;
+    var i;
+    for (i = 0; i < _studio.clips.length; i++) {
+        if (_studio.clips[i].id === _studio.selected.id) return _studio.clips[i];
+    }
+    return null;
+}
+function studioSelectedShape() {
+    if (!_studio.selected || _studio.selected.kind !== "shape") return null;
+    var i;
+    for (i = 0; i < _studio.shapes.length; i++) {
+        if (_studio.shapes[i].id === _studio.selected.id) return _studio.shapes[i];
+    }
+    return null;
+}
+
+function studioTrimSelected() {
+    var c = studioSelectedClip();
+    if (!c) { studioHint("Select a clip on the timeline first."); return; }
+    var mid = (c.trimStart + c.trimEnd) / 2;
+    c.trimStart = Math.max(0, mid - Math.max(0.4, (c.trimEnd - c.trimStart) * 0.35));
+    c.trimEnd = Math.min(c.duration, mid + Math.max(0.4, (c.trimEnd - c.trimStart) * 0.35));
+    studioHint("Trimmed " + c.name + " to " + (c.trimEnd - c.trimStart).toFixed(1) + "s");
+    studioPaintTimeline();
+}
+function studioSpeedSelected(mult) {
+    var c = studioSelectedClip();
+    if (!c) { studioHint("Select a clip on the timeline first."); return; }
+    c.speed = Math.max(0.25, Math.min(4, Number(mult) || 1));
+    studioHint(c.name + " speed is now ×" + c.speed);
+    studioPaintTimeline();
+}
+function studioDeleteSelected() {
+    if (!_studio.selected) { studioHint("Select a clip or shape first."); return; }
+    if (_studio.selected.kind === "clip") {
+        _studio.clips = _studio.clips.filter(function (c) { return c.id !== _studio.selected.id; });
+    } else {
+        _studio.shapes = _studio.shapes.filter(function (s) { return s.id !== _studio.selected.id; });
+    }
+    _studio.selected = null;
+    studioHint("Deleted.");
+    studioPaintTimeline();
+    studioDraw();
+}
+window.studioTrimSelected = studioTrimSelected;
+window.studioSpeedSelected = studioSpeedSelected;
+window.studioDeleteSelected = studioDeleteSelected;
+
+function studioAddShape(kind) {
+    var id = "s" + Date.now();
+    var colors = { sphere: "#facc15", box: "#60a5fa", star: "#fbbf24", triangle: "#34d399" };
+    _studio.shapes.push({
+        id: id,
+        kind: kind || "sphere",
+        x: 0.5,
+        y: 0.45,
+        size: 0.16,
+        color: colors[kind] || "#facc15",
+        anim: "bounce",
+        start: _studio.playhead,
+        end: _studio.playhead + 4
+    });
+    _studio.selected = { kind: "shape", id: id };
+    studioHint("Added " + kind + ". Pick Bounce, Spin, or Float.");
+    studioPaintTimeline();
+    studioDraw();
+}
+function studioAnimSelected(anim) {
+    var s = studioSelectedShape();
+    if (!s) { studioHint("Select a shape first."); return; }
+    s.anim = anim || "none";
+    studioHint("Shape animation: " + s.anim);
+    studioDraw();
+}
+window.studioAddShape = studioAddShape;
+window.studioAnimSelected = studioAnimSelected;
+
+function studioPlayToggle() {
+    _studio.playing = !_studio.playing;
+    _studio.lastTs = 0;
+    var btn = document.getElementById("azoraStudioPlayBtn");
+    if (btn) btn.textContent = _studio.playing ? "Pause" : "Play";
+    if (_studio.playing) studioTick();
+    else {
+        Object.keys(_studio.videoEls).forEach(function (id) {
+            var el = _studio.videoEls[id];
+            if (el && el.pause) try { el.pause(); } catch (e) {}
+        });
+    }
+}
+function studioSeek(val) {
+    var total = studioTotalDuration();
+    _studio.playhead = (Number(val) / 1000) * total;
+    studioDraw();
+    var t = document.getElementById("azoraStudioTime");
+    if (t) t.textContent = _studio.playhead.toFixed(1) + "s";
+}
+window.studioPlayToggle = studioPlayToggle;
+window.studioSeek = studioSeek;
+
+function studioTick(ts) {
+    if (!_studio.playing) return;
+    if (!_studio.lastTs) _studio.lastTs = ts || performance.now();
+    var now = ts || performance.now();
+    var dt = Math.min(0.05, (now - _studio.lastTs) / 1000);
+    _studio.lastTs = now;
+    _studio.playhead += dt;
+    if (_studio.playhead >= studioTotalDuration()) {
+        _studio.playhead = 0;
+    }
+    var seek = document.getElementById("azoraStudioSeek");
+    if (seek) seek.value = String(Math.round((_studio.playhead / studioTotalDuration()) * 1000));
+    var t = document.getElementById("azoraStudioTime");
+    if (t) t.textContent = _studio.playhead.toFixed(1) + "s";
+    studioDraw();
+    _studio.raf = requestAnimationFrame(studioTick);
+}
+
+function studioDrawShape(ctx, s, t, W, H) {
+    var local = t - (s.start || 0);
+    if (local < 0 || t > (s.end || 99)) return;
+    var x = s.x * W, y = s.y * H, r = s.size * Math.min(W, H);
+    if (s.anim === "bounce") y += Math.sin(local * 6) * 18;
+    if (s.anim === "float") y += Math.sin(local * 2.2) * 10;
+    ctx.save();
+    ctx.translate(x, y);
+    if (s.anim === "spin") ctx.rotate(local * 2.4);
+    ctx.fillStyle = s.color || "#facc15";
+    ctx.strokeStyle = "#0f172a";
+    ctx.lineWidth = 3;
+    if (s.kind === "box") {
+        ctx.fillRect(-r, -r, r * 2, r * 2);
+        ctx.strokeRect(-r, -r, r * 2, r * 2);
+    } else if (s.kind === "triangle") {
+        ctx.beginPath();
+        ctx.moveTo(0, -r);
+        ctx.lineTo(r, r);
+        ctx.lineTo(-r, r);
+        ctx.closePath();
+        ctx.fill(); ctx.stroke();
+    } else if (s.kind === "star") {
+        ctx.beginPath();
+        var i;
+        for (i = 0; i < 10; i++) {
+            var a = -Math.PI / 2 + i * Math.PI / 5;
+            var rr = i % 2 === 0 ? r : r * 0.42;
+            if (i === 0) ctx.moveTo(Math.cos(a) * rr, Math.sin(a) * rr);
+            else ctx.lineTo(Math.cos(a) * rr, Math.sin(a) * rr);
+        }
+        ctx.closePath();
+        ctx.fill(); ctx.stroke();
+    } else {
+        ctx.beginPath();
+        ctx.arc(0, 0, r, 0, Math.PI * 2);
+        ctx.fill(); ctx.stroke();
+        ctx.fillStyle = "#0f172a";
+        ctx.beginPath(); ctx.arc(-r * 0.28, -r * 0.18, r * 0.1, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(r * 0.28, -r * 0.18, r * 0.1, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath();
+        ctx.arc(0, r * 0.12, r * 0.42, 0.15, Math.PI - 0.15);
+        ctx.stroke();
+    }
+    ctx.restore();
+}
+
+function studioDraw() {
+    var canvas = document.getElementById("azoraStudioCanvas");
+    if (!canvas) return;
+    var ctx = canvas.getContext("2d");
+    var W = canvas.width, H = canvas.height;
+    ctx.fillStyle = "#0f172a";
+    ctx.fillRect(0, 0, W, H);
+    var t = _studio.playhead;
+    _studio.clips.forEach(function (c) {
+        var vis = (c.trimEnd - c.trimStart) / (c.speed || 1);
+        if (t < c.at || t > c.at + vis) return;
+        var localSrc = c.trimStart + (t - c.at) * (c.speed || 1);
+        var el = _studio.videoEls[c.id];
+        if (!el) return;
+        if (c.type === "video" && el.readyState >= 1) {
+            try {
+                if (Math.abs((el.currentTime || 0) - localSrc) > 0.12) el.currentTime = localSrc;
+                if (_studio.playing && el.paused) el.play().catch(function () {});
+                ctx.drawImage(el, 0, 0, W, H);
+            } catch (e) {}
+        } else if (c.type === "image") {
+            try { ctx.drawImage(el, 0, 0, W, H); } catch (e2) {}
+        } else if (c.type === "audio") {
+            try {
+                if (_studio.playing) {
+                    if (Math.abs((el.currentTime || 0) - localSrc) > 0.18) el.currentTime = localSrc;
+                    if (el.paused) el.play().catch(function () {});
+                }
+            } catch (e3) {}
+            ctx.fillStyle = "#1e293b";
+            ctx.fillRect(20, H - 46, W - 40, 26);
+            ctx.fillStyle = "#93c5fd";
+            ctx.fillText("Audio: " + c.name, 28, H - 28);
+        }
+    });
+    _studio.shapes.forEach(function (s) { studioDrawShape(ctx, s, t, W, H); });
+}
+
+function studioPaintTimeline() {
+    var box = document.getElementById("azoraStudioTimeline");
+    if (!box) return;
+    var total = studioTotalDuration();
+    var html = "";
+    _studio.clips.forEach(function (c) {
+        var vis = (c.trimEnd - c.trimStart) / (c.speed || 1);
+        var left = (c.at / total) * 100;
+        var width = Math.max(6, (vis / total) * 100);
+        var on = _studio.selected && _studio.selected.kind === "clip" && _studio.selected.id === c.id;
+        html += '<button type="button" class="studio-clip' + (on ? " on" : "") + '" style="left:' + left + "%;width:" + width + '%" onclick="studioSelect(\'clip\',\'' + c.id + '\')">' +
+            (c.type === "audio" ? "🔊 " : c.type === "image" ? "🖼️ " : "🎬 ") + String(c.name || c.type).slice(0, 18) +
+            " ×" + c.speed + "</button>";
+    });
+    _studio.shapes.forEach(function (s) {
+        var left = ((s.start || 0) / total) * 100;
+        var width = Math.max(5, (((s.end || 3) - (s.start || 0)) / total) * 100);
+        var on = _studio.selected && _studio.selected.kind === "shape" && _studio.selected.id === s.id;
+        html += '<button type="button" class="studio-clip shape' + (on ? " on" : "") + '" style="left:' + left + "%;width:" + width + '%" onclick="studioSelect(\'shape\',\'' + s.id + '\')">◇ ' + s.kind + "</button>";
+    });
+    box.innerHTML = html || '<p class="azora-studio-hint">Timeline is empty.</p>';
+}
+window.studioSelect = studioSelect;
+window.studioPaintTimeline = studioPaintTimeline;
+
+function studioExport() {
+    var canvas = document.getElementById("azoraStudioCanvas");
+    if (!canvas || typeof canvas.captureStream !== "function") {
+        studioHint("Export needs a browser that can record the canvas.");
+        return;
+    }
+    studioHint("Exporting…");
+    var was = _studio.playing;
+    _studio.playhead = 0;
+    _studio.playing = true;
+    _studio.lastTs = 0;
+    studioTick();
+    var stream = canvas.captureStream(24);
+    var rec, chunks = [];
+    try { rec = new MediaRecorder(stream, { mimeType: "video/webm" }); }
+    catch (e) { rec = new MediaRecorder(stream); }
+    rec.ondataavailable = function (ev) { if (ev.data && ev.data.size) chunks.push(ev.data); };
+    rec.onstop = function () {
+        _studio.playing = false;
+        var blob = new Blob(chunks, { type: "video/webm" });
+        var a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = "azora-studio.webm";
+        a.click();
+        studioHint("Exported azora-studio.webm");
+        if (typeof saveAzoraRecordingBlob === "function") {
+            var id = "studio-" + Date.now();
+            saveAzoraRecordingBlob(id, blob, "Studio export").then(function () {
+                pushAzoraRecordingMeta({ id: id, name: "Studio export", at: Date.now() });
+            }).catch(function () {});
+        }
+    };
+    rec.start();
+    setTimeout(function () {
+        try { rec.stop(); } catch (e2) {}
+        if (!was) {
+            _studio.playing = false;
+            var btn = document.getElementById("azoraStudioPlayBtn");
+            if (btn) btn.textContent = "Play";
+        }
+    }, Math.min(20000, studioTotalDuration() * 1000 + 400));
+}
+window.studioExport = studioExport;
 
 var _pumpkins = [];
 var _pumpkinTimer = null;

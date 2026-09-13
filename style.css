@@ -8225,3 +8225,92 @@ html[data-theme="softrainbow"] button {
     50% { background-position: 100% 50%; }
     100% { background-position: 0% 50%; }
 }
+
+.azora-studio-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 2147482500;
+    background: rgba(15, 23, 42, 0.62);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 12px;
+}
+.azora-studio-shell {
+    width: min(960px, 100%);
+    max-height: 96vh;
+    overflow: auto;
+    background: #0f172a;
+    color: #e2e8f0;
+    border-radius: 16px;
+    border: 1px solid #334155;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.35);
+    padding: 12px;
+}
+.azora-studio-head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+}
+.azora-studio-head strong { font-size: 1.1rem; }
+.azora-studio-sub { opacity: 0.75; font-size: 0.85rem; flex: 1; }
+.azora-studio-main { display: flex; gap: 10px; flex-wrap: wrap; }
+#azoraStudioCanvas {
+    width: min(640px, 100%);
+    height: auto;
+    background: #020617;
+    border-radius: 10px;
+    border: 1px solid #334155;
+}
+.azora-studio-tools { flex: 1; min-width: 220px; }
+.azora-studio-label { margin: 8px 0 4px; font-weight: 700; font-size: 0.82rem; }
+.azora-studio-row { display: flex; flex-wrap: wrap; gap: 6px; }
+.azora-studio-tools button, .azora-studio-transport button {
+    background: #1d4ed8;
+    color: #fff;
+    border: 0;
+    border-radius: 8px;
+    padding: 6px 8px;
+    cursor: pointer;
+    font-size: 0.8rem;
+}
+.azora-studio-hint { font-size: 0.8rem; opacity: 0.8; }
+.azora-studio-transport {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 8px;
+}
+#azoraStudioSeek { flex: 1; }
+.azora-studio-timeline {
+    position: relative;
+    min-height: 54px;
+    margin-top: 8px;
+    background: #111827;
+    border-radius: 8px;
+    border: 1px solid #334155;
+}
+.studio-clip {
+    position: absolute;
+    top: 8px;
+    height: 36px;
+    background: #334155;
+    color: #fff;
+    border: 0;
+    border-radius: 8px;
+    overflow: hidden;
+    font-size: 0.72rem;
+}
+.studio-clip.on { outline: 2px solid #60a5fa; }
+.studio-clip.shape { top: auto; bottom: 6px; height: 22px; background: #6d28d9; }
+.aturius-edit-studio-btn {
+    display: block;
+    margin-top: 8px;
+    background: #1d4ed8;
+    color: #fff;
+    border: 0;
+    border-radius: 8px;
+    padding: 6px 10px;
+    cursor: pointer;
+}
