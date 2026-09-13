@@ -11,9 +11,9 @@
 })();
 var AZORA_DEV_STAGE = "mid-alpha";
 var AZORA_DEV_STAGE_LABEL = "Mid Alpha";
-var AZORA_APP_VERSION = "72.95";
+var AZORA_APP_VERSION = "72.96";
 var AZORA_WHATS_NEW = [
-    "Avatar mesh is now OBJ + MTL files (avatar-boy / avatar-girl), same model type as Azora House",
+    "Avatar on screen is the assembled rounded character again (OBJ + MTL stay as saved model files)",
     "Avatar lives in its own file (azora-avatar.js) so it can keep working if other Azora code breaks",
     "Studio shapes get 3 scale squares on every side",
     "Click away to deselect a shape and hide the squares",

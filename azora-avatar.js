@@ -5,7 +5,7 @@
 (function (global) {
     "use strict";
 
-    var AVATAR_FILE_VERSION = "1.1";
+    var AVATAR_FILE_VERSION = "1.2";
     var _objCache = { boy: null, girl: null, loading: false };
 
     function hasTHREE() {
@@ -328,8 +328,6 @@
         colors = colors || defaultColors(gender);
         gender = (gender === "girl" || gender === "female") ? "girl" : "boy";
         preloadObjModels();
-        var fromObj = tryBuildFromObj(group, gender, colors);
-        if (fromObj) return fromObj;
         var isGirl = gender === "girl";
         clearGroup(group);
         var refs = {};
@@ -404,24 +402,6 @@
         colors = colors || defaultColors((colors && colors.gender) || "boy");
         preloadObjModels();
         var gender = colors.gender || "boy";
-        var key = (gender === "girl" || gender === "female") ? "girl" : "boy";
-        if (_objCache[key]) {
-            var packed = buildGroupFromObj(_objCache[key], colors);
-            if (packed && packed.root.children.length) {
-                var gObj = packed.root;
-                gObj.name = "normAvatar";
-                gObj.position.y = 1.26;
-                gObj.userData.footOffset = 0;
-                gObj.userData.gender = key;
-                gObj.userData.fromObj = true;
-                var faceObj = buildFace(key);
-                if (faceObj && packed.refs.head) {
-                    faceObj.position.y = packed.refs.head.position.y;
-                    gObj.add(faceObj);
-                }
-                return gObj;
-            }
-        }
         var g = new THREE.Group();
         g.name = "normAvatar";
         var isGirl = gender === "girl" || gender === "female";
