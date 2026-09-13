@@ -5,7 +5,8 @@
 (function (global) {
     "use strict";
 
-    var AVATAR_FILE_VERSION = "1.0";
+    var AVATAR_FILE_VERSION = "1.1";
+    var _objCache = { boy: null, girl: null, loading: false };
 
     function hasTHREE() {
         return typeof global.THREE !== "undefined";
@@ -187,10 +188,148 @@
         }
     }
 
+    function parseMtl(text) {
+        var mats = {}, cur = null;
+        String(text || "").split(/\r?\n/).forEach(function (raw) {
+            var line = raw.trim();
+            if (!line || line.charAt(0) === "#") return;
+            var sp = line.split(/\s+/);
+            var tag = sp[0].toLowerCase();
+            if (tag === "newmtl" && sp[1]) {
+                cur = sp[1];
+                mats[cur] = { color: 0xc4b49a };
+            } else if (cur && tag === "kd" && sp.length >= 4) {
+                var r = Math.round(Math.max(0, Math.min(1, parseFloat(sp[1]))) * 255);
+                var g = Math.round(Math.max(0, Math.min(1, parseFloat(sp[2]))) * 255);
+                var b = Math.round(Math.max(0, Math.min(1, parseFloat(sp[3]))) * 255);
+                mats[cur].color = (r << 16) | (g << 8) | b;
+            }
+        });
+        return mats;
+    }
+
+    function parseObj(text) {
+        var positions = [];
+        var groups = {};
+        var current = "_default";
+        function ensure(name) {
+            if (!groups[name]) groups[name] = { pos: [] };
+            return groups[name];
+        }
+        String(text || "").split(/\r?\n/).forEach(function (raw) {
+            var line = raw.trim();
+            if (!line || line.charAt(0) === "#") return;
+            var sp = line.split(/\s+/);
+            var tag = sp[0];
+            if ((tag === "usemtl" || tag === "o" || tag === "g") && sp[1]) current = sp[1];
+            else if (tag === "v" && sp.length >= 4) positions.push([parseFloat(sp[1]), parseFloat(sp[2]), parseFloat(sp[3])]);
+            else if (tag === "f" && sp.length >= 4) {
+                var g = ensure(current);
+                for (var k = 1; k + 2 < sp.length; k++) {
+                    [sp[1], sp[k + 1], sp[k + 2]].forEach(function (tok) {
+                        var vi = parseInt(String(tok).split("/")[0], 10);
+                        if (vi < 0) vi = positions.length + vi + 1;
+                        var p = positions[vi - 1];
+                        if (p) g.pos.push(p[0], p[1], p[2]);
+                    });
+                }
+            }
+        });
+        return groups;
+    }
+
+    function colorForPart(name, colors) {
+        colors = colors || {};
+        if (name.indexOf("hair") === 0) return colors.hair || "#4a3728";
+        if (name.indexOf("torso") === 0) return colors.torso || "#1d4ed8";
+        if (name === "head" || name === "neck") return colors.head || "#e0a870";
+        if (name === "leftArm") return colors.leftArm || colors.head || "#e0a870";
+        if (name === "rightArm") return colors.rightArm || colors.head || "#e0a870";
+        if (name === "leftLeg") return colors.leftLeg || "#334155";
+        if (name === "rightLeg") return colors.rightLeg || "#334155";
+        if (name === "voiceBox") return "#6b7280";
+        return colors.torso || "#1d4ed8";
+    }
+
+    function buildGroupFromObj(groups, colors) {
+        if (!hasTHREE() || !groups) return null;
+        var root = new THREE.Group();
+        root.name = "azoraAvatarObj";
+        var refs = {};
+        Object.keys(groups).forEach(function (name) {
+            var g = groups[name];
+            if (!g.pos || g.pos.length < 9) return;
+            var geo = new THREE.BufferGeometry();
+            geo.setAttribute("position", new THREE.Float32BufferAttribute(g.pos, 3));
+            geo.computeVertexNormals();
+            var mesh = new THREE.Mesh(geo, new THREE.MeshLambertMaterial({ color: colorForPart(name, colors) }));
+            mesh.name = name.indexOf("torso") === 0 ? (name === "torso" ? "torso" : name) : name;
+            root.add(mesh);
+            if (name.indexOf("torso") === 0) refs.torso = refs.torso || mesh;
+            else if (name === "head") refs.head = mesh;
+            else if (name === "neck") refs.neck = mesh;
+            else if (name === "voiceBox") refs.voiceBox = mesh;
+            else if (name === "leftArm") refs.leftArm = mesh;
+            else if (name === "rightArm") refs.rightArm = mesh;
+            else if (name === "leftLeg") refs.leftLeg = mesh;
+            else if (name === "rightLeg") refs.rightLeg = mesh;
+        });
+        if (refs.voiceBox) {
+            root.userData = root.userData || {};
+            root.userData.cvbVoiceBox = refs.voiceBox;
+        }
+        return { root: root, refs: refs };
+    }
+
+    function fetchText(url) {
+        return fetch(url).then(function (r) {
+            if (!r.ok) throw new Error("missing " + url);
+            return r.text();
+        });
+    }
+
+    function preloadObjModels() {
+        if (_objCache.loading) return;
+        _objCache.loading = true;
+        function loadOne(key, objUrl, mtlUrl) {
+            return Promise.all([fetchText(objUrl), fetchText(mtlUrl).catch(function () { return ""; })]).then(function (pair) {
+                _objCache[key] = parseObj(pair[0]);
+            }).catch(function () {
+                _objCache[key] = null;
+            });
+        }
+        loadOne("boy", "avatar-boy.obj", "avatar-boy.mtl");
+        loadOne("girl", "avatar-girl.obj", "avatar-girl.mtl");
+    }
+
+    function tryBuildFromObj(group, gender, colors) {
+        var key = (gender === "girl" || gender === "female") ? "girl" : "boy";
+        if (!_objCache[key]) return null;
+        var built = buildGroupFromObj(_objCache[key], colors);
+        if (!built || !built.root.children.length) return null;
+        clearGroup(group);
+        while (built.root.children.length) group.add(built.root.children[0]);
+        group.userData = group.userData || {};
+        group.userData.fromObj = true;
+        group.userData.animStyle = "blocky";
+        group.userData.gender = key;
+        if (built.refs.voiceBox) group.userData.cvbVoiceBox = built.refs.voiceBox;
+        var face = buildFace(key);
+        if (face && built.refs.head) {
+            face.position.y = built.refs.head.position.y;
+            group.add(face);
+            built.refs.face = face;
+        }
+        return built.refs;
+    }
+
     function buildBlockyInto(group, gender, colors) {
         if (!hasTHREE() || !group) return null;
         colors = colors || defaultColors(gender);
         gender = (gender === "girl" || gender === "female") ? "girl" : "boy";
+        preloadObjModels();
+        var fromObj = tryBuildFromObj(group, gender, colors);
+        if (fromObj) return fromObj;
         var isGirl = gender === "girl";
         clearGroup(group);
         var refs = {};
@@ -263,9 +402,28 @@
     function makeNormAvatar(colors) {
         if (!hasTHREE()) return null;
         colors = colors || defaultColors((colors && colors.gender) || "boy");
+        preloadObjModels();
+        var gender = colors.gender || "boy";
+        var key = (gender === "girl" || gender === "female") ? "girl" : "boy";
+        if (_objCache[key]) {
+            var packed = buildGroupFromObj(_objCache[key], colors);
+            if (packed && packed.root.children.length) {
+                var gObj = packed.root;
+                gObj.name = "normAvatar";
+                gObj.position.y = 1.26;
+                gObj.userData.footOffset = 0;
+                gObj.userData.gender = key;
+                gObj.userData.fromObj = true;
+                var faceObj = buildFace(key);
+                if (faceObj && packed.refs.head) {
+                    faceObj.position.y = packed.refs.head.position.y;
+                    gObj.add(faceObj);
+                }
+                return gObj;
+            }
+        }
         var g = new THREE.Group();
         g.name = "normAvatar";
-        var gender = colors.gender || "boy";
         var isGirl = gender === "girl" || gender === "female";
         var legH = 1.12, torsoH = isGirl ? 1.02 : 1.12, headS = 0.52, armH = 1.08;
         var torsoW = isGirl ? 0.70 : 0.78;
@@ -378,8 +536,14 @@
         buildBlockyInto: buildBlockyInto,
         makeNormAvatar: makeNormAvatar,
         mountPreview: mountPreview,
-        defaultColors: defaultColors
+        defaultColors: defaultColors,
+        preloadObjModels: preloadObjModels,
+        objFiles: {
+            boy: ["avatar-boy.obj", "avatar-boy.mtl"],
+            girl: ["avatar-girl.obj", "avatar-girl.mtl"]
+        }
     };
+    try { preloadObjModels(); } catch (ePre) {}
     global.AzoraAvatar = API;
     global.azoraRoundedBoxGeometry = roundedBoxGeometry;
     global.azoraGirlCutTorsoGeometry = girlTorsoGeometry;
