@@ -13,11 +13,102 @@
     <link rel="manifest" href="manifest-azora.json">
     <link rel="apple-touch-icon" href="logo.jpg?v=70.2">
     <link rel="icon" href="logo.jpg?v=70.2">
-    <link rel="stylesheet" href="style.css?v=72.46">
+    <link rel="stylesheet" href="style.css?v=72.47">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="azora-avatar.js?v=1.2"></script>
+    <style>
+    #azoraDeviceLock {
+        display: none;
+        position: fixed;
+        inset: 0;
+        z-index: 2147483646;
+        background: #0b1220;
+        color: #e8eefc;
+        align-items: center;
+        justify-content: center;
+        padding: 24px;
+        text-align: center;
+        font-family: Arial, sans-serif;
+    }
+    #azoraDeviceLock.show { display: flex; }
+    #azoraDeviceLock .azora-device-lock-card {
+        max-width: 420px;
+        background: #152033;
+        border: 1px solid #334155;
+        border-radius: 16px;
+        padding: 22px 20px;
+    }
+    #azoraDeviceLock h1 { font-size: 1.35rem; margin: 0 0 10px; }
+    #azoraDeviceLock p { margin: 0; line-height: 1.45; opacity: 0.92; }
+    body.azora-device-blocked { overflow: hidden; }
+    </style>
+    <script>
+    (function () {
+        function kind() {
+            var ua = String(navigator.userAgent || "");
+            var plat = String(navigator.platform || "");
+            if (/oculus|quest|vive|pico|mixed reality|mobile vr|headset|horizon os|gear vr|daydream/i.test(ua)) return "vr";
+            try {
+                if (/azoraPhonePreview=1/.test(String(location.search || "")) || sessionStorage.getItem("azoraPhonePreview") === "1") return "computer";
+            } catch (ePrev) {}
+            if (/iphone|ipod|windows phone|blackberry|iemobile|opera mini/i.test(ua)) return "phone";
+            if (/android/i.test(ua) && /mobile/i.test(ua) && !/tablet|pad/i.test(ua)) return "phone";
+            if (/ipad/i.test(ua) || (plat === "MacIntel" && (navigator.maxTouchPoints || 0) > 1)) return "tablet";
+            if (/android/i.test(ua) && (/tablet|pad/i.test(ua) || !/mobile/i.test(ua))) return "tablet";
+            var short = Math.min(screen.width || 9999, screen.height || 9999);
+            if ((navigator.maxTouchPoints || 0) > 0 && short <= 600 && !/ipad|tablet|pad/i.test(ua)) return "phone";
+            return "computer";
+        }
+        window.azoraDeviceKind = kind;
+        window.azoraDeviceAllowed = function () {
+            var k = kind();
+            return k === "tablet" || k === "computer";
+        };
+        window.lockAzoraIfUnsupportedDevice = function () {
+            if (window.azoraDeviceAllowed()) return false;
+            var k = kind();
+            var lock = document.getElementById("azoraDeviceLock");
+            var why = document.getElementById("azoraDeviceLockWhy");
+            if (why) {
+                why.textContent = (k === "vr")
+                    ? "VR headsets are not supported yet."
+                    : "Phones are not supported.";
+            }
+            if (lock) {
+                lock.classList.add("show");
+                lock.setAttribute("aria-hidden", "false");
+            }
+            document.body.classList.add("azora-device-blocked");
+            return true;
+        };
+        document.addEventListener("DOMContentLoaded", function () {
+            window.lockAzoraIfUnsupportedDevice();
+        });
+    })();
+    </script>
 </head>
 <body>
+
+<div id="azoraPhonePreviewOverlay" class="azora-phone-preview-overlay" style="display:none;" aria-hidden="true">
+    <div class="azora-phone-preview-shell">
+        <header>
+            <strong>Phone preview</strong>
+            <span>390 × 844</span>
+            <button type="button" onclick="closeAzoraPhonePreview()">Close</button>
+        </header>
+        <div class="azora-phone-bezel">
+            <iframe id="azoraPhonePreviewFrame" title="Azora phone preview"></iframe>
+        </div>
+        <p class="azora-phone-preview-hint">This is a computer showing a phone-sized window. Real phones are still locked out.</p>
+    </div>
+</div>
+<div id="azoraDeviceLock" aria-hidden="true" role="alertdialog" aria-labelledby="azoraDeviceLockTitle">
+    <div class="azora-device-lock-card">
+        <h1 id="azoraDeviceLockTitle">Azora cannot open on this device</h1>
+        <p id="azoraDeviceLockWhy">This device is not supported.</p>
+        <p style="margin-top:10px;">Please use a tablet or a computer / PC.</p>
+    </div>
+</div>
 
 <div id="azoraOfflineSpread" class="azora-offline-spread" aria-hidden="true"></div>
 <div id="azoraFeatureFailOverlay" class="azora-feature-fail-overlay" style="display:none;" aria-hidden="true" role="alertdialog" aria-labelledby="azoraFeatureFailTitle">
@@ -272,6 +363,11 @@
                 </label>
                 <p class="settings-hint" style="margin:4px 0 0;">On by default. Turn off if you do not want others to see old usernames.</p>
                 <p id="identitySettingsMsg" class="settings-hint" style="display:none;margin-top:8px;"></p>
+            </div>
+            <div class="settings-section">
+                <label class="settings-label">Phone preview</label>
+                <p class="settings-hint" style="margin-top:0;">See how Azora looks on a phone without using a phone. This is only a preview so we can fix the small screen layout later.</p>
+                <button type="button" onclick="openAzoraPhonePreview()" style="width:100%;">View as phone</button>
             </div>
             <p class="settings-hint">Looks live in the <strong>Themes</strong> tab. Colors change. Features stay the same.</p>
             <button type="button" onclick="switchSettingsTab('themes')" style="width:100%;margin-bottom:10px;">Open Themes</button>
@@ -1746,7 +1842,7 @@
 
 <!-- Optional: trained Aturius brain (export from Azora account → Settings → Export code files) -->
 <script src="aturius-training-pack.js"></script>
-<script src="script.js?v=72.98"></script>
+<script src="script.js?v=73.00"></script>
 <script src="political-earth-data.js?v=72.24"></script>
 <script src="political-earth-hd.js?v=72.24"></script>
 <script src="political-earth-hyper.js?v=72.26"></script>
@@ -1757,7 +1853,7 @@
 // Register Azora as installable app (not the staff website)
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", function () {
-    navigator.serviceWorker.register("./sw-azora.js?v=72.98").then(function (reg) {
+    navigator.serviceWorker.register("./sw-azora.js?v=72.99").then(function (reg) {
       try { if (typeof onAzoraServiceWorkerReady === "function") onAzoraServiceWorkerReady(reg); } catch (e) {}
     }).catch(function () {});
   });

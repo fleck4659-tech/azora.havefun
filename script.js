@@ -11,8 +11,10 @@
 })();
 var AZORA_DEV_STAGE = "mid-alpha";
 var AZORA_DEV_STAGE_LABEL = "Mid Alpha";
-var AZORA_APP_VERSION = "72.98";
+var AZORA_APP_VERSION = "73.00";
 var AZORA_WHATS_NEW = [
+    "Settings → View as phone previews the mobile layout on a computer",
+    "Azora only opens on tablets and computers. Phones and VR show an error screen",
     "Device notifications are Aturius check-ins, like “if you're having a bad day, hop on Azora”",
     "Aturius messages now show a tiny date and time stamp",
     "Device notifications: a Yes/No popup, lock-screen alerts, and an iPhone-style red badge count",
@@ -50,6 +52,7 @@ function isAzoraHiddenAccountName(name) {
     return n === "error";
 }
 console.log("%c[Azora] script.js v" + AZORA_APP_VERSION + " " + AZORA_DEV_STAGE_LABEL, "color:#7c3aed;font-weight:bold;font-size:14px");
+try { if (typeof lockAzoraIfUnsupportedDevice === "function") lockAzoraIfUnsupportedDevice(); } catch (eLockDev) {}
 try { console.log("[Azora] Cloud ready:", typeof AZORA_CLOUD !== "undefined" && AZORA_CLOUD.isReady && AZORA_CLOUD.isReady()); } catch (e) {}
 
 function isAzoraDarkAppearance() {
@@ -1880,6 +1883,29 @@ function fillAzoraStageSettings() {
     } catch (e) {}
 }
 window.fillAzoraStageSettings = fillAzoraStageSettings;
+
+function openAzoraPhonePreview() {
+    var ov = document.getElementById("azoraPhonePreviewOverlay");
+    var frame = document.getElementById("azoraPhonePreviewFrame");
+    if (!ov || !frame) return;
+    var url = String(location.pathname || "./") + "?azoraPhonePreview=1";
+    if (location.hash) url += location.hash;
+    frame.src = url;
+    ov.style.display = "flex";
+    ov.setAttribute("aria-hidden", "false");
+    try { document.getElementById("settingsOverlay").style.display = "none"; } catch (e) {}
+}
+function closeAzoraPhonePreview() {
+    var ov = document.getElementById("azoraPhonePreviewOverlay");
+    var frame = document.getElementById("azoraPhonePreviewFrame");
+    if (frame) frame.src = "about:blank";
+    if (ov) {
+        ov.style.display = "none";
+        ov.setAttribute("aria-hidden", "true");
+    }
+}
+window.openAzoraPhonePreview = openAzoraPhonePreview;
+window.closeAzoraPhonePreview = closeAzoraPhonePreview;
 
 function openSettings() {
     try { if (typeof fillAzoraStageSettings === "function") fillAzoraStageSettings(); } catch (eSt) {}
