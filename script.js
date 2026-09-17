@@ -11,8 +11,9 @@
 })();
 var AZORA_DEV_STAGE = "mid-alpha";
 var AZORA_DEV_STAGE_LABEL = "Mid Alpha";
-var AZORA_APP_VERSION = "73.00";
+var AZORA_APP_VERSION = "73.01";
 var AZORA_WHATS_NEW = [
+    "Phone layout: compact header + bottom bar instead of a stack of giant buttons",
     "Settings → View as phone previews the mobile layout on a computer",
     "Azora only opens on tablets and computers. Phones and VR show an error screen",
     "Device notifications are Aturius check-ins, like “if you're having a bad day, hop on Azora”",
@@ -1906,6 +1907,24 @@ function closeAzoraPhonePreview() {
 }
 window.openAzoraPhonePreview = openAzoraPhonePreview;
 window.closeAzoraPhonePreview = closeAzoraPhonePreview;
+
+function toggleAzoraMobileMenu() {
+    var sheet = document.getElementById("azoraMobileSheet");
+    if (!sheet) return;
+    if (sheet.style.display === "flex") closeAzoraMobileMenu();
+    else {
+        sheet.style.display = "flex";
+        sheet.setAttribute("aria-hidden", "false");
+    }
+}
+function closeAzoraMobileMenu() {
+    var sheet = document.getElementById("azoraMobileSheet");
+    if (!sheet) return;
+    sheet.style.display = "none";
+    sheet.setAttribute("aria-hidden", "true");
+}
+window.toggleAzoraMobileMenu = toggleAzoraMobileMenu;
+window.closeAzoraMobileMenu = closeAzoraMobileMenu;
 
 function openSettings() {
     try { if (typeof fillAzoraStageSettings === "function") fillAzoraStageSettings(); } catch (eSt) {}

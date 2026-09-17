@@ -13,7 +13,7 @@
     <link rel="manifest" href="manifest-azora.json">
     <link rel="apple-touch-icon" href="logo.jpg?v=70.2">
     <link rel="icon" href="logo.jpg?v=70.2">
-    <link rel="stylesheet" href="style.css?v=72.47">
+    <link rel="stylesheet" href="style.css?v=72.48">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="azora-avatar.js?v=1.2"></script>
     <style>
@@ -644,6 +644,7 @@
         </a>
         <h2 class="topbar-title">Azora</h2>
     </div>
+    <button type="button" id="azoraMobileMenuBtn" class="azora-mobile-menu-btn" onclick="toggleAzoraMobileMenu()" aria-label="Open menu">☰</button>
     <div class="topbar-right">
         <span id="azoraPlayModeBadge" class="azora-play-mode-badge online" title="Connection status" onclick="azoraEggPlayClick(event)">Play Azora Online</span>
         <div class="currency-display coins-menu-wrap" id="coinsMenuWrap">
@@ -709,6 +710,27 @@
         <button id="ownerModBtn" type="button" onclick="openOwnerModConsole()" style="display:none;background:#111;color:#fff;border:1px solid #444;">🛡️ Moderation</button>
     </div>
 </div>
+</div>
+<nav id="azoraMobileTabBar" class="azora-mobile-tabbar" aria-label="Phone shortcuts">
+    <button type="button" onclick="window.scrollTo({top:0,behavior:'smooth'})">🏠<small>Home</small></button>
+    <button type="button" onclick="openAturiusPanel()">✨<small>Aturius</small></button>
+    <button type="button" onclick="openChatPanel()">💬<small>Chat</small></button>
+    <button type="button" onclick="toggleNotifPanel()">🔔<small>Alerts</small></button>
+    <button type="button" onclick="toggleAzoraMobileMenu()">☰<small>Menu</small></button>
+</nav>
+<div id="azoraMobileSheet" class="azora-mobile-sheet" style="display:none;" aria-hidden="true">
+    <div class="azora-mobile-sheet-card">
+        <strong>Menu</strong>
+        <button type="button" onclick="openAzoraStudio(); closeAzoraMobileMenu();">✂️ Studio</button>
+        <button type="button" onclick="toggleAzoraRecording(); closeAzoraMobileMenu();">⏺ Record</button>
+        <button type="button" onclick="openMarketplace(); closeAzoraMobileMenu();">🛒 Shop</button>
+        <button type="button" onclick="openInventory(); closeAzoraMobileMenu();">🎒 Bag</button>
+        <button type="button" onclick="openPublicFeed(); closeAzoraMobileMenu();">🎮 Feed</button>
+        <button type="button" onclick="openSearch(); closeAzoraMobileMenu();">🔍 Search</button>
+        <button type="button" onclick="openMyProfile(); closeAzoraMobileMenu();">👤 Profile</button>
+        <button type="button" onclick="openSettings(); closeAzoraMobileMenu();">⚙️ Settings</button>
+        <button type="button" class="azora-mobile-sheet-close" onclick="closeAzoraMobileMenu()">Close</button>
+    </div>
 </div>
 
 <div class="community-banner azora-community-fun">
@@ -1842,7 +1864,7 @@
 
 <!-- Optional: trained Aturius brain (export from Azora account → Settings → Export code files) -->
 <script src="aturius-training-pack.js"></script>
-<script src="script.js?v=73.00"></script>
+<script src="script.js?v=73.01"></script>
 <script src="political-earth-data.js?v=72.24"></script>
 <script src="political-earth-hd.js?v=72.24"></script>
 <script src="political-earth-hyper.js?v=72.26"></script>
