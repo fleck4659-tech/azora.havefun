@@ -13,7 +13,7 @@
     <link rel="manifest" href="manifest-azora.json">
     <link rel="apple-touch-icon" href="logo.jpg?v=70.2">
     <link rel="icon" href="logo.jpg?v=70.2">
-    <link rel="stylesheet" href="style.css?v=72.48">
+    <link rel="stylesheet" href="style.css?v=72.49">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="azora-avatar.js?v=1.2"></script>
     <style>
@@ -100,6 +100,33 @@
             <iframe id="azoraPhonePreviewFrame" title="Azora phone preview"></iframe>
         </div>
         <p class="azora-phone-preview-hint">This is a computer showing a phone-sized window. Real phones are still locked out.</p>
+    </div>
+</div>
+<div id="azoraXpDesktop" class="azora-xp-desktop" style="display:none;" aria-hidden="true">
+    <div class="azora-xp-wallpaper" onclick="hideAzoraXpStart()"></div>
+    <div class="azora-xp-icons">
+        <button type="button" class="azora-xp-icon" onclick="azoraXpLaunch('studio')"><span>✂️</span>Studio</button>
+        <button type="button" class="azora-xp-icon" onclick="azoraXpLaunch('shop')"><span>🛒</span>Shop</button>
+        <button type="button" class="azora-xp-icon" onclick="azoraXpLaunch('chat')"><span>💬</span>Chat</button>
+        <button type="button" class="azora-xp-icon" onclick="azoraXpLaunch('aturius')"><span>✨</span>Aturius</button>
+        <button type="button" class="azora-xp-icon" onclick="azoraXpLaunch('feed')"><span>🎮</span>Games</button>
+        <button type="button" class="azora-xp-icon" onclick="azoraXpLaunch('settings')"><span>⚙️</span>Settings</button>
+        <button type="button" class="azora-xp-icon" onclick="azoraXpLaunch('bag')"><span>🎒</span>Bag</button>
+        <button type="button" class="azora-xp-icon" onclick="azoraXpLaunch('profile')"><span>👤</span>My Azora</button>
+    </div>
+    <div id="azoraXpWindows" class="azora-xp-windows"></div>
+    <div id="azoraXpStartMenu" class="azora-xp-start-menu" style="display:none;">
+        <div class="azora-xp-start-head">Azora XP</div>
+        <button type="button" onclick="azoraXpLaunch('studio')">Studio</button>
+        <button type="button" onclick="azoraXpLaunch('shop')">Shop</button>
+        <button type="button" onclick="azoraXpLaunch('aturius')">Aturius</button>
+        <button type="button" onclick="azoraXpLaunch('settings')">Control Panel</button>
+        <button type="button" onclick="closeAzoraXp()">Leave Azora XP</button>
+    </div>
+    <div class="azora-xp-taskbar">
+        <button type="button" class="azora-xp-start" onclick="toggleAzoraXpStart()">start</button>
+        <span id="azoraXpTasks" class="azora-xp-tasks"></span>
+        <span id="azoraXpClock" class="azora-xp-clock">00:00</span>
     </div>
 </div>
 <div id="azoraDeviceLock" aria-hidden="true" role="alertdialog" aria-labelledby="azoraDeviceLockTitle">
@@ -554,6 +581,10 @@
                 <input id="azoraVersionCustom" class="settings-input" placeholder="example: 7.2">
                 <button type="button" onclick="launchAzoraVersion(document.getElementById('azoraVersionCustom').value)">Load custom folder</button>
                 <button type="button" onclick="scanAzoraVersions()" style="margin-top:8px;">Check which folders exist</button>
+                <hr style="margin:14px 0;border:none;border-top:1px solid rgba(30,96,255,0.2);">
+                <label class="settings-label">Azora XP</label>
+                <p class="settings-hint" style="margin-top:0;">A separate desktop version with its own apps, like an old computer inside Azora.</p>
+                <button type="button" onclick="openAzoraXp(); closeSettings && closeSettings();">Open Azora XP</button>
             </div>
         </div>
 
@@ -729,6 +760,7 @@
         <button type="button" onclick="openSearch(); closeAzoraMobileMenu();">🔍 Search</button>
         <button type="button" onclick="openMyProfile(); closeAzoraMobileMenu();">👤 Profile</button>
         <button type="button" onclick="openSettings(); closeAzoraMobileMenu();">⚙️ Settings</button>
+        <button type="button" onclick="openAzoraXp(); closeAzoraMobileMenu();">💻 XP</button>
         <button type="button" class="azora-mobile-sheet-close" onclick="closeAzoraMobileMenu()">Close</button>
     </div>
 </div>
@@ -1864,7 +1896,7 @@
 
 <!-- Optional: trained Aturius brain (export from Azora account → Settings → Export code files) -->
 <script src="aturius-training-pack.js"></script>
-<script src="script.js?v=73.01"></script>
+<script src="script.js?v=73.02"></script>
 <script src="political-earth-data.js?v=72.24"></script>
 <script src="political-earth-hd.js?v=72.24"></script>
 <script src="political-earth-hyper.js?v=72.26"></script>

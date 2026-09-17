@@ -11,8 +11,10 @@
 })();
 var AZORA_DEV_STAGE = "mid-alpha";
 var AZORA_DEV_STAGE_LABEL = "Mid Alpha";
-var AZORA_APP_VERSION = "73.01";
+var AZORA_APP_VERSION = "73.02";
 var AZORA_WHATS_NEW = [
+    "Azora XP: a separate old-computer desktop with its own apps",
+    "Phone ☰ menu is a small corner card instead of a huge sheet",
     "Phone layout: compact header + bottom bar instead of a stack of giant buttons",
     "Settings → View as phone previews the mobile layout on a computer",
     "Azora only opens on tablets and computers. Phones and VR show an error screen",
@@ -1925,6 +1927,60 @@ function closeAzoraMobileMenu() {
 }
 window.toggleAzoraMobileMenu = toggleAzoraMobileMenu;
 window.closeAzoraMobileMenu = closeAzoraMobileMenu;
+
+function openAzoraXp() {
+    var desk = document.getElementById("azoraXpDesktop");
+    if (!desk) return;
+    desk.style.display = "flex";
+    desk.setAttribute("aria-hidden", "false");
+    tickAzoraXpClock();
+    if (!window._azoraXpClock) window._azoraXpClock = setInterval(tickAzoraXpClock, 10000);
+}
+function closeAzoraXp() {
+    var desk = document.getElementById("azoraXpDesktop");
+    if (desk) {
+        desk.style.display = "none";
+        desk.setAttribute("aria-hidden", "true");
+    }
+    hideAzoraXpStart();
+}
+function tickAzoraXpClock() {
+    var el = document.getElementById("azoraXpClock");
+    if (!el) return;
+    var d = new Date();
+    var h = d.getHours() % 12; if (!h) h = 12;
+    var m = d.getMinutes();
+    el.textContent = h + ":" + (m < 10 ? "0" : "") + m;
+}
+function toggleAzoraXpStart() {
+    var m = document.getElementById("azoraXpStartMenu");
+    if (!m) return;
+    m.style.display = m.style.display === "flex" ? "none" : "flex";
+}
+function hideAzoraXpStart() {
+    var m = document.getElementById("azoraXpStartMenu");
+    if (m) m.style.display = "none";
+}
+function azoraXpLaunch(app) {
+    hideAzoraXpStart();
+    var names = { studio: "Studio", shop: "Shop", chat: "Chat", aturius: "Aturius", feed: "Games", settings: "Control Panel", bag: "Bag", profile: "My Azora" };
+    closeAzoraXp();
+    setTimeout(function () {
+        if (app === "studio" && typeof openAzoraStudio === "function") openAzoraStudio();
+        else if (app === "shop" && typeof openMarketplace === "function") openMarketplace();
+        else if (app === "chat" && typeof openChatPanel === "function") openChatPanel();
+        else if (app === "aturius" && typeof openAturiusPanel === "function") openAturiusPanel();
+        else if (app === "feed" && typeof openPublicFeed === "function") openPublicFeed();
+        else if (app === "settings" && typeof openSettings === "function") openSettings();
+        else if (app === "bag" && typeof openInventory === "function") openInventory();
+        else if (app === "profile" && typeof openMyProfile === "function") openMyProfile();
+    }, 120);
+}
+window.openAzoraXp = openAzoraXp;
+window.closeAzoraXp = closeAzoraXp;
+window.toggleAzoraXpStart = toggleAzoraXpStart;
+window.hideAzoraXpStart = hideAzoraXpStart;
+window.azoraXpLaunch = azoraXpLaunch;
 
 function openSettings() {
     try { if (typeof fillAzoraStageSettings === "function") fillAzoraStageSettings(); } catch (eSt) {}

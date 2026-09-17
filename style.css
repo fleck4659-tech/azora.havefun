@@ -8441,6 +8441,9 @@ html[data-theme="softrainbow"] button {
     }
     .topbar-right,
     .topbar-menu,
+    #userPanel,
+    .topbar-fun-left,
+    .topbar-fun-right,
     #installAppBtn,
     .azora-play-mode-badge {
         display: none !important;
@@ -8483,24 +8486,132 @@ html[data-theme="softrainbow"] button {
         position: fixed;
         inset: 0;
         z-index: 1300;
-        background: rgba(0,0,0,0.45);
-        align-items: flex-end;
-        justify-content: center;
+        background: rgba(0,0,0,0.28);
+        align-items: flex-start;
+        justify-content: flex-end;
+        padding: 56px 10px 0;
     }
     .azora-mobile-sheet-card {
-        width: 100%;
+        width: min(210px, 72vw);
         background: #111827;
         color: #fff;
-        border-radius: 16px 16px 0 0;
-        padding: 14px 12px calc(16px + env(safe-area-inset-bottom));
-        display: flex;
-        flex-direction: column;
-        gap: 8px;
+        border-radius: 12px;
+        padding: 8px;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 6px;
+    }
+    .azora-mobile-sheet-card strong {
+        grid-column: 1 / -1;
+        font-size: 0.8rem;
+        padding: 2px 4px;
     }
     .azora-mobile-sheet-card button {
-        width: 100%;
-        max-width: none;
-        margin: 0;
+        width: auto !important;
+        max-width: none !important;
+        margin: 0 !important;
+        padding: 7px 6px !important;
+        font-size: 0.72rem !important;
+        border-radius: 8px !important;
     }
+    .azora-mobile-sheet-close { grid-column: 1 / -1; }
     body { padding-bottom: 64px; }
 }
+
+.azora-xp-desktop {
+    position: fixed;
+    inset: 0;
+    z-index: 2147482600;
+    display: none;
+    flex-direction: column;
+    font-family: Tahoma, "Segoe UI", Arial, sans-serif;
+}
+.azora-xp-wallpaper {
+    flex: 1;
+    background: linear-gradient(#5ea6e5 0%, #7ec0ee 42%, #3d8c40 42%, #2f6b32 100%);
+}
+.azora-xp-icons {
+    position: absolute;
+    top: 16px;
+    left: 16px;
+    display: grid;
+    gap: 14px;
+}
+.azora-xp-icon {
+    width: 76px;
+    background: transparent !important;
+    border: 0 !important;
+    color: #fff !important;
+    text-shadow: 1px 1px 2px #000;
+    font-size: 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 4px !important;
+}
+.azora-xp-icon span { font-size: 28px; }
+.azora-xp-taskbar {
+    height: 34px;
+    background: linear-gradient(#3f7ae0, #245edb 8%, #245edb 92%, #1941a5);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 8px;
+    color: #fff;
+}
+.azora-xp-start {
+    background: linear-gradient(#3cb43c, #2a8a2a) !important;
+    color: #fff !important;
+    border: 0 !important;
+    border-radius: 0 12px 12px 0 !important;
+    font-weight: 700;
+    font-style: italic;
+    padding: 4px 16px !important;
+}
+.azora-xp-clock {
+    margin-left: auto;
+    background: #0b61c4;
+    padding: 4px 10px;
+    font-size: 12px;
+}
+.azora-xp-start-menu {
+    position: absolute;
+    left: 0;
+    bottom: 34px;
+    width: 220px;
+    background: #d6e3f5;
+    border: 2px solid #245edb;
+    color: #111;
+    display: flex;
+    flex-direction: column;
+}
+.azora-xp-start-head {
+    background: linear-gradient(#245edb, #3f7ae0);
+    color: #fff;
+    padding: 10px;
+    font-weight: 700;
+}
+.azora-xp-start-menu button {
+    background: #fff !important;
+    color: #111 !important;
+    border: 0 !important;
+    text-align: left;
+    border-radius: 0 !important;
+}
+.azora-xp-win {
+    position: absolute;
+    width: 280px;
+    background: #ece9d8;
+    border: 2px solid #0055ea;
+    box-shadow: 3px 3px 0 rgba(0,0,0,0.25);
+}
+.azora-xp-win-bar {
+    background: linear-gradient(#0058e6, #3f8cff);
+    color: #fff;
+    padding: 4px 6px;
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+}
+.azora-xp-win-body { padding: 10px; color: #111; font-size: 13px; }
