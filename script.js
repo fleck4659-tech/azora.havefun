@@ -2013,10 +2013,36 @@ function applyAzoraLogo(id) {
         chips[k].classList.toggle("active", chips[k].getAttribute("data-logo") === id);
     }
 }
+function refreshAzoraInstallManifest(id) {
+    var src = azoraLogoSrc(id);
+    var man = {
+        name: "Azora",
+        short_name: "Azora",
+        start_url: "./index.html",
+        scope: "./",
+        display: "standalone",
+        background_color: "#0b1220",
+        theme_color: "#1e60ff",
+        icons: [
+            { src: src, sizes: "192x192", type: "image/png", purpose: "any" },
+            { src: src, sizes: "512x512", type: "image/png", purpose: "any maskable" }
+        ]
+    };
+    var blob = new Blob([JSON.stringify(man)], { type: "application/manifest+json" });
+    var url = URL.createObjectURL(blob);
+    var link = document.querySelector('link[rel="manifest"]');
+    if (link) link.href = url;
+}
 function setAzoraLogo(id) {
     if (!AZORA_LOGO_FILES[id]) id = "midalpha";
     try { localStorage.setItem("azoraLogo", id); } catch (e) {}
     applyAzoraLogo(id);
+    try { refreshAzoraInstallManifest(id); } catch (eM) {}
+    try {
+        if (typeof showAzoraToast === "function") {
+            showAzoraToast("Inside logo updated. Outside app icon updates after you remove Azora and download it again.");
+        }
+    } catch (eT) {}
 }
 window.setAzoraLogo = setAzoraLogo;
 window.applyAzoraLogo = applyAzoraLogo;
