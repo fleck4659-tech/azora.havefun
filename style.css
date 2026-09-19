@@ -8615,3 +8615,31 @@ html[data-theme="softrainbow"] button {
     font-size: 12px;
 }
 .azora-xp-win-body { padding: 10px; color: #111; font-size: 13px; }
+
+.azora-logo-picker {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+.azora-logo-choice {
+    width: 96px !important;
+    padding: 8px 6px !important;
+    display: flex !important;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    background: rgba(0,0,0,0.18) !important;
+    border: 2px solid rgba(255,255,255,0.25) !important;
+    border-radius: 12px !important;
+}
+.azora-logo-choice img {
+    width: 56px;
+    height: 56px;
+    border-radius: 12px;
+    object-fit: cover;
+}
+.azora-logo-choice span { font-size: 0.75rem; }
+.azora-logo-choice.active {
+    border-color: #93c5fd !important;
+    box-shadow: 0 0 0 2px rgba(59,130,246,0.35);
+}

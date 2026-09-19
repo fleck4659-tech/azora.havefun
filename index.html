@@ -11,9 +11,9 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Azora">
     <link rel="manifest" href="manifest-azora.json">
-    <link rel="apple-touch-icon" href="logo.jpg?v=70.2">
-    <link rel="icon" href="logo.jpg?v=70.2">
-    <link rel="stylesheet" href="style.css?v=72.49">
+    <link rel="apple-touch-icon" href="logo.png?v=73.03">
+    <link rel="icon" href="logo.png?v=73.03">
+    <link rel="stylesheet" href="style.css?v=72.50">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="azora-avatar.js?v=1.2"></script>
     <style>
@@ -395,6 +395,24 @@
                 <label class="settings-label">Phone preview</label>
                 <p class="settings-hint" style="margin-top:0;">See how Azora looks on a phone without using a phone. This is only a preview so we can fix the small screen layout later.</p>
                 <button type="button" onclick="openAzoraPhonePreview()" style="width:100%;">View as phone</button>
+            </div>
+            <div class="settings-section">
+                <label class="settings-label">App logo</label>
+                <p class="settings-hint" style="margin-top:0;">This changes the Azora icon on this tablet or computer.</p>
+                <div class="azora-logo-picker">
+                    <button type="button" class="azora-logo-choice" data-logo="midalpha" onclick="setAzoraLogo('midalpha')">
+                        <img src="logo.png" alt="Official Mid Alpha logo">
+                        <span>Official</span>
+                    </button>
+                    <button type="button" class="azora-logo-choice" data-logo="blue" onclick="setAzoraLogo('blue')">
+                        <img src="logo-blue.jpg" alt="Old blue logo">
+                        <span>Old blue</span>
+                    </button>
+                    <button type="button" class="azora-logo-choice" data-logo="purple" onclick="setAzoraLogo('purple')">
+                        <img src="logo-purple.jpg" alt="Purple logo">
+                        <span>Purple</span>
+                    </button>
+                </div>
             </div>
             <p class="settings-hint">Looks live in the <strong>Themes</strong> tab. Colors change. Features stay the same.</p>
             <button type="button" onclick="switchSettingsTab('themes')" style="width:100%;margin-bottom:10px;">Open Themes</button>
@@ -1896,7 +1914,7 @@
 
 <!-- Optional: trained Aturius brain (export from Azora account → Settings → Export code files) -->
 <script src="aturius-training-pack.js"></script>
-<script src="script.js?v=73.02"></script>
+<script src="script.js?v=73.03"></script>
 <script src="political-earth-data.js?v=72.24"></script>
 <script src="political-earth-hd.js?v=72.24"></script>
 <script src="political-earth-hyper.js?v=72.26"></script>

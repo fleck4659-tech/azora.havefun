@@ -11,8 +11,9 @@
 })();
 var AZORA_DEV_STAGE = "mid-alpha";
 var AZORA_DEV_STAGE_LABEL = "Mid Alpha";
-var AZORA_APP_VERSION = "73.02";
+var AZORA_APP_VERSION = "73.03";
 var AZORA_WHATS_NEW = [
+    "Settings → App logo: pick old blue, purple, or Mid Alpha and it changes on this device",
     "Azora XP: a separate old-computer desktop with its own apps",
     "Phone ☰ menu is a small corner card instead of a huge sheet",
     "Phone layout: compact header + bottom bar instead of a stack of giant buttons",
@@ -1982,8 +1983,51 @@ window.toggleAzoraXpStart = toggleAzoraXpStart;
 window.hideAzoraXpStart = hideAzoraXpStart;
 window.azoraXpLaunch = azoraXpLaunch;
 
+var AZORA_LOGO_FILES = {
+    midalpha: "logo.png",
+    blue: "logo-blue.jpg",
+    purple: "logo-purple.jpg"
+};
+function currentAzoraLogoId() {
+    try { return localStorage.getItem("azoraLogo") || "midalpha"; } catch (e) { return "midalpha"; }
+}
+function azoraLogoSrc(id) {
+    var file = AZORA_LOGO_FILES[id] || AZORA_LOGO_FILES.midalpha;
+    return file + "?v=" + (typeof AZORA_APP_VERSION === "string" ? AZORA_APP_VERSION : "73.03");
+}
+function applyAzoraLogo(id) {
+    id = AZORA_LOGO_FILES[id] ? id : currentAzoraLogoId();
+    var src = azoraLogoSrc(id);
+    var nodes = document.querySelectorAll("img");
+    for (var i = 0; i < nodes.length; i++) {
+        var s = nodes[i].getAttribute("src") || "";
+        if (nodes[i].closest && nodes[i].closest(".azora-logo-choice")) continue;
+        if (/logo(\.jpg|\.png|-blue|-purple|-mid-alpha|-game|-gear)/i.test(s) || nodes[i].classList.contains("logo") || nodes[i].classList.contains("popupLogo")) {
+            nodes[i].src = src;
+        }
+    }
+    var links = document.querySelectorAll('link[rel="icon"], link[rel="apple-touch-icon"], link[rel="shortcut icon"]');
+    for (var j = 0; j < links.length; j++) links[j].href = src;
+    var chips = document.querySelectorAll(".azora-logo-choice");
+    for (var k = 0; k < chips.length; k++) {
+        chips[k].classList.toggle("active", chips[k].getAttribute("data-logo") === id);
+    }
+}
+function setAzoraLogo(id) {
+    if (!AZORA_LOGO_FILES[id]) id = "midalpha";
+    try { localStorage.setItem("azoraLogo", id); } catch (e) {}
+    applyAzoraLogo(id);
+}
+window.setAzoraLogo = setAzoraLogo;
+window.applyAzoraLogo = applyAzoraLogo;
+try {
+    if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", function () { applyAzoraLogo(currentAzoraLogoId()); });
+    else applyAzoraLogo(currentAzoraLogoId());
+} catch (eLogo) {}
+
 function openSettings() {
     try { if (typeof fillAzoraStageSettings === "function") fillAzoraStageSettings(); } catch (eSt) {}
+    try { applyAzoraLogo(currentAzoraLogoId()); } catch (eLg) {}
     try { if (typeof refreshIdentitySettingsUI === "function") refreshIdentitySettingsUI(); } catch (eId) {}
     try { ensureCurrentAccountInAltSlots(); } catch (eS) {}
 

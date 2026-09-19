@@ -1,8 +1,8 @@
 /* Azora main app service worker — player ads */
-var CACHE = "azora-app-v73-00-device-lock";
+var CACHE = "azora-app-v73-03-logo-picker";
 var ASSETS = [
   "./", "./index.html", "./checkout.html", "./style.css", "./script.js", "./azora-avatar.js", "./avatar-boy.obj", "./avatar-boy.mtl", "./avatar-girl.obj", "./avatar-girl.mtl", "./living-lands.js", "./earth-blobs-360x180.png", "./earth-realistic-360x180.png", "./earth-countries-360x180.png", "./map3.png", "./earth-detailed-countries.png", "./earth-hyper-1440x720.png", "./earth-hyper-countries.png", "./empires-hyper-1440x720.png", "./empires-earth-hyper.js", "./north_america_states.png", "./political-earth-hyper.js", "./na-states-data.js", "./north_america.png", "./sea_north_america.png", "./political-earth-hd.js", "./earth-detailed-360x180.png", "./political-earth-data.js",
-  "./logo.png", "./logo.jpg", "./logo-192.png", "./logo-512.png", "./javelin-obsidian-typeface-regular.ttf", "./manifest-azora.json", "./Smile.png", "./female_smile.png", "./cartoonish_smile.png", "./crying.png", "./greedy_smile.png", "./mysterious.png", "./red_mysterious.png", "./robotic.png", "./sad_tears.png", "./simple_smile.png", "./tears_of_joy.png", "./wide_mouth.png",
+  "./logo.png", "./logo.jpg", "./logo-blue.jpg", "./logo-purple.jpg", "./logo-192.png", "./logo-512.png", "./javelin-obsidian-typeface-regular.ttf", "./manifest-azora.json", "./Smile.png", "./female_smile.png", "./cartoonish_smile.png", "./crying.png", "./greedy_smile.png", "./mysterious.png", "./red_mysterious.png", "./robotic.png", "./sad_tears.png", "./simple_smile.png", "./tears_of_joy.png", "./wide_mouth.png",
   "./grass.jpg", "./road.jpg", "./concrete.jpg", "./wood1.jpg", "./wood2.jpg", "./wood3.jpg", "./leaf.jpg", "./skybox.jpg", "./marble.png", "./earth.png",
   "./House.obj", "./House.mtl",
   "./walking.mp3", "./jumping.mp3", "./character_reset.mp3", "./notifcation.mp3", "./click_buttons.mp3", "./Mossy.mp3",
