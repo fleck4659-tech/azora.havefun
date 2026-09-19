@@ -11,8 +11,9 @@
 })();
 var AZORA_DEV_STAGE = "mid-alpha";
 var AZORA_DEV_STAGE_LABEL = "Mid Alpha";
-var AZORA_APP_VERSION = "73.03";
+var AZORA_APP_VERSION = "73.04";
 var AZORA_WHATS_NEW = [
+    "AzoraCoins menu → Azora Stock: compare today with 1 day, 1 week, 1 month, up to 10 years. Missing dates say More data coming soon!",
     "Settings → App logo: pick old blue, purple, or Mid Alpha and it changes on this device",
     "Azora XP: a separate old-computer desktop with its own apps",
     "Phone ☰ menu is a small corner card instead of a huge sheet",
@@ -23889,6 +23890,121 @@ function openPendingCoins() {
     panel.style.display = "block";
     renderCoinsDropdown();
 }
+
+var AZORA_STOCK_PERIODS = [
+    { key: "1d", label: "1 day ago", ms: 86400000 },
+    { key: "1w", label: "1 week ago", ms: 7 * 86400000 },
+    { key: "1m", label: "1 month ago", ms: 30 * 86400000 },
+    { key: "3m", label: "3 months ago", ms: 90 * 86400000 },
+    { key: "6m", label: "6 months ago", ms: 182 * 86400000 },
+    { key: "1y", label: "1 year ago", ms: 365 * 86400000 },
+    { key: "5y", label: "5 years ago", ms: 5 * 365 * 86400000 },
+    { key: "10y", label: "10 years ago", ms: 10 * 365 * 86400000 }
+];
+function azoraStockKey(username) {
+    return "azoraStockSnapshots_" + String(username || "guest").trim().toLowerCase();
+}
+function loadAzoraStockSnapshots(username) {
+    try {
+        var raw = JSON.parse(localStorage.getItem(azoraStockKey(username)) || "[]");
+        return Array.isArray(raw) ? raw : [];
+    } catch (e) { return []; }
+}
+function saveAzoraStockSnapshots(username, list) {
+    try { localStorage.setItem(azoraStockKey(username), JSON.stringify(list || [])); } catch (e) {}
+}
+function currentAzoraStockValue(acc) {
+    var coins = 0;
+    try {
+        if (acc && typeof acc.coins === "number") coins = acc.coins;
+        else if (typeof getAccountCoins === "function") coins = Number(getAccountCoins(acc)) || 0;
+    } catch (e) {}
+    var pending = 0;
+    try {
+        if (acc && acc.username && typeof getPendingForUser === "function") {
+            var rows = getPendingForUser(acc.username) || [];
+            for (var i = 0; i < rows.length; i++) pending += Number(rows[i].amount) || 0;
+        }
+    } catch (e2) {}
+    return Math.round((Number(coins) + Number(pending)) * 1000) / 1000;
+}
+function recordAzoraStockSnapshot() {
+    var acc = typeof getActiveAccount === "function" ? getActiveAccount() : null;
+    if (!acc || acc.isGuest || !acc.username) return;
+    var now = Date.now();
+    var day = new Date(now).toISOString().slice(0, 10);
+    var list = loadAzoraStockSnapshots(acc.username);
+    var value = currentAzoraStockValue(acc);
+    var last = list.length ? list[list.length - 1] : null;
+    if (last && last.day === day) {
+        last.t = now;
+        last.value = value;
+    } else {
+        list.push({ day: day, t: now, value: value });
+    }
+    if (list.length > 4000) list = list.slice(-4000);
+    saveAzoraStockSnapshots(acc.username, list);
+}
+function findAzoraStockAt(list, targetMs) {
+    if (!list || !list.length) return null;
+    var best = null;
+    for (var i = 0; i < list.length; i++) {
+        var row = list[i];
+        if (!row || typeof row.t !== "number") continue;
+        if (row.t <= targetMs) best = row;
+    }
+    return best;
+}
+function renderAzoraStock() {
+    recordAzoraStockSnapshot();
+    var acc = typeof getActiveAccount === "function" ? getActiveAccount() : null;
+    var nowEl = document.getElementById("azoraStockNow");
+    var listEl = document.getElementById("azoraStockList");
+    if (!nowEl || !listEl) return;
+    if (!acc || acc.isGuest || !acc.username) {
+        nowEl.innerHTML = "Log in with an account to see Azora Stock.";
+        listEl.innerHTML = "";
+        return;
+    }
+    var nowVal = currentAzoraStockValue(acc);
+    var snaps = loadAzoraStockSnapshots(acc.username);
+    nowEl.innerHTML = "<strong>Now</strong><span>" + (typeof formatCoins === "function" ? formatCoins(nowVal) : nowVal) + " 🪙</span>";
+    var html = "";
+    var now = Date.now();
+    for (var i = 0; i < AZORA_STOCK_PERIODS.length; i++) {
+        var p = AZORA_STOCK_PERIODS[i];
+        var past = findAzoraStockAt(snaps, now - p.ms);
+        html += '<div class="azora-stock-row">';
+        html += "<strong>" + p.label + "</strong>";
+        if (!past) {
+            html += '<span class="azora-stock-soon">More data coming soon!</span>';
+        } else {
+            var diff = Math.round((nowVal - Number(past.value || 0)) * 1000) / 1000;
+            var sign = diff > 0 ? "+" : "";
+            var cls = diff > 0 ? "up" : (diff < 0 ? "down" : "flat");
+            html += '<span class="azora-stock-diff ' + cls + '">' + (typeof formatCoins === "function" ? formatCoins(past.value) : past.value) + " 🪙";
+            html += " <em>(" + sign + (typeof formatCoins === "function" ? formatCoins(diff) : diff) + ")</em></span>";
+        }
+        html += "</div>";
+    }
+    listEl.innerHTML = html;
+}
+function openAzoraStock() {
+    var ov = document.getElementById("azoraStockOverlay");
+    if (ov) ov.style.display = "flex";
+    renderAzoraStock();
+}
+function closeAzoraStock() {
+    var ov = document.getElementById("azoraStockOverlay");
+    if (ov) ov.style.display = "none";
+}
+window.openAzoraStock = openAzoraStock;
+window.closeAzoraStock = closeAzoraStock;
+window.recordAzoraStockSnapshot = recordAzoraStockSnapshot;
+try {
+    if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", function () { setTimeout(recordAzoraStockSnapshot, 800); });
+    else setTimeout(recordAzoraStockSnapshot, 800);
+} catch (eStk) {}
 
 (function bindCoinsDropdownClose() {
     if (window._azoraCoinsDropBound) return;

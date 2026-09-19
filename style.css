@@ -8643,3 +8643,16 @@ html[data-theme="softrainbow"] button {
     border-color: #93c5fd !important;
     box-shadow: 0 0 0 2px rgba(59,130,246,0.35);
 }
+.azora-stock-now, .azora-stock-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.12);
+}
+.azora-stock-soon { opacity: 0.75; font-size: 0.85rem; }
+.azora-stock-diff.up { color: #86efac; }
+.azora-stock-diff.down { color: #fca5a5; }
+.azora-stock-diff.flat { opacity: 0.85; }
+.azora-stock-diff em { font-style: normal; opacity: 0.8; }

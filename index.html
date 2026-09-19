@@ -704,6 +704,7 @@
                 <div class="coins-drop-row"><span>Balance</span><strong><span id="coinsDropBalance">0</span> 🪙</strong></div>
                 <button type="button" class="coins-drop-item coins-drop-buy" onclick="openBuyAzoraCoins(); closeCoinsDropdown();">Buy AzoraCoins</button>
                 <button type="button" class="coins-drop-item" onclick="openPendingCoins()">Pending AzoraCoins <span id="coinsDropPending">0</span></button>
+                <button type="button" class="coins-drop-item" onclick="openAzoraStock(); closeCoinsDropdown();">Azora Stock</button>
                 <div class="coins-drop-row"><span>HalloCoins</span><strong><span id="halloCoinBalance">0</span> 🎃</strong></div>
                 <button type="button" class="coins-drop-item" onclick="openHalloConvert(); closeCoinsDropdown();">Convert coins</button>
                 <button type="button" class="coins-drop-item" onclick="openEventCalendar(); closeCoinsDropdown();">Event calendar</button>
@@ -1914,7 +1915,7 @@
 
 <!-- Optional: trained Aturius brain (export from Azora account → Settings → Export code files) -->
 <script src="aturius-training-pack.js"></script>
-<script src="script.js?v=73.03"></script>
+<script src="script.js?v=73.04"></script>
 <script src="political-earth-data.js?v=72.24"></script>
 <script src="political-earth-hd.js?v=72.24"></script>
 <script src="political-earth-hyper.js?v=72.26"></script>
@@ -2126,6 +2127,16 @@ if ("serviceWorker" in navigator) {
         <canvas id="pumpkinSmashCanvas" width="480" height="280" style="width:100%;background:#1a0b24;border-radius:12px;touch-action:none;"></canvas>
         <button type="button" onclick="startPumpkinSmash()">Start</button>
         <button type="button" onclick="closePumpkinSmash()">Close</button>
+    </div>
+</div>
+
+<div id="azoraStockOverlay" class="overlay" style="display:none;">
+    <div class="popup market-popup azora-stock-popup" style="max-width:min(460px,calc(100vw - 16px));text-align:left;">
+        <h2 style="text-align:center;margin:0 0 6px;">Azora Stock</h2>
+        <p class="settings-hint" style="text-align:center;margin:0 0 12px;">How much you have now compared with earlier days.</p>
+        <div id="azoraStockNow" class="azora-stock-now"></div>
+        <div id="azoraStockList" class="azora-stock-list"></div>
+        <button type="button" onclick="closeAzoraStock()" style="width:100%;margin-top:12px;">Close</button>
     </div>
 </div>
 
