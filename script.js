@@ -11,8 +11,9 @@
 })();
 var AZORA_DEV_STAGE = "mid-alpha";
 var AZORA_DEV_STAGE_LABEL = "Mid Alpha";
-var AZORA_APP_VERSION = "73.05";
+var AZORA_APP_VERSION = "73.07";
 var AZORA_WHATS_NEW = [
+    "Aturius: Generate me a Sound Sonification of [anything]. It reads a picture of that idea and builds a 10-second playable sound from brightness, color, edges, and grain.",
     "AzoraCoins menu → Azora Stock now shows platform revenue (fees + official sales), not coin balance. Missing years say More data coming soon!",
     "Settings → App logo: pick old blue, purple, or Mid Alpha and it changes on this device",
     "Azora XP: a separate old-computer desktop with its own apps",
@@ -12292,6 +12293,314 @@ function aturiusWatchTyping(input) {
 }
 window.aturiusWatchTyping = aturiusWatchTyping;
 
+function parseAturiusSonifyCommand(userText) {
+    var raw = String(userText || "").trim();
+    var m = raw.match(/^:?\s*generate(?:\s+me)?(?:\s+please)?\s+a\s+sound\s+sonification(?:\s+of|\s+for|\s+from|\s*:)?\s*(.+)$/i);
+    if (!m) m = raw.match(/^:?\s*sound\s+sonification(?:\s+of|\s+for|\s*:)?\s*(.+)$/i);
+    if (!m || !m[1]) return null;
+    var prompt = String(m[1] || "").trim().replace(/^of\s+/i, "");
+    if (!prompt) return { text: "Say it like this: Generate me a Sound Sonification of a peaceful sunset" };
+    var check = (typeof moderateAturiusImagePrompt === "function") ? moderateAturiusImagePrompt(prompt) : { ok: true };
+    if (!check.ok) return "I can't sonify that. Keep the subject kid-safe.";
+    return {
+        text: "Analyzing visual structure...\nReading your subject, then turning brightness, color, edges, and texture into a 10-second sonification.",
+        sonifyPrompt: prompt
+    };
+}
+
+function aturiusSonifyHash(s) {
+    var h = 2166136261;
+    s = String(s || "");
+    for (var i = 0; i < s.length; i++) {
+        h ^= s.charCodeAt(i);
+        h = Math.imul(h, 16777619);
+    }
+    return (h >>> 0) / 4294967295;
+}
+function aturiusSonifyPickStrategy(prompt, stats) {
+    var t = String(prompt || "").toLowerCase();
+    if (/deep-?fried|corrupt|glitch|terrif|distort|static|noise|chaos/.test(t) || (stats && stats.grain > 0.35 && stats.edges > 0.28)) return "chaotic";
+    if (/sunset|ocean|calm|peace|soft|night sky|quiet/.test(t) || (stats && stats.grain < 0.12 && stats.sat < 0.45 && stats.edges < 0.16)) return "calm";
+    if (/geometric|outlet|grid|square|pattern|black-and-white|bw\b/.test(t) || (stats && stats.contrast > 0.35 && stats.sat < 0.2)) return "geometric";
+    if (/forest|tree|nature|grass|leaf/.test(t) || (stats && stats.g > stats.r && stats.g > stats.b)) return "natural";
+    if (/black hole|void|dark|space/.test(t) || (stats && stats.bright < 0.22)) return "dark";
+    if (/city|neon|night|colorful/.test(t)) return "urban";
+    return "balanced";
+}
+function paintAturiusSonifyImage(prompt) {
+    var c = document.createElement("canvas");
+    c.width = 192;
+    c.height = 108;
+    var ctx = c.getContext("2d");
+    var t = String(prompt || "").toLowerCase();
+    var seed = aturiusSonifyHash(t);
+    function rnd() { seed = (seed * 9301 + 49297) % 233280; return seed / 233280; }
+    var top, bot;
+    if (/sunset|sunrise/.test(t)) { top = "#1e3a8a"; bot = "#fb923c"; }
+    else if (/ocean|sea|water/.test(t)) { top = "#7dd3fc"; bot = "#0f766e"; }
+    else if (/forest/.test(t)) { top = "#86efac"; bot = "#14532d"; }
+    else if (/city|neon/.test(t)) { top = "#312e81"; bot = "#0f172a"; }
+    else if (/black hole|void|space/.test(t)) { top = "#020617"; bot = "#111827"; }
+    else if (/outlet|electric/.test(t)) { top = "#e5e7eb"; bot = "#9ca3af"; }
+    else if (/glitch|corrupt|deep-?fried/.test(t)) { top = "#f97316"; bot = "#7c3aed"; }
+    else { top = "#38bdf8"; bot = "#1d4ed8"; }
+    var g = ctx.createLinearGradient(0, 0, 0, c.height);
+    g.addColorStop(0, top);
+    g.addColorStop(1, bot);
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, c.width, c.height);
+    var i, x, y;
+    if (/city|night/.test(t)) {
+        for (i = 0; i < 40; i++) {
+            ctx.fillStyle = "rgba(253,224,71," + (0.3 + rnd() * 0.6) + ")";
+            ctx.fillRect(4 + rnd() * 180, 8 + rnd() * 50, 2 + rnd() * 4, 2 + rnd() * 8);
+        }
+        ctx.fillStyle = "#0b1220";
+        for (i = 0; i < 12; i++) ctx.fillRect(rnd() * 180, 50 + rnd() * 40, 10 + rnd() * 24, 70);
+    }
+    if (/forest/.test(t)) {
+        ctx.fillStyle = "#166534";
+        for (i = 0; i < 18; i++) {
+            x = rnd() * 192;
+            ctx.beginPath();
+            ctx.moveTo(x, 108);
+            ctx.lineTo(x + 8, 30 + rnd() * 40);
+            ctx.lineTo(x + 16, 108);
+            ctx.fill();
+        }
+    }
+    if (/sunset/.test(t)) {
+        ctx.fillStyle = "#fde68a";
+        ctx.beginPath();
+        ctx.arc(140, 34, 16, 0, Math.PI * 2);
+        ctx.fill();
+    }
+    if (/black hole/.test(t)) {
+        ctx.fillStyle = "#020617";
+        ctx.beginPath();
+        ctx.arc(96, 54, 22, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = "#fbbf24";
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.ellipse(96, 54, 48, 10, 0.2, 0, Math.PI * 2);
+        ctx.stroke();
+    }
+    if (/outlet/.test(t)) {
+        ctx.fillStyle = "#f8fafc";
+        ctx.fillRect(66, 28, 60, 56);
+        ctx.fillStyle = "#111827";
+        ctx.fillRect(78, 40, 8, 16);
+        ctx.fillRect(106, 40, 8, 16);
+        ctx.beginPath();
+        ctx.arc(96, 68, 6, 0, Math.PI);
+        ctx.fill();
+    }
+    if (/glitch|corrupt|deep-?fried|grain/.test(t)) {
+        for (i = 0; i < 900; i++) {
+            ctx.fillStyle = "rgba(" + Math.floor(rnd() * 255) + "," + Math.floor(rnd() * 80) + "," + Math.floor(rnd() * 255) + ",0.55)";
+            ctx.fillRect(rnd() * 192, rnd() * 108, 1 + rnd() * 4, 1 + rnd() * 3);
+        }
+        for (i = 0; i < 20; i++) {
+            ctx.fillStyle = rnd() > 0.5 ? "#22d3ee" : "#ef4444";
+            ctx.fillRect(0, rnd() * 108, 192, 1 + rnd() * 3);
+        }
+    }
+    if (/peaceful|calm|soft/.test(t)) {
+        ctx.globalAlpha = 0.25;
+        ctx.fillStyle = "#fff";
+        ctx.beginPath();
+        ctx.arc(40, 30, 18, 0, Math.PI * 2);
+        ctx.arc(70, 28, 14, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.globalAlpha = 1;
+    }
+    return c;
+}
+function analyzeAturiusSonifyImage(canvas) {
+    var ctx = canvas.getContext("2d");
+    var w = canvas.width, h = canvas.height;
+    var img = ctx.getImageData(0, 0, w, h).data;
+    var cols = 80;
+    var slices = [];
+    var totB = 0, totR = 0, totG = 0, totBl = 0, totS = 0, totE = 0, totGrain = 0;
+    var colW = Math.max(1, Math.floor(w / cols));
+    function lum(i) { return (img[i] * 0.299 + img[i + 1] * 0.587 + img[i + 2] * 0.114) / 255; }
+    for (var c = 0; c < cols; c++) {
+        var x0 = Math.floor(c * w / cols);
+        var x1 = Math.min(w, x0 + colW);
+        var n = 0, r = 0, g = 0, b = 0, L = 0, minL = 1, maxL = 0, edge = 0, grain = 0;
+        for (var y = 0; y < h; y++) {
+            for (var x = x0; x < x1; x++) {
+                var i = (y * w + x) * 4;
+                var rr = img[i] / 255, gg = img[i + 1] / 255, bb = img[i + 2] / 255;
+                var ll = rr * 0.299 + gg * 0.587 + bb * 0.114;
+                r += rr; g += gg; b += bb; L += ll; n++;
+                if (ll < minL) minL = ll;
+                if (ll > maxL) maxL = ll;
+                var mx = Math.max(rr, gg, bb), mn = Math.min(rr, gg, bb);
+                totS += mx - mn;
+                if (x + 1 < w) edge += Math.abs(ll - lum((y * w + x + 1) * 4));
+                if (y + 1 < h) edge += Math.abs(ll - lum(((y + 1) * w + x) * 4));
+            }
+        }
+        n = Math.max(1, n);
+        grain = Math.max(0, maxL - minL);
+        var sl = {
+            r: r / n, g: g / n, b: b / n, bright: L / n,
+            contrast: maxL - minL, edges: edge / n, grain: grain,
+            hue: Math.atan2(Math.sqrt(3) * (g / n - b / n), 2 * (r / n) - g / n - b / n)
+        };
+        slices.push(sl);
+        totB += sl.bright; totR += sl.r; totG += sl.g; totBl += sl.b; totE += sl.edges; totGrain += sl.grain;
+    }
+    var stats = {
+        bright: totB / cols, r: totR / cols, g: totG / cols, b: totBl / cols,
+        sat: totS / (cols * colW * h), edges: totE / cols, grain: totGrain / cols,
+        contrast: slices.reduce(function (a, s) { return a + s.contrast; }, 0) / cols
+    };
+    return { slices: slices, stats: stats };
+}
+function describeAturiusSonify(prompt, stats, strategy, fromImage) {
+    var bits = [];
+    if (stats.grain > 0.3) bits.push("heavy grain");
+    else if (stats.grain > 0.15) bits.push("visible texture");
+    else bits.push("smoother texture");
+    if (stats.contrast > 0.35) bits.push("high contrast");
+    else bits.push("softer contrast");
+    if (stats.edges > 0.25) bits.push("dense edges");
+    else bits.push("fewer sharp edges");
+    if (stats.sat > 0.35) bits.push("saturated color");
+    else bits.push("calmer color");
+    if (stats.r > stats.g && stats.r > stats.b) bits.push("red-dominant");
+    else if (stats.g > stats.r && stats.g > stats.b) bits.push("green-dominant");
+    else bits.push("blue-dominant");
+    var src = fromImage ? "image-based sonification" : "description-based sonification";
+    return "Analyzing visual structure...\nDetected " + bits.join(", ") + ".\nStrategy: " + strategy + " (" + src + ").\nConverting those properties into a 10-second sonification...";
+}
+function encodeAturiusWav(buffer) {
+    var samples = buffer.getChannelData(0);
+    var sr = buffer.sampleRate;
+    var n = samples.length;
+    var out = new ArrayBuffer(44 + n * 2);
+    var v = new DataView(out);
+    function ws(o, s) { for (var i = 0; i < s.length; i++) v.setUint8(o + i, s.charCodeAt(i)); }
+    ws(0, "RIFF");
+    v.setUint32(4, 36 + n * 2, true);
+    ws(8, "WAVE");
+    ws(12, "fmt ");
+    v.setUint32(16, 16, true);
+    v.setUint16(20, 1, true);
+    v.setUint16(22, 1, true);
+    v.setUint32(24, sr, true);
+    v.setUint32(28, sr * 2, true);
+    v.setUint16(32, 2, true);
+    v.setUint16(34, 16, true);
+    ws(36, "data");
+    v.setUint32(40, n * 2, true);
+    var peak = 0.0001;
+    for (var i = 0; i < n; i++) peak = Math.max(peak, Math.abs(samples[i]));
+    var norm = 0.72 / peak;
+    for (var j = 0; j < n; j++) {
+        var fade = 1;
+        var fadeN = Math.floor(sr * 0.04);
+        if (j < fadeN) fade = j / fadeN;
+        if (j > n - fadeN) fade = (n - j) / fadeN;
+        var s = Math.max(-1, Math.min(1, samples[j] * norm * fade));
+        v.setInt16(44 + j * 2, s * 32767, true);
+    }
+    return new Blob([out], { type: "audio/wav" });
+}
+function buildAturiusSonify(prompt) {
+    return new Promise(function (resolve) {
+        try {
+            var canvas = paintAturiusSonifyImage(prompt);
+            var analysis = analyzeAturiusSonifyImage(canvas);
+            var strategy = aturiusSonifyPickStrategy(prompt, analysis.stats);
+            var preview = canvas.toDataURL("image/png");
+            var AC = window.OfflineAudioContext || window.webkitOfflineAudioContext;
+            if (!AC) {
+                resolve({ ok: false, text: "This device cannot build audio in the browser." });
+                return;
+            }
+            var sr = 22050;
+            var dur = 10;
+            var offline = new AC(1, sr * dur, sr);
+            var slices = analysis.slices;
+            var tLen = dur / slices.length;
+            var master = offline.createGain();
+            master.gain.value = 0.22;
+            master.connect(offline.destination);
+            for (var i = 0; i < slices.length; i++) {
+                var sl = slices[i];
+                var t0 = i * tLen;
+                var t1 = t0 + tLen + 0.02;
+                var base = 80 + sl.bright * 420 + ((sl.hue + Math.PI) / (Math.PI * 2)) * 180;
+                if (strategy === "dark") base *= 0.55;
+                if (strategy === "chaotic") base *= 1.15;
+                if (strategy === "calm") base *= 0.85;
+                function tone(freq, type, gain, start, end) {
+                    var o = offline.createOscillator();
+                    var g = offline.createGain();
+                    o.type = type;
+                    o.frequency.setValueAtTime(Math.max(40, freq), start);
+                    g.gain.setValueAtTime(0.0001, start);
+                    g.gain.linearRampToValueAtTime(gain, start + 0.01);
+                    g.gain.linearRampToValueAtTime(0.0001, end);
+                    o.connect(g);
+                    g.connect(master);
+                    o.start(start);
+                    o.stop(end);
+                }
+                var harm = 0.04 + sl.contrast * 0.08 + (strategy === "chaotic" ? 0.06 : 0);
+                tone(base, strategy === "geometric" ? "square" : "sine", 0.09 + sl.bright * 0.08, t0, t1);
+                tone(base * (1.5 + sl.r), "triangle", harm * sl.r, t0, t1);
+                tone(base * (2 + sl.g), strategy === "natural" ? "sine" : "sawtooth", harm * sl.g * 0.6, t0, t1);
+                tone(Math.max(50, base * 0.5 + sl.b * 90), "sine", 0.05 + sl.b * 0.05, t0, t1);
+                if (sl.grain > 0.12 || strategy === "chaotic") {
+                    var bs = offline.createBufferSource();
+                    var nb = offline.createBuffer(1, Math.max(1, Math.floor(sr * tLen)), sr);
+                    var nd = nb.getChannelData(0);
+                    for (var k = 0; k < nd.length; k++) nd[k] = (Math.random() * 2 - 1);
+                    bs.buffer = nb;
+                    var ng = offline.createGain();
+                    ng.gain.value = Math.min(0.12, 0.02 + sl.grain * 0.12 + sl.edges * 0.05);
+                    var f = offline.createBiquadFilter();
+                    f.type = "highpass";
+                    f.frequency.value = 800 + sl.edges * 4000;
+                    bs.connect(f);
+                    f.connect(ng);
+                    ng.connect(master);
+                    bs.start(t0);
+                    bs.stop(t1);
+                }
+                if (sl.edges > 0.22 && i % 3 === 0) {
+                    tone(900 + sl.edges * 1400, "square", 0.03, t0, Math.min(t1, t0 + 0.03));
+                }
+            }
+            offline.startRendering().then(function (buf) {
+                var blob = encodeAturiusWav(buf);
+                var url = URL.createObjectURL(blob);
+                resolve({
+                    ok: true,
+                    url: url,
+                    preview: preview,
+                    strategy: strategy,
+                    stats: analysis.stats,
+                    text: describeAturiusSonify(prompt, analysis.stats, strategy, true),
+                    fromImage: true
+                });
+            }).catch(function () {
+                resolve({ ok: false, text: "The sonification engine could not finish the audio." });
+            });
+        } catch (e) {
+            resolve({ ok: false, text: "Sound sonification failed on this device." });
+        }
+    });
+}
+window.parseAturiusSonifyCommand = parseAturiusSonifyCommand;
+window.buildAturiusSonify = buildAturiusSonify;
+
 function parseAturiusImageCommand(userText) {
     var raw = String(userText || "").trim();
     var m = raw.match(/^:?\s*generate(?:\s+me)?(?:\s+please)?\s+an?\s+(image|picture|photo|video|clip|movie)s?\s+(?:of\s+|about\s+|showing\s+|with\s+)?(.+)$/i);
@@ -12844,6 +13153,8 @@ function generateAIReply(userText, attachment) {
     } catch (eEq) {}
 
     try {
+        var genSound = parseAturiusSonifyCommand(userText);
+        if (genSound) return genSound;
         var genImg = parseAturiusImageCommand(userText);
         if (genImg) return genImg;
     } catch (eImg) {}
@@ -13857,6 +14168,25 @@ function scheduleAIReply(userText, aiChatId, attachment) {
         chat.updatedAt = Date.now();
         saveAIChatStore(store);
         try { renderAturiusMessages(); } catch (eR0) {}
+        if (extra && extra.sonifyPrompt) {
+            aiMsg.sonifyPrompt = extra.sonifyPrompt;
+            saveAIChatStore(store);
+            buildAturiusSonify(extra.sonifyPrompt).then(function (pack) {
+                if (!pack || !pack.ok) {
+                    aiMsg.text = (pack && pack.text) || "Sound sonification could not finish.";
+                    saveAIChatStore(store);
+                    try { renderAturiusMessages(); } catch (eS0) {}
+                    return;
+                }
+                window._aturiusSonifyCache = window._aturiusSonifyCache || {};
+                window._aturiusSonifyCache[extra.sonifyPrompt] = pack;
+                aiMsg.sonifyUrl = pack.url;
+                aiMsg.sonifyPreview = pack.preview;
+                aiMsg.text = pack.text;
+                saveAIChatStore(store);
+                try { renderAturiusMessages(); } catch (eS1) {}
+            });
+        }
         if (extra && extra.clipPrompt) {
             aiMsg.clipPrompt = extra.clipPrompt;
             saveAIChatStore(store);
@@ -15593,6 +15923,78 @@ function renderAturiusMessages() {
                 openAzoraStudio({ src: useSrc, prompt: m.clipPrompt || "", name: "Aturius clip" });
             };
             div.appendChild(editBtn);
+        }
+        if (m.sonifyPrompt || m.sonifyUrl) {
+            var wrap = document.createElement("div");
+            wrap.className = "aturius-sonify-card";
+            if (m.sonifyPreview) {
+                var thumb = document.createElement("img");
+                thumb.src = m.sonifyPreview;
+                thumb.alt = "Sonification picture";
+                thumb.className = "aturius-sonify-thumb";
+                wrap.appendChild(thumb);
+            }
+            var aud = document.createElement("audio");
+            aud.controls = true;
+            aud.preload = "auto";
+            aud.className = "aturius-sonify-audio";
+            var pack0 = window._aturiusSonifyCache && m.sonifyPrompt && window._aturiusSonifyCache[m.sonifyPrompt];
+            if (m.sonifyUrl) aud.src = m.sonifyUrl;
+            else if (pack0 && pack0.url) aud.src = pack0.url;
+            else if (m.sonifyPrompt) {
+                buildAturiusSonify(m.sonifyPrompt).then(function (pack) {
+                    if (!pack || !pack.ok) return;
+                    window._aturiusSonifyCache = window._aturiusSonifyCache || {};
+                    window._aturiusSonifyCache[m.sonifyPrompt] = pack;
+                    aud.src = pack.url;
+                    m.sonifyUrl = pack.url;
+                    m.sonifyPreview = pack.preview;
+                });
+            }
+            wrap.appendChild(aud);
+            var row = document.createElement("div");
+            row.className = "aturius-sonify-row";
+            var play = document.createElement("button");
+            play.type = "button";
+            play.textContent = "Play";
+            play.onclick = function () { try { aud.play(); } catch (eP) {} };
+            var stop = document.createElement("button");
+            stop.type = "button";
+            stop.textContent = "Stop";
+            stop.onclick = function () { try { aud.pause(); aud.currentTime = 0; } catch (eS) {} };
+            var regen = document.createElement("button");
+            regen.type = "button";
+            regen.textContent = "Regenerate";
+            regen.onclick = function () {
+                if (!m.sonifyPrompt) return;
+                regen.disabled = true;
+                buildAturiusSonify(m.sonifyPrompt).then(function (pack) {
+                    regen.disabled = false;
+                    if (!pack || !pack.ok) return;
+                    window._aturiusSonifyCache = window._aturiusSonifyCache || {};
+                    window._aturiusSonifyCache[m.sonifyPrompt] = pack;
+                    aud.src = pack.url;
+                    m.sonifyUrl = pack.url;
+                    m.sonifyPreview = pack.preview;
+                    m.text = pack.text;
+                    try { renderAturiusMessages(); } catch (eR) {}
+                });
+            };
+            var dl = document.createElement("button");
+            dl.type = "button";
+            dl.textContent = "Download Audio";
+            dl.onclick = function () {
+                var a = document.createElement("a");
+                a.href = aud.src || m.sonifyUrl || "";
+                a.download = "aturius-sonify.wav";
+                a.click();
+            };
+            row.appendChild(play);
+            row.appendChild(stop);
+            row.appendChild(regen);
+            row.appendChild(dl);
+            wrap.appendChild(row);
+            div.appendChild(wrap);
         }
         if (m.attachment) {
             var attWrap = document.createElement("div");
@@ -23924,22 +24326,9 @@ function azoraRevenueInRange(fromMs, toMs) {
     return Math.round(sum * 1000) / 1000;
 }
 function azoraRevenueDataStart() {
-    var rows = azoraRevenueRows();
-    var snaps = [];
-    try { snaps = JSON.parse(localStorage.getItem("azoraRevenueSnapshots") || "[]"); } catch (e) {}
-    var start = Date.now();
-    var found = false;
-    for (var i = 0; i < rows.length; i++) {
-        var t = Number(rows[i].at) || 0;
-        if (t && t < start) { start = t; found = true; }
-    }
-    if (Array.isArray(snaps)) {
-        for (var j = 0; j < snaps.length; j++) {
-            var st = Number(snaps[j] && snaps[j].t) || 0;
-            if (st && st < start) { start = st; found = true; }
-        }
-    }
-    return found ? start : null;
+    var launch = typeof AZORA_PLATFORM_LAUNCH_MS === "number" ? AZORA_PLATFORM_LAUNCH_MS : Date.UTC(2026, 1, 1);
+    var threeMonthsAgo = Date.now() - 90 * 86400000;
+    return Math.min(launch, threeMonthsAgo);
 }
 function recordAzoraStockSnapshot() {
     var now = Date.now();
@@ -23958,6 +24347,62 @@ function recordAzoraStockSnapshot() {
     if (list.length > 4000) list = list.slice(-4000);
     try { localStorage.setItem("azoraRevenueSnapshots", JSON.stringify(list)); } catch (e2) {}
 }
+function moneyLabel(n) {
+    var v = Number(n) || 0;
+    return "$" + v.toFixed(2);
+}
+function drawAzoraStockGraph() {
+    var canvas = document.getElementById("azoraStockGraph");
+    if (!canvas || !canvas.getContext) return;
+    var ctx = canvas.getContext("2d");
+    var w = canvas.width;
+    var h = canvas.height;
+    ctx.clearRect(0, 0, w, h);
+    ctx.fillStyle = "rgba(8,18,40,0.9)";
+    ctx.fillRect(0, 0, w, h);
+    var now = Date.now();
+    var days = 90;
+    var points = [];
+    var maxV = 1;
+    for (var d = days; d >= 0; d--) {
+        var t1 = now - d * 86400000;
+        var t0 = t1 - 86400000;
+        var v = azoraRevenueInRange(t0, t1);
+        points.push(v);
+        if (v > maxV) maxV = v;
+    }
+    var padL = 36, padR = 10, padT = 16, padB = 22;
+    var innerW = w - padL - padR;
+    var innerH = h - padT - padB;
+    ctx.strokeStyle = "rgba(255,255,255,0.15)";
+    ctx.beginPath();
+    ctx.moveTo(padL, padT);
+    ctx.lineTo(padL, h - padB);
+    ctx.lineTo(w - padR, h - padB);
+    ctx.stroke();
+    ctx.fillStyle = "#9ec1ff";
+    ctx.font = "11px sans-serif";
+    ctx.fillText(moneyLabel(maxV), 4, padT + 8);
+    ctx.fillText("$0.00", 4, h - padB);
+    ctx.fillText("90 days ago", padL, h - 6);
+    ctx.fillText("Now", w - 32, h - 6);
+    ctx.strokeStyle = "#7dd3fc";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    for (var i = 0; i < points.length; i++) {
+        var x = padL + (i / Math.max(1, points.length - 1)) * innerW;
+        var y = padT + innerH - (points[i] / maxV) * innerH;
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+    ctx.fillStyle = "#7dd3fc";
+    var lastX = padL + innerW;
+    var lastY = padT + innerH - (points[points.length - 1] / maxV) * innerH;
+    ctx.beginPath();
+    ctx.arc(lastX, lastY, 3, 0, Math.PI * 2);
+    ctx.fill();
+}
 function renderAzoraStock() {
     recordAzoraStockSnapshot();
     var nowEl = document.getElementById("azoraStockNow");
@@ -23967,25 +24412,25 @@ function renderAzoraStock() {
     var todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
     var todayVal = azoraRevenueInRange(todayStart.getTime(), now);
     var dataStart = azoraRevenueDataStart();
-    nowEl.innerHTML = "<strong>Today</strong><span>" + (typeof formatCoins === "function" ? formatCoins(todayVal) : todayVal) + " revenue</span>";
+    nowEl.innerHTML = "<strong>Today</strong><span>" + moneyLabel(todayVal) + "</span>";
     var html = "";
     for (var i = 0; i < AZORA_STOCK_PERIODS.length; i++) {
         var p = AZORA_STOCK_PERIODS[i];
         var from = now - p.ms;
-        var hasData = dataStart != null && dataStart <= now;
-        var periodCovered = dataStart != null && dataStart <= from + 86400000;
+        var periodCovered = dataStart != null && from >= dataStart - 2 * 86400000;
         html += '<div class="azora-stock-row">';
         html += "<strong>" + p.label + "</strong>";
-        if (!hasData || !periodCovered) {
+        if (!periodCovered) {
             html += '<span class="azora-stock-soon">More data coming soon!</span>';
         } else {
             var val = azoraRevenueInRange(from, now);
             var cls = val > 0 ? "up" : "flat";
-            html += '<span class="azora-stock-diff ' + cls + '">' + (typeof formatCoins === "function" ? formatCoins(val) : val) + " revenue</span>";
+            html += '<span class="azora-stock-diff ' + cls + '">' + moneyLabel(val) + "</span>";
         }
         html += "</div>";
     }
     listEl.innerHTML = html;
+    drawAzoraStockGraph();
 }
 function openAzoraStock() {
     var ov = document.getElementById("azoraStockOverlay");

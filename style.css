@@ -8656,3 +8656,27 @@ html[data-theme="softrainbow"] button {
 .azora-stock-diff.down { color: #fca5a5; }
 .azora-stock-diff.flat { opacity: 0.85; }
 .azora-stock-diff em { font-style: normal; opacity: 0.8; }
+.azora-stock-graph {
+    width: 100%;
+    height: 180px;
+    display: block;
+    margin: 8px 0 12px;
+    border-radius: 10px;
+    background: #081228;
+}
+.aturius-sonify-card {
+    margin-top: 8px;
+    padding: 8px;
+    border-radius: 10px;
+    background: rgba(0,0,0,0.22);
+}
+.aturius-sonify-thumb {
+    width: 100%;
+    max-height: 120px;
+    object-fit: cover;
+    border-radius: 8px;
+    margin-bottom: 6px;
+}
+.aturius-sonify-audio { width: 100%; margin: 4px 0; }
+.aturius-sonify-row { display: flex; flex-wrap: wrap; gap: 6px; }
+.aturius-sonify-row button { width: auto !important; padding: 6px 10px !important; }
