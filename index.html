@@ -1074,6 +1074,15 @@
                 </div>
                 <button type="button" class="norm-join-btn" onclick="openLivingLands()">Play</button>
             </article>
+            <article class="norm-game-card" data-game-id="block-tower">
+                <div class="norm-game-icon">🏢</div>
+                <div class="norm-game-info">
+                    <h4>Block Tower</h4>
+                    <p><span class="by-creator">By Azora</span>. Stacked brick and wood blocks hold each other up with gravity. Start a mid-floor heat spot and watch joints weaken so the top can fall.</p>
+                    <span class="norm-game-meta">3D · Physics · Blocks · Solo</span>
+                </div>
+                <button type="button" class="norm-join-btn" onclick="openBlockTower()">Play</button>
+            </article>
             <article class="norm-game-card" data-game-id="planet-empire">
                 <div class="norm-game-icon">🪐</div>
                 <div class="norm-game-info">
@@ -1915,7 +1924,7 @@
 
 <!-- Optional: trained Aturius brain (export from Azora account → Settings → Export code files) -->
 <script src="aturius-training-pack.js"></script>
-<script src="script.js?v=73.07"></script>
+<script src="script.js?v=73.08"></script>
 <script src="political-earth-data.js?v=72.24"></script>
 <script src="political-earth-hd.js?v=72.24"></script>
 <script src="political-earth-hyper.js?v=72.26"></script>
@@ -2120,6 +2129,19 @@ if ("serviceWorker" in navigator) {
     </div>
 </div>
 
+<div id="blockTowerOverlay" class="overlay" style="display:none;">
+    <div class="popup market-popup" style="max-width:min(720px,calc(100vw - 16px));text-align:left;">
+        <h2 style="text-align:center;margin:0 0 6px;">Block Tower</h2>
+        <p class="settings-hint" style="text-align:center;">8 floors of loose brick and wood. Heat weakens mid-floor joints. No people — just blocks and gravity.</p>
+        <p id="blockTowerHud">Heat off · Floors standing 8</p>
+        <canvas id="blockTowerCanvas" width="640" height="400" style="width:100%;height:auto;background:#9ecbff;border-radius:12px;"></canvas>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;">
+            <button type="button" onclick="startBlockTowerHeat()">Start heat</button>
+            <button type="button" onclick="resetBlockTower()">Reset tower</button>
+            <button type="button" onclick="closeBlockTower()">Close</button>
+        </div>
+    </div>
+</div>
 <div id="pumpkinSmashOverlay" class="overlay" style="display:none;">
     <div class="popup" style="max-width:min(520px,96vw);text-align:center;">
         <h2>Pumpkin Smash</h2>

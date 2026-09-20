@@ -11,8 +11,9 @@
 })();
 var AZORA_DEV_STAGE = "mid-alpha";
 var AZORA_DEV_STAGE_LABEL = "Mid Alpha";
-var AZORA_APP_VERSION = "73.07";
+var AZORA_APP_VERSION = "73.08";
 var AZORA_WHATS_NEW = [
+    "New solo game: Block Tower. Brick and wood blocks stack with gravity. Mid-floor heat weakens joints so the top can fall.",
     "Aturius: Generate me a Sound Sonification of [anything]. It reads a picture of that idea and builds a 10-second playable sound from brightness, color, edges, and grain.",
     "AzoraCoins menu → Azora Stock now shows platform revenue (fees + official sales), not coin balance. Missing years say More data coming soon!",
     "Settings → App logo: pick old blue, purple, or Mid Alpha and it changes on this device",
@@ -25512,6 +25513,190 @@ function startPumpkinSmash() {
 window.openPumpkinSmash = openPumpkinSmash;
 window.closePumpkinSmash = closePumpkinSmash;
 window.startPumpkinSmash = startPumpkinSmash;
+
+var _bt = null;
+function closeBlockTower() {
+    if (_bt && _bt.raf) cancelAnimationFrame(_bt.raf);
+    if (_bt && _bt.renderer && _bt.renderer.dispose) {
+        try { _bt.renderer.dispose(); } catch (e) {}
+    }
+    _bt = null;
+    var ov = document.getElementById("blockTowerOverlay");
+    if (ov) ov.style.display = "none";
+}
+function openBlockTower() {
+    var ov = document.getElementById("blockTowerOverlay");
+    if (ov) ov.style.display = "flex";
+    resetBlockTower();
+}
+function resetBlockTower() {
+    if (_bt && _bt.raf) cancelAnimationFrame(_bt.raf);
+    var canvas = document.getElementById("blockTowerCanvas");
+    if (!canvas) return;
+    var floors = 8, cols = 4, depthN = 2;
+    var bricks = [];
+    var floorH = 0.7, brickW = 1.05, brickD = 1.05;
+    for (var f = 0; f < floors; f++) {
+        for (var x = 0; x < cols; x++) {
+            for (var z = 0; z < depthN; z++) {
+                var wood = (f % 2 === 1 && x === 0) || (f % 2 === 1 && x === cols - 1);
+                bricks.push({
+                    x: (x - (cols - 1) / 2) * brickW,
+                    y: 0.35 + f * floorH,
+                    z: (z - (depthN - 1) / 2) * brickD,
+                    w: brickW * 0.96,
+                    h: floorH * 0.92,
+                    d: brickD * 0.96,
+                    vx: 0, vy: 0, vz: 0,
+                    floor: f,
+                    wood: wood,
+                    joint: 1,
+                    heat: 0,
+                    free: false
+                });
+            }
+        }
+    }
+    _bt = { bricks: bricks, heatOn: false, floors: floors, t: 0, meshes: [], scene: null, camera: null, renderer: null, raf: 0, use3d: false };
+    var hud = document.getElementById("blockTowerHud");
+    if (hud) hud.textContent = "Heat off · Floors standing 8";
+    if (typeof THREE !== "undefined") {
+        try { setupBlockTower3D(canvas); } catch (e3) { setupBlockTower2D(canvas); }
+    } else setupBlockTower2D(canvas);
+    loopBlockTower();
+}
+function setupBlockTower3D(canvas) {
+    var scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x9ecbff);
+    var camera = new THREE.PerspectiveCamera(50, canvas.width / canvas.height, 0.1, 80);
+    camera.position.set(8, 6.2, 10);
+    camera.lookAt(0, 3.2, 0);
+    var renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true });
+    renderer.setSize(canvas.width, canvas.height, false);
+    scene.add(new THREE.AmbientLight(0xffffff, 0.7));
+    var sun = new THREE.DirectionalLight(0xfff1d6, 0.8);
+    sun.position.set(6, 10, 4);
+    scene.add(sun);
+    var ground = new THREE.Mesh(new THREE.BoxGeometry(14, 0.4, 10), new THREE.MeshLambertMaterial({ color: 0x6b7280 }));
+    ground.position.y = -0.2;
+    scene.add(ground);
+    var brickMat = new THREE.MeshLambertMaterial({ color: 0xb4533a });
+    var woodMat = new THREE.MeshLambertMaterial({ color: 0xc4a574 });
+    var hotMat = new THREE.MeshLambertMaterial({ color: 0xea580c });
+    _bt.mats = { brick: brickMat, wood: woodMat, hot: hotMat };
+    _bt.bricks.forEach(function (b) {
+        var mesh = new THREE.Mesh(new THREE.BoxGeometry(b.w, b.h, b.d), b.wood ? woodMat : brickMat);
+        mesh.position.set(b.x, b.y, b.z);
+        scene.add(mesh);
+        b.mesh = mesh;
+    });
+    var heat = new THREE.Mesh(new THREE.SphereGeometry(0.28, 12, 12), new THREE.MeshBasicMaterial({ color: 0xff6a00 }));
+    heat.position.set(0, 0.35 + 3 * 0.7, 0);
+    scene.add(heat);
+    _bt.heatMesh = heat;
+    _bt.scene = scene; _bt.camera = camera; _bt.renderer = renderer; _bt.use3d = true;
+}
+function setupBlockTower2D(canvas) {
+    _bt.use3d = false;
+    _bt.ctx = canvas.getContext("2d");
+}
+function startBlockTowerHeat() {
+    if (!_bt) resetBlockTower();
+    _bt.heatOn = true;
+    var hud = document.getElementById("blockTowerHud");
+    if (hud) hud.textContent = "Heat on · mid floors weakening";
+}
+function stepBlockTower(dt) {
+    if (!_bt) return;
+    var bricks = _bt.bricks;
+    var g = 11;
+    var heatY = 0.35 + 3 * 0.7;
+    if (_bt.heatOn) {
+        for (var i = 0; i < bricks.length; i++) {
+            var b = bricks[i];
+            var dy = Math.abs(b.y - heatY);
+            if (dy < 1.4) b.heat = Math.min(1, b.heat + dt * (1.1 - dy * 0.4));
+            else if (b.y > heatY) b.heat = Math.min(1, b.heat + dt * 0.08);
+            b.joint = Math.max(0, 1 - b.heat * 1.15);
+            if (b.joint < 0.28) b.free = true;
+        }
+    }
+    for (var j = 0; j < bricks.length; j++) {
+        var p = bricks[j];
+        if (!p.free && p.joint > 0.45) continue;
+        p.vy -= g * dt;
+        p.y += p.vy * dt;
+        p.x += p.vx * dt;
+        p.z += p.vz * dt;
+        if (p.y - p.h / 2 < 0) {
+            p.y = p.h / 2;
+            if (p.vy < 0) p.vy *= -0.12;
+            p.vx *= 0.8; p.vz *= 0.8;
+        }
+    }
+    for (var a = 0; a < bricks.length; a++) {
+        for (var c = a + 1; c < bricks.length; c++) {
+            var A = bricks[a], C = bricks[c];
+            var dx = A.x - C.x, dy = A.y - C.y, dz = A.z - C.z;
+            var ox = (A.w + C.w) / 2 - Math.abs(dx);
+            var oy = (A.h + C.h) / 2 - Math.abs(dy);
+            var oz = (A.d + C.d) / 2 - Math.abs(dz);
+            if (ox > 0 && oy > 0 && oz > 0) {
+                if (oy <= ox && oy <= oz) {
+                    var push = oy / 2 * (dy >= 0 ? 1 : -1);
+                    if (A.free || A.joint < 0.45) { A.y += push; A.vy = Math.max(A.vy, 0) * 0.2; }
+                    if (C.free || C.joint < 0.45) { C.y -= push; C.vy = Math.max(C.vy, 0) * 0.2; }
+                } else if (ox <= oz) {
+                    var px = ox / 2 * (dx >= 0 ? 1 : -1);
+                    if (A.free) { A.x += px; A.vx += px * 2; }
+                    if (C.free) { C.x -= px; C.vx -= px * 2; }
+                } else {
+                    var pz = oz / 2 * (dz >= 0 ? 1 : -1);
+                    if (A.free) { A.z += pz; }
+                    if (C.free) { C.z -= pz; }
+                }
+            }
+        }
+    }
+}
+function drawBlockTower2D() {
+    var ctx = _bt.ctx, canvas = document.getElementById("blockTowerCanvas");
+    if (!ctx || !canvas) return;
+    ctx.fillStyle = "#9ecbff";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = "#6b7280";
+    ctx.fillRect(0, canvas.height - 36, canvas.width, 36);
+    _bt.bricks.forEach(function (b) {
+        var sx = canvas.width / 2 + b.x * 42 + b.z * 10;
+        var sy = canvas.height - 36 - b.y * 42;
+        ctx.fillStyle = b.heat > 0.35 ? "#ea580c" : (b.wood ? "#c4a574" : "#b4533a");
+        ctx.fillRect(sx - b.w * 20, sy - b.h * 20, b.w * 40, b.h * 40);
+        ctx.strokeStyle = "rgba(0,0,0,0.25)";
+        ctx.strokeRect(sx - b.w * 20, sy - b.h * 20, b.w * 40, b.h * 40);
+    });
+}
+function loopBlockTower() {
+    if (!_bt) return;
+    stepBlockTower(1 / 60);
+    if (_bt.use3d && _bt.renderer) {
+        _bt.bricks.forEach(function (b) {
+            if (!b.mesh) return;
+            b.mesh.position.set(b.x, b.y, b.z);
+            if (b.heat > 0.35) b.mesh.material = _bt.mats.hot;
+        });
+        if (_bt.heatOn && _bt.heatMesh) _bt.heatMesh.scale.setScalar(1 + Math.sin(Date.now() / 180) * 0.12);
+        _bt.renderer.render(_bt.scene, _bt.camera);
+    } else drawBlockTower2D();
+    var standing = 0;
+    _bt.bricks.forEach(function (b) { if (!b.free && b.y > 0.2) standing++; });
+    var hud = document.getElementById("blockTowerHud");
+    if (hud) hud.textContent = (_bt.heatOn ? "Heat on" : "Heat off") + " · Loose blocks " + (_bt.bricks.length - standing) + "/" + _bt.bricks.length;
+    _bt.raf = requestAnimationFrame(loopBlockTower);
+}
+window.openBlockTower = openBlockTower;
+window.closeBlockTower = closeBlockTower;
+window.resetBlockTower = resetBlockTower;
+window.startBlockTowerHeat = startBlockTowerHeat;
 
 function updateCoinsUI() {
     try { mergeHalloSeedsIntoCoins(); } catch (eM) {}
