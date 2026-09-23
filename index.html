@@ -13,7 +13,7 @@
     <link rel="manifest" href="manifest-azora.json">
     <link rel="apple-touch-icon" href="logo.png?v=73.03">
     <link rel="icon" href="logo.png?v=73.03">
-    <link rel="stylesheet" href="style.css?v=72.50">
+    <link rel="stylesheet" href="style.css?v=73.10">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="azora-avatar.js?v=1.2"></script>
     <style>
@@ -32,58 +32,95 @@
     }
     #azoraDeviceLock.show { display: flex; }
     #azoraDeviceLock .azora-device-lock-card {
-        max-width: 420px;
-        background: #152033;
-        border: 1px solid #334155;
-        border-radius: 16px;
-        padding: 22px 20px;
+        max-width: 520px;
+        background: #101826;
+        border: 1px solid #3b4a63;
+        border-radius: 8px;
+        padding: 28px 24px;
+        text-align: left;
+        font-family: Arial, Helvetica, sans-serif;
     }
-    #azoraDeviceLock h1 { font-size: 1.35rem; margin: 0 0 10px; }
-    #azoraDeviceLock p { margin: 0; line-height: 1.45; opacity: 0.92; }
+    #azoraDeviceLock h1 { font-size: 1.15rem; margin: 0 0 12px; letter-spacing: 0.04em; }
+    #azoraDeviceLock p { margin: 0 0 10px; line-height: 1.5; opacity: 0.95; }
     body.azora-device-blocked { overflow: hidden; }
     </style>
     <script>
     (function () {
-        function kind() {
+        function hasWebGL() {
+            try {
+                var c = document.createElement("canvas");
+                return !!(c.getContext("webgl") || c.getContext("experimental-webgl"));
+            } catch (e) { return false; }
+        }
+        function has2D() {
+            try { return !!document.createElement("canvas").getContext("2d"); } catch (e) { return false; }
+        }
+        function scoreDevice() {
+            var s = 0;
+            var mem = Number(navigator.deviceMemory || 0);
+            var cores = Number(navigator.hardwareConcurrency || 0);
+            var w = Math.max(screen.width || 0, window.innerWidth || 0);
+            var h = Math.max(screen.height || 0, window.innerHeight || 0);
+            var short = Math.min(w, h);
+            if (has2D()) s += 2; else s -= 8;
+            if (hasWebGL()) s += 3;
+            if (mem >= 8) s += 3; else if (mem >= 4) s += 2; else if (mem >= 2) s += 1; else if (mem && mem < 2) s -= 2;
+            if (cores >= 8) s += 2; else if (cores >= 4) s += 1; else if (cores && cores <= 2) s -= 1;
+            if (short >= 900) s += 2; else if (short >= 700) s += 1; else if (short && short < 360) s -= 2;
+            try { if (navigator.connection && navigator.connection.saveData) s -= 2; } catch (eC) {}
+            try { if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) s -= 1; } catch (eM) {}
+            return s;
+        }
+        function form() {
             var ua = String(navigator.userAgent || "");
             var plat = String(navigator.platform || "");
-            if (/oculus|quest|vive|pico|mixed reality|mobile vr|headset|horizon os|gear vr|daydream/i.test(ua)) return "vr";
-            try {
-                if (/azoraPhonePreview=1/.test(String(location.search || "")) || sessionStorage.getItem("azoraPhonePreview") === "1") return "computer";
-            } catch (ePrev) {}
-            if (/iphone|ipod|windows phone|blackberry|iemobile|opera mini/i.test(ua)) return "phone";
-            if (/android/i.test(ua) && /mobile/i.test(ua) && !/tablet|pad/i.test(ua)) return "phone";
+            var coarse = false;
+            try { coarse = window.matchMedia && window.matchMedia("(pointer: coarse)").matches; } catch (e) {}
+            var touch = (navigator.maxTouchPoints || 0) > 0 || coarse;
+            var short = Math.min(screen.width || 9999, window.innerWidth || 9999);
+            if (/oculus|quest|vive|pico|mobile vr|headset/i.test(ua)) return "vr";
             if (/ipad/i.test(ua) || (plat === "MacIntel" && (navigator.maxTouchPoints || 0) > 1)) return "tablet";
             if (/android/i.test(ua) && (/tablet|pad/i.test(ua) || !/mobile/i.test(ua))) return "tablet";
-            var short = Math.min(screen.width || 9999, screen.height || 9999);
-            if ((navigator.maxTouchPoints || 0) > 0 && short <= 600 && !/ipad|tablet|pad/i.test(ua)) return "phone";
+            if (touch && short >= 600) return "tablet";
+            if (touch && short < 600) return "phone";
             return "computer";
         }
-        window.azoraDeviceKind = kind;
-        window.azoraDeviceAllowed = function () {
-            var k = kind();
-            return k === "tablet" || k === "computer";
-        };
-        window.lockAzoraIfUnsupportedDevice = function () {
-            if (window.azoraDeviceAllowed()) return false;
-            var k = kind();
-            var lock = document.getElementById("azoraDeviceLock");
-            var why = document.getElementById("azoraDeviceLockWhy");
-            if (why) {
-                why.textContent = (k === "vr")
-                    ? "VR headsets are not supported yet."
-                    : "Phones are not supported.";
+        function protocol() {
+            try {
+                if (/azoraPhonePreview=1/.test(String(location.search || "")) || sessionStorage.getItem("azoraPhonePreview") === "1") return "desktop";
+            } catch (ePrev) {}
+            var sc = scoreDevice();
+            var fm = form();
+            if (!has2D() || sc <= -1) return "lockout";
+            if (sc <= 3) return "low";
+            if (fm === "tablet" || fm === "phone") return "tablet";
+            return "desktop";
+        }
+        function apply() {
+            var p = protocol();
+            var sc = scoreDevice();
+            var fm = form();
+            window.azoraUiProtocol = p;
+            window.azoraDeviceScore = sc;
+            window.azoraDeviceKind = function () { return fm === "computer" ? "computer" : (fm === "tablet" ? "tablet" : fm); };
+            window.azoraDeviceAllowed = function () { return p !== "lockout"; };
+            document.documentElement.setAttribute("data-ui", p);
+            document.documentElement.setAttribute("data-device-form", fm);
+            if (p === "lockout") {
+                var lock = document.getElementById("azoraDeviceLock");
+                if (lock) {
+                    lock.classList.add("show");
+                    lock.setAttribute("aria-hidden", "false");
+                }
+                document.body.classList.add("azora-device-blocked");
+                return true;
             }
-            if (lock) {
-                lock.classList.add("show");
-                lock.setAttribute("aria-hidden", "false");
-            }
-            document.body.classList.add("azora-device-blocked");
-            return true;
-        };
-        document.addEventListener("DOMContentLoaded", function () {
-            window.lockAzoraIfUnsupportedDevice();
-        });
+            return false;
+        }
+        window.lockAzoraIfUnsupportedDevice = apply;
+        window.applyAzoraAdaptiveUi = apply;
+        if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", apply);
+        else apply();
     })();
     </script>
 </head>
@@ -131,9 +168,9 @@
 </div>
 <div id="azoraDeviceLock" aria-hidden="true" role="alertdialog" aria-labelledby="azoraDeviceLockTitle">
     <div class="azora-device-lock-card">
-        <h1 id="azoraDeviceLockTitle">Azora cannot open on this device</h1>
-        <p id="azoraDeviceLockWhy">This device is not supported.</p>
-        <p style="margin-top:10px;">Please use a tablet or a computer / PC.</p>
+        <h1 id="azoraDeviceLockTitle">⚠️ AZORA SYSTEM NOTICE</h1>
+        <p>We sincerely apologize, but your device is too outdated for Azora to operate.</p>
+        <p id="azoraDeviceLockWhy"><strong>Technical Status:</strong> Device hardware lacks the physical capabilities required to adapt the interface layout.</p>
     </div>
 </div>
 
@@ -395,6 +432,7 @@
                 <label class="settings-label">Phone preview</label>
                 <p class="settings-hint" style="margin-top:0;">See how Azora looks on a phone without using a phone. This is only a preview so we can fix the small screen layout later.</p>
                 <button type="button" onclick="openAzoraPhonePreview()" style="width:100%;">View as phone</button>
+                <p class="settings-hint" id="azoraUiProtocolHint" style="margin-top:8px;">Layout protocol: checking…</p>
             </div>
             <div class="settings-section">
                 <label class="settings-label">App logo</label>
@@ -1924,7 +1962,7 @@
 
 <!-- Optional: trained Aturius brain (export from Azora account → Settings → Export code files) -->
 <script src="aturius-training-pack.js"></script>
-<script src="script.js?v=73.08"></script>
+<script src="script.js?v=73.10"></script>
 <script src="political-earth-data.js?v=72.24"></script>
 <script src="political-earth-hd.js?v=72.24"></script>
 <script src="political-earth-hyper.js?v=72.26"></script>

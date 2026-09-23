@@ -13,6 +13,21 @@
     font-style: normal;
     font-display: swap;
 }
+@font-face {
+    font-family: "Azora Book";
+    src: url("BKANT.TTF") format("truetype");
+    font-weight: 400;
+    font-style: normal;
+    font-display: swap;
+}
+.topbar-title,
+.azora-games-title,
+.azora-games-sub,
+.popup h2,
+.market-popup h2,
+.norm-game-info h4 {
+    font-family: "Azora Book", "Times New Roman", serif;
+}
 
 body {
     font-family: "Javelin Obsidian", Arial, sans-serif;
@@ -8680,3 +8695,25 @@ html[data-theme="softrainbow"] button {
 .aturius-sonify-audio { width: 100%; margin: 4px 0; }
 .aturius-sonify-row { display: flex; flex-wrap: wrap; gap: 6px; }
 .aturius-sonify-row button { width: auto !important; padding: 6px 10px !important; }
+
+html[data-ui="desktop"] .topbar,
+html[data-ui="desktop"] .popup {
+    box-shadow: 0 10px 28px rgba(0,0,0,0.28), inset 0 1px 0 rgba(255,255,255,0.22);
+    backdrop-filter: blur(10px);
+}
+html[data-ui="tablet"] button,
+html[data-ui="tablet"] .coins-menu-btn,
+html[data-ui="tablet"] .topbar-shop-btn {
+    min-height: 40px;
+}
+html[data-ui="tablet"] .azora-mobile-menu-btn,
+html[data-ui="tablet"] .azora-mobile-tabbar { display: flex; }
+html[data-ui="tablet"] body { padding-bottom: 64px; }
+html[data-ui="low"] .topbar,
+html[data-ui="low"] .popup,
+html[data-ui="low"] .overlay {
+    backdrop-filter: none !important;
+    box-shadow: none !important;
+    background-image: none !important;
+}
+html[data-ui="low"] * { animation: none !important; transition: none !important; }

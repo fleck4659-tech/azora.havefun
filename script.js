@@ -11,8 +11,11 @@
 })();
 var AZORA_DEV_STAGE = "mid-alpha";
 var AZORA_DEV_STAGE_LABEL = "Mid Alpha";
-var AZORA_APP_VERSION = "73.08";
+var AZORA_APP_VERSION = "73.10";
 var AZORA_WHATS_NEW = [
+    "Accounts now sync through Firebase: avatar, coins, inventory, theme, and settings follow you when you log in on another device.",
+    "New Book Antiqua title font (BKANT) on headings and game names.",
+    "Automatic UI: Azora picks Desktop Neo-Aero, Tablet touch layout, or Low-capability flat mode from device power. Only machines that cannot render at all are locked out.",
     "New solo game: Block Tower. Brick and wood blocks stack with gravity. Mid-floor heat weakens joints so the top can fall.",
     "Aturius: Generate me a Sound Sonification of [anything]. It reads a picture of that idea and builds a 10-second playable sound from brightness, color, edges, and grain.",
     "AzoraCoins menu → Azora Stock now shows platform revenue (fees + official sales), not coin balance. Missing years say More data coming soon!",
@@ -1031,12 +1034,122 @@ var AZORA_CLOUD = {
         return u.indexOf("https://") === 0 && u.indexOf("YOUR") === -1 && u.indexOf("example") === -1;
     },
     registryPath: "/azoraRegistry",
-    metaPath: "/azoraMeta"
+    metaPath: "/azoraMeta",
+    profilesPath: "/azoraProfiles"
 };
 
 function cloudBase() {
     return (AZORA_CLOUD.firebaseUrl || "").replace(/\/$/, "");
 }
+
+function cloudProfileKey(username) {
+    return encodeURIComponent(String(username || "").trim().toLowerCase().replace(/[.#$\[\]]/g, "_"));
+}
+function collectLocalSyncExtras() {
+    var extra = {};
+    var keys = ["azoraTheme", "azoraHoliday", "azoraLogo", "azoraUiProtocol"];
+    for (var i = 0; i < keys.length; i++) {
+        try { extra[keys[i]] = localStorage.getItem(keys[i]); } catch (e) {}
+    }
+    try { extra.inventory = (typeof getInventory === "function") ? getInventory() : null; } catch (e2) {}
+    try { extra.halloCoins = localStorage.getItem("azoraHalloCoins"); } catch (e3) {}
+    return extra;
+}
+function applyLocalSyncExtras(extra) {
+    if (!extra || typeof extra !== "object") return;
+    ["azoraTheme", "azoraHoliday", "azoraLogo"].forEach(function (k) {
+        if (extra[k] != null) {
+            try { localStorage.setItem(k, extra[k]); } catch (e) {}
+        }
+    });
+    try {
+        if (extra.inventory && typeof saveInventory === "function") saveInventory(extra.inventory);
+    } catch (eI) {}
+    try {
+        if (extra.halloCoins != null) localStorage.setItem("azoraHalloCoins", String(extra.halloCoins));
+    } catch (eH) {}
+}
+function buildCloudProfile(acc) {
+    if (!acc || !acc.username) return null;
+    return {
+        username: acc.username,
+        displayName: acc.displayName || acc.username,
+        userId: acc.userId || "",
+        email: acc.email || "",
+        password: acc.password || "",
+        gender: acc.gender || "",
+        avatar: acc.avatar || null,
+        coins: (typeof acc.coins === "number") ? acc.coins : null,
+        isGuest: !!acc.isGuest,
+        isOwner: !!acc.isOwner,
+        createdAt: acc.createdAt || Date.now(),
+        extra: collectLocalSyncExtras(),
+        updatedAt: Date.now()
+    };
+}
+function mergeCloudProfile(localAcc, cloud) {
+    var acc = localAcc ? JSON.parse(JSON.stringify(localAcc)) : {};
+    if (!cloud) return acc;
+    acc.username = cloud.username || acc.username;
+    acc.displayName = cloud.displayName || acc.displayName;
+    acc.userId = cloud.userId || acc.userId;
+    acc.email = cloud.email || acc.email;
+    if (cloud.password) acc.password = cloud.password;
+    acc.gender = cloud.gender || acc.gender;
+    if (cloud.avatar) acc.avatar = cloud.avatar;
+    if (typeof cloud.coins === "number") acc.coins = cloud.coins;
+    acc.isGuest = !!cloud.isGuest;
+    acc.isOwner = !!cloud.isOwner;
+    acc.createdAt = acc.createdAt || cloud.createdAt;
+    acc.cloudUpdatedAt = cloud.updatedAt;
+    applyLocalSyncExtras(cloud.extra);
+    return acc;
+}
+var _azoraCloudPushTimer = null;
+function pushCloudProfile(acc) {
+    if (!acc || !acc.username) return;
+    if (typeof AZORA_CLOUD === "undefined" || !AZORA_CLOUD.isReady()) return;
+    var url = cloudBase() + AZORA_CLOUD.profilesPath + "/" + cloudProfileKey(acc.username) + ".json";
+    var body = JSON.stringify(buildCloudProfile(acc));
+    try {
+        fetch(url, { method: "PUT", headers: { "Content-Type": "application/json" }, body: body }).catch(function () {});
+    } catch (e) {}
+}
+function schedulePushCloudProfile(acc) {
+    clearTimeout(_azoraCloudPushTimer);
+    _azoraCloudPushTimer = setTimeout(function () { pushCloudProfile(acc); }, 600);
+}
+function pullCloudProfile(username) {
+    if (!username || typeof AZORA_CLOUD === "undefined" || !AZORA_CLOUD.isReady()) return Promise.resolve(null);
+    var url = cloudBase() + AZORA_CLOUD.profilesPath + "/" + cloudProfileKey(username) + ".json?ts=" + Date.now();
+    return fetch(url, { cache: "no-store" }).then(function (r) { return r.json(); }).then(function (j) {
+        return (j && j.username) ? j : null;
+    }).catch(function () { return null; });
+}
+window.pushCloudProfile = pushCloudProfile;
+window.pullCloudProfile = pullCloudProfile;
+function syncAccountFromCloudOnBoot() {
+    var acc = null;
+    try { acc = JSON.parse(localStorage.getItem("azoraAccount") || "null"); } catch (e) {}
+    if (!acc || !acc.username) return;
+    pullCloudProfile(acc.username).then(function (cloud) {
+        if (!cloud) {
+            pushCloudProfile(acc);
+            return;
+        }
+        if ((cloud.updatedAt || 0) >= (acc.cloudUpdatedAt || acc.updatedAt || 0)) {
+            var merged = mergeCloudProfile(acc, cloud);
+            persistActiveAccount(merged);
+            try { if (typeof applyAzoraLogo === "function") applyAzoraLogo(currentAzoraLogoId()); } catch (eL) {}
+        } else {
+            pushCloudProfile(acc);
+        }
+    });
+}
+try {
+    if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", function () { setTimeout(syncAccountFromCloudOnBoot, 500); });
+    else setTimeout(syncAccountFromCloudOnBoot, 500);
+} catch (eBoot) {}
 
 /** Public profile only — never send passwords */
 function buildPublicRegistryEntry(username, userId, createdAt) {
@@ -2057,6 +2170,14 @@ try {
 function openSettings() {
     try { if (typeof fillAzoraStageSettings === "function") fillAzoraStageSettings(); } catch (eSt) {}
     try { applyAzoraLogo(currentAzoraLogoId()); } catch (eLg) {}
+    try {
+        var hint = document.getElementById("azoraUiProtocolHint");
+        if (hint) {
+            var p = window.azoraUiProtocol || "desktop";
+            var names = { desktop: "Desktop Neo-Aero", tablet: "Premium Tablet", low: "Low-capability flat", lockout: "Unsupported lockout" };
+            hint.textContent = "Layout protocol: " + (names[p] || p) + " · score " + (window.azoraDeviceScore != null ? window.azoraDeviceScore : "?");
+        }
+    } catch (eUi) {}
     try { if (typeof refreshIdentitySettingsUI === "function") refreshIdentitySettingsUI(); } catch (eId) {}
     try { ensureCurrentAccountInAltSlots(); } catch (eS) {}
 
@@ -2515,6 +2636,7 @@ function setLoggedInAccount(account) {
     try {
         if (typeof persistActiveAccount === "function") persistActiveAccount(account);
     } catch (eP) {}
+    try { schedulePushCloudProfile(account); } catch (ePC) {}
     try {
         if (typeof writeFirebasePresence === "function") writeFirebasePresence("online");
         if (typeof startPresenceHeartbeat === "function") startPresenceHeartbeat();
@@ -4109,42 +4231,48 @@ function loginAccount() {
         return;
     }
 
-    var account = findAccountByUsername(username);
-
-    if (!account) {
-        showAccountError("No account found with that username, guest name, or email.");
-        return;
-    }
-
-    // 100% exact password match (case-sensitive, character-for-character)
-    var saved = account.password;
-    if (typeof saved !== "string" || saved !== password) {
-        showAccountError("The password is incorrect. Please type the correct password");
-        var pw = document.getElementById("password");
-        if (pw) {
-            pw.value = "";
-            pw.focus();
+    function finishLogin(account) {
+        if (!account) {
+            showAccountError("No account found with that username, guest name, or email.");
+            return;
         }
-        return;
-    }
-
-        // Moderation gate (ban / terminate)
-    try {
-        if (typeof getActiveModerationForUser === "function") {
-            var mod = getActiveModerationForUser(account.username);
-            if (mod && mod.active) {
-                setLoggedInAccount(account);
-                clearAccountError();
-                location.reload();
-                return;
+        var saved = account.password;
+        if (typeof saved !== "string" || saved !== password) {
+            showAccountError("The password is incorrect. Please type the correct password");
+            var pw = document.getElementById("password");
+            if (pw) { pw.value = ""; pw.focus(); }
+            return;
+        }
+        try {
+            if (typeof getActiveModerationForUser === "function") {
+                var mod = getActiveModerationForUser(account.username);
+                if (mod && mod.active) {
+                    setLoggedInAccount(account);
+                    clearAccountError();
+                    location.reload();
+                    return;
+                }
             }
+        } catch (eMod) {}
+        setLoggedInAccount(account);
+        try { pushCloudProfile(account); } catch (eP) {}
+        clearAccountError();
+        alert("Welcome back, " + account.username + "!\nYour progress has been restored.");
+        location.reload();
+    }
+    var account = findAccountByUsername(username);
+    if (account) {
+        finishLogin(account);
+        return;
+    }
+    showAccountError("Checking Azora cloud…");
+    pullCloudProfile(username).then(function (cloud) {
+        if (!cloud) {
+            showAccountError("No account found with that username, guest name, or email.");
+            return;
         }
-    } catch (eMod) {}
-
-setLoggedInAccount(account);
-    clearAccountError();
-    alert("Welcome back, " + account.username + "!\nYour progress has been restored.");
-    location.reload();
+        finishLogin(mergeCloudProfile({ username: username }, cloud));
+    });
 }
 
 // Attach main account modal button action
@@ -6349,6 +6477,7 @@ function saveAvatar() {
 
     try {
         localStorage.setItem("azoraAccount", JSON.stringify(account));
+        try { schedulePushCloudProfile(account); } catch (eCloudAv) {}
     try {
         if (typeof publishPublicAvatar === "function" && account.username && account.avatar) {
             publishPublicAvatar(account.username, account.avatar);
@@ -24046,6 +24175,7 @@ function persistActiveAccount(acc) {
     if (!acc) return;
     try {
         localStorage.setItem("azoraAccount", JSON.stringify(acc));
+        try { schedulePushCloudProfile(acc); } catch (eC) {}
         var map = getSavedAccounts();
         var key = acc.username || "";
         if (key) {
