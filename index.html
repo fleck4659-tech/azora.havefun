@@ -13,7 +13,7 @@
     <link rel="manifest" href="manifest-azora.json">
     <link rel="apple-touch-icon" href="logo.png?v=73.03">
     <link rel="icon" href="logo.png?v=73.03">
-    <link rel="stylesheet" href="style.css?v=73.10">
+    <link rel="stylesheet" href="style.css?v=73.11">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="azora-avatar.js?v=1.2"></script>
     <style>
@@ -743,6 +743,7 @@
                 <button type="button" class="coins-drop-item coins-drop-buy" onclick="openBuyAzoraCoins(); closeCoinsDropdown();">Buy AzoraCoins</button>
                 <button type="button" class="coins-drop-item" onclick="openPendingCoins()">Pending AzoraCoins <span id="coinsDropPending">0</span></button>
                 <button type="button" class="coins-drop-item" onclick="openAzoraStock(); closeCoinsDropdown();">Azora Stock</button>
+                <button type="button" class="coins-drop-item azora-change-prices-btn" id="changePricesBtn" onclick="openChangePrices(); closeCoinsDropdown();" style="display:none;">Change prices</button>
                 <div class="coins-drop-row"><span>HalloCoins</span><strong><span id="halloCoinBalance">0</span> 🎃</strong></div>
                 <button type="button" class="coins-drop-item" onclick="openHalloConvert(); closeCoinsDropdown();">Convert coins</button>
                 <button type="button" class="coins-drop-item" onclick="openEventCalendar(); closeCoinsDropdown();">Event calendar</button>
@@ -1962,7 +1963,7 @@
 
 <!-- Optional: trained Aturius brain (export from Azora account → Settings → Export code files) -->
 <script src="aturius-training-pack.js"></script>
-<script src="script.js?v=73.10"></script>
+<script src="script.js?v=73.11"></script>
 <script src="political-earth-data.js?v=72.24"></script>
 <script src="political-earth-hd.js?v=72.24"></script>
 <script src="political-earth-hyper.js?v=72.26"></script>
@@ -2190,6 +2191,18 @@ if ("serviceWorker" in navigator) {
     </div>
 </div>
 
+<div id="changePricesOverlay" class="overlay" style="display:none;">
+    <div class="popup market-popup change-prices-popup">
+        <h2>Change prices</h2>
+        <p class="settings-hint">Owner only. Original prices stay saved. + more means higher. − less means cheaper.</p>
+        <div id="changePricesList" class="change-prices-list"></div>
+        <div style="display:flex;gap:8px;margin-top:10px;">
+            <button type="button" onclick="saveChangePrices()">Save prices</button>
+            <button type="button" onclick="resetChangePrices()">Restore originals</button>
+            <button type="button" onclick="closeChangePrices()">Close</button>
+        </div>
+    </div>
+</div>
 <div id="azoraStockOverlay" class="overlay" style="display:none;">
     <div class="popup market-popup azora-stock-popup" style="max-width:min(460px,calc(100vw - 16px));text-align:left;">
         <h2 style="text-align:center;margin:0 0 6px;">Azora Stock</h2>

@@ -8717,3 +8717,30 @@ html[data-ui="low"] .overlay {
     background-image: none !important;
 }
 html[data-ui="low"] * { animation: none !important; transition: none !important; }
+.azora-change-prices-btn {
+    color: #111 !important;
+    background: linear-gradient(120deg, #f3e5ab, #c0c0c0, #d4af37, #e8e8e8, #f3e5ab) !important;
+    background-size: 240% 240% !important;
+    animation: azoraMetalShift 4s linear infinite;
+    font-weight: 700;
+}
+@keyframes azoraMetalShift {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+.change-prices-popup { max-width: min(560px, calc(100vw - 16px)); }
+.change-prices-list { max-height: 50vh; overflow: auto; }
+.change-price-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    align-items: center;
+    padding: 6px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.12);
+}
+.change-price-row small { display: block; opacity: 0.75; font-size: 0.75rem; }
+.change-price-row input { width: 90px; }
+.price-original { display: block; font-size: 0.72rem; opacity: 0.7; }
+.price-delta.more { color: #fbbf24; }
+.price-delta.less { color: #86efac; }

@@ -11,8 +11,9 @@
 })();
 var AZORA_DEV_STAGE = "mid-alpha";
 var AZORA_DEV_STAGE_LABEL = "Mid Alpha";
-var AZORA_APP_VERSION = "73.10";
+var AZORA_APP_VERSION = "73.11";
 var AZORA_WHATS_NEW = [
+    "Owner button Change prices: silver and gold moving colors. Original prices stay saved. Shop shows current price, original price, and + more or − less.",
     "Accounts now sync through Firebase: avatar, coins, inventory, theme, and settings follow you when you log in on another device.",
     "New Book Antiqua title font (BKANT) on headings and game names.",
     "Automatic UI: Azora picks Desktop Neo-Aero, Tablet touch layout, or Low-capability flat mode from device power. Only machines that cannot render at all are locked out.",
@@ -24392,6 +24393,7 @@ function renderCoinsDropdown() {
     var name = acc && acc.username ? acc.username : "";
     var pendingTotal = name ? sumPendingForUser(name) : 0;
     if (pendSum) pendSum.textContent = formatCoins(pendingTotal);
+    try { refreshChangePricesButton(); } catch (ePrc) {}
 }
 
 function openPendingCoins() {
@@ -26429,7 +26431,7 @@ function buyMarketplaceItem(itemId) {
             return;
         }
     }
-    var price = Number(item.price) || 0;
+    var price = (typeof liveCatalogPrice === "function") ? liveCatalogPrice(item) : (Number(item.price) || 0);
     if (price > 0 && !spendCoins(price)) {
         alert("Not enough AzoraCoins! You need " + formatCoins(price) + " 🪙");
         return;
@@ -26791,6 +26793,130 @@ function equipTShirt(itemId) {
 }
 
 
+function getPriceOverrides() {
+    try {
+        var o = JSON.parse(localStorage.getItem("azoraPriceOverrides") || "{}");
+        return o && typeof o === "object" ? o : {};
+    } catch (e) { return {}; }
+}
+function savePriceOverrides(map) {
+    try { localStorage.setItem("azoraPriceOverrides", JSON.stringify(map || {})); } catch (e) {}
+    try {
+        if (typeof AZORA_CLOUD !== "undefined" && AZORA_CLOUD.isReady()) {
+            fetch(cloudBase() + "/azoraMeta/prices.json", {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(map || {})
+            }).catch(function () {});
+        }
+    } catch (e2) {}
+}
+function pullPriceOverrides() {
+    try {
+        if (typeof AZORA_CLOUD === "undefined" || !AZORA_CLOUD.isReady()) return;
+        fetch(cloudBase() + "/azoraMeta/prices.json?ts=" + Date.now(), { cache: "no-store" })
+            .then(function (r) { return r.json(); })
+            .then(function (j) {
+                if (j && typeof j === "object") {
+                    localStorage.setItem("azoraPriceOverrides", JSON.stringify(j));
+                    try { if (typeof renderMarketplace === "function") renderMarketplace(); } catch (e) {}
+                }
+            }).catch(function () {});
+    } catch (e3) {}
+}
+function allPricedCatalogItems() {
+    var out = [];
+    function add(list, group) {
+        (list || []).forEach(function (it) {
+            if (!it || !it.id) return;
+            out.push({ id: it.id, name: it.name || it.id, group: group, original: Number(it.price) || 0 });
+        });
+    }
+    try { add(AZORA_HAIR_CATALOG, "Hair"); } catch (e) {}
+    try { add(AZORA_FACE_CATALOG, "Faces"); } catch (e2) {}
+    try { add(AZORA_TSHIRT_CATALOG, "T-Shirts"); } catch (e3) {}
+    try { add(typeof ATURIUS_MARKET_CATALOG !== "undefined" ? ATURIUS_MARKET_CATALOG : [], "Aturius"); } catch (e4) {}
+    return out;
+}
+function liveCatalogPrice(item) {
+    if (!item) return 0;
+    var ov = getPriceOverrides()[item.id];
+    if (ov != null && ov !== "" && !isNaN(Number(ov))) return Math.max(0, Number(ov));
+    return Number(item.price) || 0;
+}
+function marketPriceLabel(item) {
+    var now = liveCatalogPrice(item);
+    var original = Number(item.price) || 0;
+    var cur = (now === 0) ? "Free" : ((typeof formatCoins === "function" ? formatCoins(now) : now) + " 🪙");
+    if (Math.abs(now - original) < 0.0001) return cur;
+    var orig = (original === 0) ? "Free" : ((typeof formatCoins === "function" ? formatCoins(original) : original) + " 🪙");
+    var more = now > original;
+    var tag = more ? ("+ more") : ("− less");
+    return cur + ' <small class="price-original">was ' + orig + '</small> <small class="price-delta ' + (more ? "more" : "less") + '">' + tag + "</small>";
+}
+function renderChangePricesList() {
+    var box = document.getElementById("changePricesList");
+    if (!box) return;
+    var ov = getPriceOverrides();
+    var html = "";
+    allPricedCatalogItems().forEach(function (it) {
+        var cur = (ov[it.id] != null && ov[it.id] !== "") ? Number(ov[it.id]) : it.original;
+        var delta = "";
+        if (Math.abs(cur - it.original) >= 0.0001) delta = cur > it.original ? " + more" : " − less";
+        html += '<label class="change-price-row"><span>' + it.group + " · " + it.name +
+            '<small>Original ' + it.original + delta + "</small></span>";
+        html += '<input type="number" min="0" step="0.01" data-price-id="' + it.id + '" value="' + cur + '"></label>';
+    });
+    box.innerHTML = html || "<p>No catalog items found.</p>";
+}
+function openChangePrices() {
+    if (typeof isAzoraOwner === "function" && !isAzoraOwner()) {
+        alert("Only Azora can change prices.");
+        return;
+    }
+    var ov = document.getElementById("changePricesOverlay");
+    if (ov) ov.style.display = "flex";
+    renderChangePricesList();
+}
+function closeChangePrices() {
+    var ov = document.getElementById("changePricesOverlay");
+    if (ov) ov.style.display = "none";
+}
+function saveChangePrices() {
+    if (typeof isAzoraOwner === "function" && !isAzoraOwner()) return;
+    var map = {};
+    document.querySelectorAll("#changePricesList input[data-price-id]").forEach(function (inp) {
+        var id = inp.getAttribute("data-price-id");
+        var n = Number(inp.value);
+        if (!id || isNaN(n)) return;
+        map[id] = Math.max(0, n);
+    });
+    savePriceOverrides(map);
+    try { renderMarketplace(); } catch (e) {}
+    renderChangePricesList();
+    if (typeof showAzoraToast === "function") showAzoraToast("Prices updated.");
+}
+function resetChangePrices() {
+    if (!confirm("Restore every original price?")) return;
+    savePriceOverrides({});
+    renderChangePricesList();
+    try { renderMarketplace(); } catch (e) {}
+}
+function refreshChangePricesButton() {
+    var btn = document.getElementById("changePricesBtn");
+    if (btn) btn.style.display = (typeof isAzoraOwner === "function" && isAzoraOwner()) ? "block" : "none";
+}
+window.openChangePrices = openChangePrices;
+window.closeChangePrices = closeChangePrices;
+window.saveChangePrices = saveChangePrices;
+window.resetChangePrices = resetChangePrices;
+window.liveCatalogPrice = liveCatalogPrice;
+window.marketPriceLabel = marketPriceLabel;
+try {
+    if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", function () { pullPriceOverrides(); refreshChangePricesButton(); });
+    else { pullPriceOverrides(); refreshChangePricesButton(); }
+} catch (ePr) {}
+
 function renderMarketplace() {
     var list = document.getElementById("marketplaceList");
     if (!list) return;
@@ -26839,8 +26965,8 @@ function renderMarketplace() {
         ATURIUS_MARKET_CATALOG.forEach(function (item) {
             if (item.type !== wantType) return;
             var owned = ownsItem(item.id) || isOwner;
-            var canBuy = !owned && !isOwner && (item.price === 0 || coins >= item.price);
-            var priceLabel = item.price === 0 ? "Free" : (formatCoins(item.price) + " 🪙");
+            var canBuy = !owned && !isOwner && ((typeof liveCatalogPrice === "function" ? liveCatalogPrice(item) : item.price) === 0 || coins >= (typeof liveCatalogPrice === "function" ? liveCatalogPrice(item) : item.price));
+            var priceLabel = (typeof marketPriceLabel === "function") ? marketPriceLabel(item) : (item.price === 0 ? "Free" : (formatCoins(item.price) + " 🪙"));
             html += '<div class="market-card' + (owned ? " owned" : "") + '">';
             if (item.color) {
                 html += '<div style="width:36px;height:36px;border-radius:50%;background:' + item.color + ';border:2px solid #fff;margin-bottom:6px;"></div>';
@@ -26857,8 +26983,8 @@ function renderMarketplace() {
     } else if (category === "faces") {
         AZORA_FACE_CATALOG.forEach(function (item) {
             var owned = ownsItem(item.id) || isOwner;
-            var canBuy = !owned && !isOwner && (item.price === 0 || coins >= item.price);
-            var priceLabel = item.price === 0 ? "Free" : (formatCoins(item.price) + " 🪙");
+            var canBuy = !owned && !isOwner && ((typeof liveCatalogPrice === "function" ? liveCatalogPrice(item) : item.price) === 0 || coins >= (typeof liveCatalogPrice === "function" ? liveCatalogPrice(item) : item.price));
+            var priceLabel = (typeof marketPriceLabel === "function") ? marketPriceLabel(item) : (item.price === 0 ? "Free" : (formatCoins(item.price) + " 🪙"));
             var file = item.file || "Smile.png";
             html += '<div class="market-card market-card-face' + (owned ? " owned" : "") + '">';
             html += '<div class="market-face-row">';
@@ -26881,8 +27007,8 @@ function renderMarketplace() {
         }
         shirts.forEach(function (item) {
             var owned = ownsItem(item.id) || (isOwner && item.official);
-            var canBuy = !owned && !isOwner && (item.price === 0 || coins >= item.price);
-            var priceLabel = item.price === 0 ? "Free" : (formatCoins(item.price) + " 🪙");
+            var canBuy = !owned && !isOwner && ((typeof liveCatalogPrice === "function" ? liveCatalogPrice(item) : item.price) === 0 || coins >= (typeof liveCatalogPrice === "function" ? liveCatalogPrice(item) : item.price));
+            var priceLabel = (typeof marketPriceLabel === "function") ? marketPriceLabel(item) : (item.price === 0 ? "Free" : (formatCoins(item.price) + " 🪙"));
             var by = item.official ? "Azora" : (item.creator || item.by || "Player");
             var thumbSrc = item.imageData || item.file || "";
             html += '<div class="market-card market-card-face' + (owned ? " owned" : "") + '">';
@@ -26907,8 +27033,8 @@ function renderMarketplace() {
             if (filter === "girl" && item.gender !== "girl") return;
             if (filter === "boy" && item.gender !== "boy") return;
             var owned = ownsItem(item.id) || isOwner;
-            var canBuy = !owned && !isOwner && (item.price === 0 || coins >= item.price);
-            var priceLabel = item.price === 0 ? "Free" : (formatCoins(item.price) + " 🪙");
+            var canBuy = !owned && !isOwner && ((typeof liveCatalogPrice === "function" ? liveCatalogPrice(item) : item.price) === 0 || coins >= (typeof liveCatalogPrice === "function" ? liveCatalogPrice(item) : item.price));
+            var priceLabel = (typeof marketPriceLabel === "function") ? marketPriceLabel(item) : (item.price === 0 ? "Free" : (formatCoins(item.price) + " 🪙"));
             html += '<div class="market-card' + (owned ? " owned" : "") + '">';
             html += '<div class="market-thumb-3d"><div class="market-spin-thumb hair-spin ' + (item.gender || "") + '"></div></div>';
             html += '<div class="market-card-title">' + item.name + '</div>';
