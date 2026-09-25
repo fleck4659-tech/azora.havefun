@@ -13,7 +13,7 @@
     <link rel="manifest" href="manifest-azora.json">
     <link rel="apple-touch-icon" href="logo.png?v=73.03">
     <link rel="icon" href="logo.png?v=73.03">
-    <link rel="stylesheet" href="style.css?v=73.11">
+    <link rel="stylesheet" href="style.css?v=73.12">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="azora-avatar.js?v=1.2"></script>
     <style>
@@ -91,9 +91,9 @@
             } catch (ePrev) {}
             var sc = scoreDevice();
             var fm = form();
-            if (!has2D() || sc <= -1) return "lockout";
             if (sc <= 3) return "low";
-            if (fm === "tablet" || fm === "phone") return "tablet";
+            if (fm === "phone") return "phone";
+            if (fm === "tablet" || fm === "vr") return "tablet";
             return "desktop";
         }
         function apply() {
@@ -102,19 +102,16 @@
             var fm = form();
             window.azoraUiProtocol = p;
             window.azoraDeviceScore = sc;
-            window.azoraDeviceKind = function () { return fm === "computer" ? "computer" : (fm === "tablet" ? "tablet" : fm); };
-            window.azoraDeviceAllowed = function () { return p !== "lockout"; };
+            window.azoraDeviceKind = function () { return fm; };
+            window.azoraDeviceAllowed = function () { return true; };
             document.documentElement.setAttribute("data-ui", p);
             document.documentElement.setAttribute("data-device-form", fm);
-            if (p === "lockout") {
-                var lock = document.getElementById("azoraDeviceLock");
-                if (lock) {
-                    lock.classList.add("show");
-                    lock.setAttribute("aria-hidden", "false");
-                }
-                document.body.classList.add("azora-device-blocked");
-                return true;
+            var lock = document.getElementById("azoraDeviceLock");
+            if (lock) {
+                lock.classList.remove("show");
+                lock.setAttribute("aria-hidden", "true");
             }
+            document.body.classList.remove("azora-device-blocked");
             return false;
         }
         window.lockAzoraIfUnsupportedDevice = apply;
@@ -136,7 +133,7 @@
         <div class="azora-phone-bezel">
             <iframe id="azoraPhonePreviewFrame" title="Azora phone preview"></iframe>
         </div>
-        <p class="azora-phone-preview-hint">This is a computer showing a phone-sized window. Real phones are still locked out.</p>
+        <p class="azora-phone-preview-hint">This is a computer showing a phone-sized window. Real phones now use the Automatic UI phone layout.</p>
     </div>
 </div>
 <div id="azoraXpDesktop" class="azora-xp-desktop" style="display:none;" aria-hidden="true">
@@ -1963,7 +1960,7 @@
 
 <!-- Optional: trained Aturius brain (export from Azora account → Settings → Export code files) -->
 <script src="aturius-training-pack.js"></script>
-<script src="script.js?v=73.11"></script>
+<script src="script.js?v=73.12"></script>
 <script src="political-earth-data.js?v=72.24"></script>
 <script src="political-earth-hd.js?v=72.24"></script>
 <script src="political-earth-hyper.js?v=72.26"></script>

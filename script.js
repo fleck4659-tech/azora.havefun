@@ -11,8 +11,10 @@
 })();
 var AZORA_DEV_STAGE = "mid-alpha";
 var AZORA_DEV_STAGE_LABEL = "Mid Alpha";
-var AZORA_APP_VERSION = "73.11";
+var AZORA_APP_VERSION = "73.12";
 var AZORA_WHATS_NEW = [
+    "Themes: Glossy RGBY (red, green, blue, yellow with shine and shadows) and Hearts & Stars (pink/purple falling hearts and stars).",
+    "Azora is open on all devices. Automatic UI picks phone, tablet, desktop, or low-power layout from the machine.",
     "Owner button Change prices: silver and gold moving colors. Original prices stay saved. Shop shows current price, original price, and + more or − less.",
     "Accounts now sync through Firebase: avatar, coins, inventory, theme, and settings follow you when you log in on another device.",
     "New Book Antiqua title font (BKANT) on headings and game names.",
@@ -2175,7 +2177,7 @@ function openSettings() {
         var hint = document.getElementById("azoraUiProtocolHint");
         if (hint) {
             var p = window.azoraUiProtocol || "desktop";
-            var names = { desktop: "Desktop Neo-Aero", tablet: "Premium Tablet", low: "Low-capability flat", lockout: "Unsupported lockout" };
+            var names = { desktop: "Desktop Neo-Aero", tablet: "Premium Tablet", phone: "Phone compact", low: "Low-capability flat", lockout: "Unsupported lockout" };
             hint.textContent = "Layout protocol: " + (names[p] || p) + " · score " + (window.azoraDeviceScore != null ? window.azoraDeviceScore : "?");
         }
     } catch (eUi) {}
@@ -7766,7 +7768,9 @@ var AZORA_THEME_PRESETS = {
     valentines: { bg1:"#4c0519", bg2:"#9f1239", bg3:"#fb7185", text1:"#fff1f2", text2:"#fecdd3", accent:"#fb7185", accent2:"#fda4af", card:"rgba(76,5,25,0.9)", border:"#fb7185", top:"#9f1239", grad:"linear-gradient(90deg,#9f1239,#fb7185,#fda4af)", pop:"#3f0a16", foot:"#4c0519", ban:"rgba(251,113,133,0.22)" },
     stpatricks: { bg1:"#052e16", bg2:"#166534", bg3:"#ca8a04", text1:"#f0fdf4", text2:"#fef9c3", accent:"#4ade80", accent2:"#facc15", card:"rgba(5,46,22,0.9)", border:"#4ade80", top:"#14532d", grad:"linear-gradient(90deg,#14532d,#22c55e,#ca8a04)", pop:"#052e16", foot:"#052e16", ban:"rgba(74,222,128,0.2)" },
     july4:      { bg1:"#1e3a8a", bg2:"#1d4ed8", bg3:"#b91c1c", text1:"#f8fafc", text2:"#fee2e2", accent:"#f87171", accent2:"#93c5fd", card:"rgba(30,58,138,0.9)", border:"#f87171", top:"#1e3a8a", grad:"linear-gradient(90deg,#1e3a8a,#f8fafc,#b91c1c)", pop:"#172554", foot:"#1e3a8a", ban:"rgba(248,113,113,0.2)" },
-    hanukkah:   { bg1:"#1e3a8a", bg2:"#1d4ed8", bg3:"#cbd5e1", text1:"#f8fafc", text2:"#e2e8f0", accent:"#fbbf24", accent2:"#93c5fd", card:"rgba(30,58,138,0.9)", border:"#fbbf24", top:"#1e3a8a", grad:"linear-gradient(90deg,#1e3a8a,#93c5fd,#fbbf24)", pop:"#172554", foot:"#1e3a8a", ban:"rgba(251,191,36,0.2)" }
+    hanukkah:   { bg1:"#1e3a8a", bg2:"#1d4ed8", bg3:"#cbd5e1", text1:"#f8fafc", text2:"#e2e8f0", accent:"#fbbf24", accent2:"#93c5fd", card:"rgba(30,58,138,0.9)", border:"#fbbf24", top:"#1e3a8a", grad:"linear-gradient(90deg,#1e3a8a,#93c5fd,#fbbf24)", pop:"#172554", foot:"#1e3a8a", ban:"rgba(251,191,36,0.2)" },
+    glossyrgb: { bg1:"#111827", bg2:"#1e3a8a", bg3:"#166534", text1:"#fffbeb", text2:"#e2e8f0", accent:"#facc15", accent2:"#ef4444", card:"rgba(15,23,42,0.72)", border:"#38bdf8", top:"#1d4ed8", grad:"linear-gradient(90deg,#ef4444,#22c55e,#3b82f6,#facc15)", pop:"#0f172a", foot:"#111827", ban:"rgba(250,204,21,0.22)" },
+    heartfall: { bg1:"#4c0519", bg2:"#6b21a8", bg3:"#db2777", text1:"#fff1f2", text2:"#f5d0fe", accent:"#f9a8d4", accent2:"#c4b5fd", card:"rgba(76,29,149,0.55)", border:"#f9a8d4", top:"#9d174d", grad:"linear-gradient(90deg,#db2777,#7c3aed,#f9a8d4)", pop:"#3b0764", foot:"#4c0519", ban:"rgba(249,168,212,0.28)" }
 };
 
 function resolveAzoraTheme(theme) {
@@ -7885,11 +7889,12 @@ function paintThemeGrid(active) {
         blueberry:"Blueberry", prism:"Prism", lava:"Lava", classic603:"Old Azora (603blox Web)",
         gold:"Gold", silver:"Silver", neon:"Neon Night", sparkle:"Nostalgic Sparkles",
         bronze:"Bronze", rosegold:"Rose Gold", chrome:"Chrome", softrainbow:"Soft Rainbow",
+        glossyrgb:"Glossy RGBY", heartfall:"Hearts & Stars",
         original:"Original Azora", halloween:"Halloween", thanksgiving:"Thanksgiving", christmas:"Christmas",
         easter:"Easter", newyear:"New Year", valentines:"Valentine's Day", stpatricks:"St. Patrick's Day",
         july4:"Independence Day", hanukkah:"Hanukkah"
     };
-    var ids = ["original","auto","midnight","void","ocean","cobalt","sapphire","storm","royal","grape","amethyst","orchid","nebula","galaxy","aurora","twilight","indigo","cyber","ice","moonlight","slate","forest","mint","ember","sunset","candy","blueberry","prism","lava","classic603","gold","silver","neon","sparkle","bronze","rosegold","chrome","softrainbow","halloween","thanksgiving","christmas","easter","newyear","valentines","stpatricks","july4","hanukkah"];
+    var ids = ["original","auto","midnight","void","ocean","cobalt","sapphire","storm","royal","grape","amethyst","orchid","nebula","galaxy","aurora","twilight","indigo","cyber","ice","moonlight","slate","forest","mint","ember","sunset","candy","blueberry","prism","lava","classic603","gold","silver","neon","sparkle","bronze","rosegold","chrome","softrainbow","glossyrgb","heartfall","halloween","thanksgiving","christmas","easter","newyear","valentines","stpatricks","july4","hanukkah"];
     var html = ids.map(function (id) {
         var prev = id === "auto" ? "linear-gradient(135deg,#1d4ed8,#6d28d9)" : (AZORA_THEME_PRESETS[id] ? AZORA_THEME_PRESETS[id].grad : "#1e3a8a");
         var slow = id === "classic603" ? "applyOldAzoraTheme()" : ("changeTheme('" + id + "')");
@@ -8368,12 +8373,15 @@ function applyThemeFx(id) {
     if (_sparkleTimer) { cancelAnimationFrame(_sparkleTimer); _sparkleTimer = null; }
     if (_neonTimer) { clearInterval(_neonTimer); _neonTimer = null; }
     if (layer) {
-        layer.style.display = id === "sparkle" ? "block" : "none";
-        layer.classList.toggle("on", id === "sparkle");
+        layer.style.display = (id === "sparkle" || id === "heartfall") ? "block" : "none";
+        layer.classList.toggle("on", id === "sparkle" || id === "heartfall");
     }
     if (id === "sparkle") startAzoraSparkles();
+    if (id === "heartfall") startAzoraHeartFall();
     if (id === "neon") startAzoraNeonPulse();
     document.documentElement.classList.toggle("theme-soft-rainbow", id === "softrainbow");
+    document.documentElement.classList.toggle("theme-glossy-rgby", id === "glossyrgb");
+    document.documentElement.classList.toggle("theme-heartfall", id === "heartfall");
 }
 
 function startAzoraNeonPulse() {
@@ -8392,6 +8400,65 @@ function startAzoraNeonPulse() {
     _neonTimer = setInterval(paint, 900);
 }
 
+function startAzoraHeartFall() {
+    var canvas = document.getElementById("azoraSparkleLayer");
+    if (!canvas) return;
+    var ctx = canvas.getContext("2d");
+    var bits = [];
+    function resize() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+    }
+    resize();
+    function spawn() {
+        bits.push({
+            x: Math.random() * canvas.width,
+            y: -18,
+            s: 8 + Math.random() * 12,
+            v: 0.5 + Math.random() * 1.3,
+            a: 0.45 + Math.random() * 0.5,
+            kind: Math.random() > 0.45 ? "heart" : "star",
+            shine: Math.random()
+        });
+        if (bits.length > 42) bits.shift();
+    }
+    function drawHeart(x, y, s) {
+        ctx.beginPath();
+        ctx.moveTo(x, y + s * 0.3);
+        ctx.bezierCurveTo(x, y, x - s / 2, y, x - s / 2, y + s * 0.35);
+        ctx.bezierCurveTo(x - s / 2, y + s * 0.7, x, y + s * 0.95, x, y + s);
+        ctx.bezierCurveTo(x, y + s * 0.95, x + s / 2, y + s * 0.7, x + s / 2, y + s * 0.35);
+        ctx.bezierCurveTo(x + s / 2, y, x, y, x, y + s * 0.3);
+        ctx.fill();
+    }
+    function drawStar(x, y, s) {
+        ctx.beginPath();
+        for (var i = 0; i < 8; i++) {
+            var r = (i % 2 === 0) ? s / 2 : s / 5;
+            var a = (Math.PI / 4) * i - Math.PI / 2;
+            if (i === 0) ctx.moveTo(x + Math.cos(a) * r, y + Math.sin(a) * r);
+            else ctx.lineTo(x + Math.cos(a) * r, y + Math.sin(a) * r);
+        }
+        ctx.closePath();
+        ctx.fill();
+    }
+    function tick() {
+        if ((document.documentElement.getAttribute("data-theme") || "") !== "heartfall") return;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        if (Math.random() < 0.35) spawn();
+        bits.forEach(function (b) {
+            b.y += b.v;
+            b.shine = (b.shine + 0.03) % 1;
+            ctx.globalAlpha = b.a * (0.65 + Math.sin(b.shine * Math.PI * 2) * 0.35);
+            ctx.fillStyle = b.kind === "heart" ? "#f9a8d4" : "#fff7fb";
+            if (b.kind === "heart") drawHeart(b.x, b.y, b.s);
+            else drawStar(b.x, b.y, b.s);
+        });
+        ctx.globalAlpha = 1;
+        _sparkleTimer = requestAnimationFrame(tick);
+    }
+    tick();
+}
 function startAzoraSparkles() {
     var canvas = document.getElementById("azoraSparkleLayer");
     if (!canvas) return;
