@@ -8756,3 +8756,27 @@ html[data-ui="phone"] .azora-mobile-tabbar { display: flex; }
 html[data-ui="phone"] body { padding-bottom: 70px; }
 html[data-ui="phone"] .topbar-title { font-size: 1.05rem; }
 html[data-ui="phone"] button { min-height: 42px; }
+
+html.azora-retro-2008 .topbar,
+html[data-theme="retro2008"] .topbar,
+html.azora-retro-2008 .popup,
+html[data-theme="retro2008"] .popup,
+html.azora-retro-2008 .norm-game-card,
+html[data-theme="retro2008"] .norm-game-card,
+html.azora-retro-2008 .market-card,
+html[data-theme="retro2008"] .market-card {
+    background-image: linear-gradient(180deg, rgba(255,255,255,0.28), rgba(255,255,255,0) 40%, rgba(0,0,0,0.16));
+    box-shadow: 0 8px 0 rgba(0,0,0,0.25), 0 14px 24px rgba(0,0,0,0.28), inset 0 1px 0 rgba(255,255,255,0.5);
+    border: 1px solid rgba(255,255,255,0.35);
+}
+html.azora-retro-2008 button,
+html[data-theme="retro2008"] button {
+    background-image: linear-gradient(180deg, rgba(255,255,255,0.4), rgba(255,255,255,0) 45%, rgba(0,0,0,0.2));
+    box-shadow: 0 3px 0 rgba(0,0,0,0.28), inset 0 1px 0 rgba(255,255,255,0.55);
+    border-radius: 10px;
+}
+html.azora-retro-2008 canvas,
+html[data-theme="retro2008"] canvas {
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+}

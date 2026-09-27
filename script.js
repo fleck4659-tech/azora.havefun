@@ -11,8 +11,9 @@
 })();
 var AZORA_DEV_STAGE = "mid-alpha";
 var AZORA_DEV_STAGE_LABEL = "Mid Alpha";
-var AZORA_APP_VERSION = "73.12";
+var AZORA_APP_VERSION = "73.13";
 var AZORA_WHATS_NEW = [
+    "2008 Gloss is the new default look: official glossy purple A logo, Web 2.0 gradients and shadows, pixel-3D avatars, and lower-quality game audio.",
     "Themes: Glossy RGBY (red, green, blue, yellow with shine and shadows) and Hearts & Stars (pink/purple falling hearts and stars).",
     "Azora is open on all devices. Automatic UI picks phone, tablet, desktop, or low-power layout from the machine.",
     "Owner button Change prices: silver and gold moving colors. Original prices stay saved. Shop shows current price, original price, and + more or − less.",
@@ -7770,7 +7771,8 @@ var AZORA_THEME_PRESETS = {
     july4:      { bg1:"#1e3a8a", bg2:"#1d4ed8", bg3:"#b91c1c", text1:"#f8fafc", text2:"#fee2e2", accent:"#f87171", accent2:"#93c5fd", card:"rgba(30,58,138,0.9)", border:"#f87171", top:"#1e3a8a", grad:"linear-gradient(90deg,#1e3a8a,#f8fafc,#b91c1c)", pop:"#172554", foot:"#1e3a8a", ban:"rgba(248,113,113,0.2)" },
     hanukkah:   { bg1:"#1e3a8a", bg2:"#1d4ed8", bg3:"#cbd5e1", text1:"#f8fafc", text2:"#e2e8f0", accent:"#fbbf24", accent2:"#93c5fd", card:"rgba(30,58,138,0.9)", border:"#fbbf24", top:"#1e3a8a", grad:"linear-gradient(90deg,#1e3a8a,#93c5fd,#fbbf24)", pop:"#172554", foot:"#1e3a8a", ban:"rgba(251,191,36,0.2)" },
     glossyrgb: { bg1:"#111827", bg2:"#1e3a8a", bg3:"#166534", text1:"#fffbeb", text2:"#e2e8f0", accent:"#facc15", accent2:"#ef4444", card:"rgba(15,23,42,0.72)", border:"#38bdf8", top:"#1d4ed8", grad:"linear-gradient(90deg,#ef4444,#22c55e,#3b82f6,#facc15)", pop:"#0f172a", foot:"#111827", ban:"rgba(250,204,21,0.22)" },
-    heartfall: { bg1:"#4c0519", bg2:"#6b21a8", bg3:"#db2777", text1:"#fff1f2", text2:"#f5d0fe", accent:"#f9a8d4", accent2:"#c4b5fd", card:"rgba(76,29,149,0.55)", border:"#f9a8d4", top:"#9d174d", grad:"linear-gradient(90deg,#db2777,#7c3aed,#f9a8d4)", pop:"#3b0764", foot:"#4c0519", ban:"rgba(249,168,212,0.28)" }
+    heartfall: { bg1:"#4c0519", bg2:"#6b21a8", bg3:"#db2777", text1:"#fff1f2", text2:"#f5d0fe", accent:"#f9a8d4", accent2:"#c4b5fd", card:"rgba(76,29,149,0.55)", border:"#f9a8d4", top:"#9d174d", grad:"linear-gradient(90deg,#db2777,#7c3aed,#f9a8d4)", pop:"#3b0764", foot:"#4c0519", ban:"rgba(249,168,212,0.28)" },
+    retro2008: { bg1:"#2a0a4a", bg2:"#5b21b6", bg3:"#7c3aed", text1:"#ffffff", text2:"#f3e8ff", accent:"#e9d5ff", accent2:"#c4b5fd", card:"rgba(255,255,255,0.16)", border:"#f5d0fe", top:"#6d28d9", grad:"linear-gradient(180deg,#c4b5fd 0%,#7c3aed 55%,#3b0764 100%)", pop:"#3b0764", foot:"#2e1065", ban:"rgba(233,213,255,0.28)" }
 };
 
 function resolveAzoraTheme(theme) {
@@ -7889,12 +7891,12 @@ function paintThemeGrid(active) {
         blueberry:"Blueberry", prism:"Prism", lava:"Lava", classic603:"Old Azora (603blox Web)",
         gold:"Gold", silver:"Silver", neon:"Neon Night", sparkle:"Nostalgic Sparkles",
         bronze:"Bronze", rosegold:"Rose Gold", chrome:"Chrome", softrainbow:"Soft Rainbow",
-        glossyrgb:"Glossy RGBY", heartfall:"Hearts & Stars",
+        glossyrgb:"Glossy RGBY", heartfall:"Hearts & Stars", retro2008:"2008 Gloss",
         original:"Original Azora", halloween:"Halloween", thanksgiving:"Thanksgiving", christmas:"Christmas",
         easter:"Easter", newyear:"New Year", valentines:"Valentine's Day", stpatricks:"St. Patrick's Day",
         july4:"Independence Day", hanukkah:"Hanukkah"
     };
-    var ids = ["original","auto","midnight","void","ocean","cobalt","sapphire","storm","royal","grape","amethyst","orchid","nebula","galaxy","aurora","twilight","indigo","cyber","ice","moonlight","slate","forest","mint","ember","sunset","candy","blueberry","prism","lava","classic603","gold","silver","neon","sparkle","bronze","rosegold","chrome","softrainbow","glossyrgb","heartfall","halloween","thanksgiving","christmas","easter","newyear","valentines","stpatricks","july4","hanukkah"];
+    var ids = ["retro2008","original","auto","midnight","void","ocean","cobalt","sapphire","storm","royal","grape","amethyst","orchid","nebula","galaxy","aurora","twilight","indigo","cyber","ice","moonlight","slate","forest","mint","ember","sunset","candy","blueberry","prism","lava","classic603","gold","silver","neon","sparkle","bronze","rosegold","chrome","softrainbow","glossyrgb","heartfall","halloween","thanksgiving","christmas","easter","newyear","valentines","stpatricks","july4","hanukkah"];
     var html = ids.map(function (id) {
         var prev = id === "auto" ? "linear-gradient(135deg,#1d4ed8,#6d28d9)" : (AZORA_THEME_PRESETS[id] ? AZORA_THEME_PRESETS[id].grad : "#1e3a8a");
         var slow = id === "classic603" ? "applyOldAzoraTheme()" : ("changeTheme('" + id + "')");
@@ -8368,6 +8370,41 @@ function runAzoraDosCommand(raw) {
 
 var _sparkleTimer = null;
 var _neonTimer = null;
+function isAzoraRetro2008() {
+    try {
+        var t = document.documentElement.getAttribute("data-theme") || localStorage.getItem("azoraTheme") || "";
+        return t === "retro2008" || document.documentElement.classList.contains("azora-retro-2008");
+    } catch (e) { return false; }
+}
+function applyRetroFidelity(on) {
+    document.documentElement.classList.toggle("azora-retro-2008", !!on);
+    var canvases = document.querySelectorAll("canvas");
+    for (var i = 0; i < canvases.length; i++) {
+        canvases[i].style.imageRendering = on ? "pixelated" : "";
+    }
+    var renderers = [window.renderer, window._normRenderer, window._play && window._play.renderer, window._aturiusRenderer];
+    renderers.forEach(function (r) {
+        try { if (r && r.setPixelRatio) r.setPixelRatio(on ? 0.45 : Math.min(window.devicePixelRatio || 1, 2)); } catch (e) {}
+    });
+}
+function attachRetroAudio(el) {
+    if (!el || el._azoraRetroWired) return el;
+    try {
+        var AC = window.AudioContext || window.webkitAudioContext;
+        if (!AC) return el;
+        if (!window._azoraRetroAudioCtx) window._azoraRetroAudioCtx = new AC();
+        var ctx = window._azoraRetroAudioCtx;
+        var src = ctx.createMediaElementSource(el);
+        var lp = ctx.createBiquadFilter();
+        lp.type = "lowpass";
+        lp.frequency.value = 2800;
+        var gain = ctx.createGain();
+        gain.gain.value = 1.05;
+        src.connect(lp); lp.connect(gain); gain.connect(ctx.destination);
+        el._azoraRetroWired = true;
+    } catch (e) {}
+    return el;
+}
 function applyThemeFx(id) {
     var layer = document.getElementById("azoraSparkleLayer");
     if (_sparkleTimer) { cancelAnimationFrame(_sparkleTimer); _sparkleTimer = null; }
@@ -8382,6 +8419,8 @@ function applyThemeFx(id) {
     document.documentElement.classList.toggle("theme-soft-rainbow", id === "softrainbow");
     document.documentElement.classList.toggle("theme-glossy-rgby", id === "glossyrgb");
     document.documentElement.classList.toggle("theme-heartfall", id === "heartfall");
+    document.documentElement.classList.toggle("azora-retro-2008", id === "retro2008");
+    try { applyRetroFidelity(id === "retro2008"); } catch (eR) {}
 }
 
 function startAzoraNeonPulse() {
@@ -8521,12 +8560,12 @@ function loadTheme() {
             localStorage.setItem("azoraHoliday", "none");
             localStorage.setItem("azoraHalloween", "off");
             if (!localStorage.getItem("azoraTheme") || localStorage.getItem("azoraTheme") === "auto") {
-                localStorage.setItem("azoraTheme", "original");
+                localStorage.setItem("azoraTheme", "retro2008");
             }
             localStorage.setItem("azoraHolidayMigrated", "1");
         }
     } catch (eMig) {}
-    const saved = localStorage.getItem("azoraTheme") || "original";
+    const saved = localStorage.getItem("azoraTheme") || "retro2008";
     const sel = document.getElementById("themeSelect");
     if (sel) sel.value = saved;
     applyTheme(saved);
@@ -8635,7 +8674,7 @@ function applyHolidayTheme(id, opts) {
     if (!opts.fromTheme && id !== "none") {
         applyTheme(id);
     } else if (!opts.fromTheme && id === "none") {
-        var current = localStorage.getItem("azoraTheme") || "original";
+        var current = localStorage.getItem("azoraTheme") || "retro2008";
         if (AZORA_HOLIDAY_IDS.indexOf(current) >= 0) applyTheme("original");
     }
 }
@@ -21490,6 +21529,7 @@ function getAzoraSfx(kind) {
             } else {
                 a.volume = 0.8;
             }
+            try { if (typeof attachRetroAudio === "function") attachRetroAudio(a); } catch (eAu) {}
             _azoraSfx[kind] = a;
         } catch (e) {
             _azoraSfx[kind] = null;
@@ -21505,6 +21545,7 @@ function playAzoraSfx(kind) {
         if (kind !== "walking") {
             a.currentTime = 0;
         }
+        try { a.playbackRate = (typeof isAzoraRetro2008 === "function" && isAzoraRetro2008()) ? 0.86 : 1; } catch (eR) {}
         var p = a.play();
         if (p && p.catch) p.catch(function () {});
     } catch (e) {}
@@ -21541,6 +21582,7 @@ function playClickSfx() {
         if (!a) return;
         a.currentTime = 0;
         a.volume = 0.75;
+        try { a.playbackRate = (typeof isAzoraRetro2008 === "function" && isAzoraRetro2008()) ? 0.86 : 1; } catch (eR) {}
         var p = a.play();
         if (p && p.catch) p.catch(function () {});
     } catch (e) {}
