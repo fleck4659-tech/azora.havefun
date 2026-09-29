@@ -8780,3 +8780,6 @@ html[data-theme="retro2008"] canvas {
     image-rendering: pixelated;
     image-rendering: crisp-edges;
 }
+
+.aturius-try-again-btn { margin-top: 8px; }
+.aturius-gen-img { max-width: 280px; border-radius: 12px; display: block; margin-top: 8px; }

@@ -11,8 +11,9 @@
 })();
 var AZORA_DEV_STAGE = "mid-alpha";
 var AZORA_DEV_STAGE_LABEL = "Mid Alpha";
-var AZORA_APP_VERSION = "73.13";
+var AZORA_APP_VERSION = "73.14";
 var AZORA_WHATS_NEW = [
+    "Temporary Aturius shape images: type Generate an image of … Pictures are circles, boxes, and triangles only. Unsafe results show a sorry message and Try again (3 times max).",
     "2008 Gloss is the new default look: official glossy purple A logo, Web 2.0 gradients and shadows, pixel-3D avatars, and lower-quality game audio.",
     "Themes: Glossy RGBY (red, green, blue, yellow with shine and shadows) and Hearts & Stars (pink/purple falling hearts and stars).",
     "Azora is open on all devices. Automatic UI picks phone, tablet, desktop, or low-power layout from the machine.",
@@ -12845,11 +12846,23 @@ function parseAturiusImageCommand(userText) {
     var kind = String(m[1] || "video").toLowerCase();
     var prompt = expandAturiusClipEmojis(String(m[2] || "").trim());
     if (!prompt) {
-        return "Say it like this: :Generate a video of a yellow sphere bouncing in a park";
+        return "Say it like this: :Generate an image of a yellow circle in a park";
     }
     var check = moderateAturiusImagePrompt(prompt);
     if (!check.ok) {
-        return "I can't make that clip. This test only allows kind, kid-safe ideas. Try animals, parks, space, or cartoons.";
+        return {
+            text: "Sorry, but the image that was created could not be loaded. Please try again later.",
+            shapePrompt: prompt,
+            shapeBlocked: true,
+            shapeTries: 0
+        };
+    }
+    if (kind === "image" || kind === "picture" || kind === "photo") {
+        return {
+            text: "Making a shape picture (temporary test, filtered)…",
+            shapePrompt: prompt,
+            shapeKind: "image"
+        };
     }
     return {
         text: "Making a short cartoon clip (test, filtered)…",
@@ -12893,9 +12906,10 @@ function moderateAturiusImagePrompt(prompt) {
         .replace(/\s+/g, " ");
     var blocked = [
         "nsfw","nude","naked","sexy","kiss","dating","boyfriend","girlfriend",
+        "romance","crush","love letter","body","underwear","swimsuit",
         "blood","gore","kill","murder","dead","weapon","gun","knife","bomb",
         "drug","smoke","alcohol","beer","wine","hate","racist","slur",
-        "suicide","harm","hurt myself","eqetech","bobby samanama"
+        "suicide","harm","hurt myself","eqetech","bobby samanama","adult"
     ];
     for (var i = 0; i < blocked.length; i++) {
         if (t.indexOf(" " + blocked[i] + " ") !== -1 || t.indexOf(blocked[i]) !== -1) {
@@ -12905,6 +12919,74 @@ function moderateAturiusImagePrompt(prompt) {
     if (t.length < 3) return { ok: false };
     return { ok: true };
 }
+
+function buildAturiusShapeImage(prompt) {
+    var check = moderateAturiusImagePrompt(prompt);
+    if (!check.ok) return { blocked: true };
+    var scene = (typeof understandAturiusClip === "function") ? understandAturiusClip(prompt) : { color: "#facc15", place: "park", actor: "sphere" };
+    var c = document.createElement("canvas");
+    c.width = 512; c.height = 512;
+    var g = c.getContext("2d");
+    var sky = { park:"#7dd3fc", space:"#0f172a", ocean:"#38bdf8", city:"#94a3b8", snow:"#e2e8f0", rain:"#64748b", night:"#1e1b4b", halloween:"#431407", sunset:"#fb923c", shop:"#c4b5fd", house:"#fdba74", desert:"#fde68a", forest:"#166534", lobby:"#7c3aed" };
+    g.fillStyle = sky[scene.place] || "#7dd3fc";
+    g.fillRect(0, 0, 512, 512);
+    // ground / backdrop shapes only
+    if (scene.place === "space") {
+        g.fillStyle = "#f8fafc";
+        for (var s = 0; s < 18; s++) g.fillRect(20 + (s * 47) % 500, 16 + (s * 73) % 280, 6, 6);
+    } else if (scene.place === "ocean") {
+        g.fillStyle = "#0369a1";
+        g.beginPath(); g.ellipse(256, 420, 280, 90, 0, 0, Math.PI * 2); g.fill();
+    } else {
+        g.fillStyle = (scene.place === "snow") ? "#f8fafc" : "#22c55e";
+        g.fillRect(0, 360, 512, 152);
+    }
+    function circle(x, y, r, col) { g.fillStyle = col; g.beginPath(); g.arc(x, y, r, 0, Math.PI * 2); g.fill(); }
+    function tri(x, y, s, col) { g.fillStyle = col; g.beginPath(); g.moveTo(x, y - s); g.lineTo(x + s, y + s); g.lineTo(x - s, y + s); g.closePath(); g.fill(); }
+    function box(x, y, w, h, col) { g.fillStyle = col; g.fillRect(x, y, w, h); }
+    var col = scene.color || "#facc15";
+    var actor = scene.actor || "sphere";
+    if (actor === "tree") { box(236, 280, 40, 110, "#92400e"); tri(256, 210, 90, "#16a34a"); tri(256, 160, 70, "#22c55e"); }
+    else if (actor === "house") { box(180, 250, 150, 120, "#fdba74"); tri(256, 190, 100, "#ef4444"); box(236, 300, 40, 70, "#92400e"); }
+    else if (actor === "car") { box(150, 300, 210, 70, col); circle(200, 370, 22, "#1f2937"); circle(310, 370, 22, "#1f2937"); box(200, 270, 90, 40, "#93c5fd"); }
+    else if (actor === "cat" || actor === "dog" || actor === "bunny" || actor === "fox" || actor === "bear") {
+        circle(256, 280, 70, col); circle(210, 210, 22, col); circle(300, 210, 22, col); circle(236, 270, 8, "#111827"); circle(276, 270, 8, "#111827");
+    } else if (actor === "robot") { box(196, 210, 120, 140, "#94a3b8"); box(216, 230, 30, 30, "#38bdf8"); box(266, 230, 30, 30, "#38bdf8"); }
+    else if (actor === "pumpkin") { circle(256, 290, 80, "#f97316"); tri(256, 210, 28, "#166534"); }
+    else { circle(256, 270, 88, col); circle(230, 250, 10, "#111827"); circle(282, 250, 10, "#111827"); }
+    g.fillStyle = "rgba(255,255,255,0.55)";
+    g.beginPath(); g.ellipse(210, 140, 90, 28, -0.4, 0, Math.PI * 2); g.fill();
+    return { blocked: false, url: c.toDataURL("image/png") };
+}
+window.buildAturiusShapeImage = buildAturiusShapeImage;
+function retryAturiusShapeImage(idx) {
+    try {
+        var store = ensureActiveAIChat();
+        var chat = getActiveAIChat();
+        if (!chat || !chat.messages || !chat.messages[idx]) return;
+        var m = chat.messages[idx];
+        m.shapeTries = (m.shapeTries || 0) + 1;
+        if (m.shapeTries > 3) {
+            alert("You can't press this button anymore after repeated attempts.");
+            saveAIChatStore(store);
+            renderAturiusMessages();
+            return;
+        }
+        var made = buildAturiusShapeImage(m.shapePrompt || "");
+        if (!made || made.blocked) {
+            m.shapeBlocked = true;
+            m.imageUrl = "";
+            m.text = "Sorry, but the image that was created could not be loaded. Please try again later.";
+        } else {
+            m.shapeBlocked = false;
+            m.imageUrl = made.url;
+            m.text = "Here's a shape picture (temporary test). It is made of circles, boxes, and triangles only.";
+        }
+        saveAIChatStore(store);
+        renderAturiusMessages();
+    } catch (e) {}
+}
+window.retryAturiusShapeImage = retryAturiusShapeImage;
 
 function understandAturiusClip(prompt) {
     var low = String(prompt || "").toLowerCase();
@@ -14423,6 +14505,22 @@ function scheduleAIReply(userText, aiChatId, attachment) {
                 saveAIChatStore(store);
                 try { renderAturiusMessages(); } catch (eS1) {}
             });
+        }
+        if (extra && extra.shapePrompt) {
+            aiMsg.shapePrompt = extra.shapePrompt;
+            aiMsg.shapeBlocked = !!extra.shapeBlocked;
+            aiMsg.shapeTries = extra.shapeTries || 0;
+            if (!aiMsg.shapeBlocked) {
+                var made = buildAturiusShapeImage(extra.shapePrompt);
+                if (!made || made.blocked) {
+                    aiMsg.shapeBlocked = true;
+                    aiMsg.text = "Sorry, but the image that was created could not be loaded. Please try again later.";
+                } else {
+                    aiMsg.imageUrl = made.url;
+                    aiMsg.text = "Here's a shape picture (temporary test). It is made of circles, boxes, and triangles only.";
+                }
+            }
+            saveAIChatStore(store);
         }
         if (extra && extra.clipPrompt) {
             aiMsg.clipPrompt = extra.clipPrompt;
@@ -16120,12 +16218,25 @@ function renderAturiusMessages() {
             aturiusFillStyledText(textNode, String(m.text || ""));
             div.appendChild(textNode);
         }
-        if (m.imageUrl) {
+        if (m.imageUrl && !m.shapeBlocked) {
             var genImg = document.createElement("img");
             genImg.src = m.imageUrl;
-            genImg.alt = "Generated picture";
+            genImg.alt = "Shape picture";
             genImg.className = "aturius-msg-img aturius-gen-img";
             div.appendChild(genImg);
+        }
+        if (m.shapeBlocked || (m.shapePrompt && !m.imageUrl)) {
+            var again = document.createElement("button");
+            again.type = "button";
+            again.className = "aturius-try-again-btn";
+            again.textContent = "Try again";
+            again.setAttribute("data-msg-i", String(i));
+            if ((m.shapeTries || 0) >= 3) {
+                again.disabled = true;
+                again.textContent = "Try again locked";
+            }
+            again.onclick = function () { retryAturiusShapeImage(Number(this.getAttribute("data-msg-i"))); };
+            div.appendChild(again);
         }
         if (m.videoUrl || m.clipPrompt) {
             var vid = document.createElement("video");
