@@ -13,7 +13,7 @@
     <link rel="manifest" href="manifest-azora.json">
     <link rel="apple-touch-icon" href="logo.png?v=73.03">
     <link rel="icon" href="logo.png?v=73.03">
-    <link rel="stylesheet" href="style.css?v=73.16">
+    <link rel="stylesheet" href="style.css?v=73.17">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="azora-avatar.js?v=1.2"></script>
     <style>
@@ -1110,6 +1110,15 @@
                 </div>
                 <button type="button" class="norm-join-btn" onclick="openLivingLands()">Play</button>
             </article>
+            <article class="norm-game-card" data-game-id="plaza-1990">
+                <div class="norm-game-icon">🏙️</div>
+                <div class="norm-game-info">
+                    <h4>Plaza 1990</h4>
+                    <p><span class="by-creator">By Azora</span>. Walk a huge 1990s tower. Brick, concrete, glass, wood, and carpet textures. Lobby, elevator, and office floors.</p>
+                    <span class="norm-game-meta">3D · Explore · Textures · Solo</span>
+                </div>
+                <button type="button" class="norm-join-btn" onclick="openPlaza1990()">Play</button>
+            </article>
             <article class="norm-game-card" data-game-id="block-tower">
                 <div class="norm-game-icon">🏢</div>
                 <div class="norm-game-info">
@@ -1960,7 +1969,7 @@
 
 <!-- Optional: trained Aturius brain (export from Azora account → Settings → Export code files) -->
 <script src="aturius-training-pack.js"></script>
-<script src="script.js?v=73.16"></script>
+<script src="script.js?v=73.17"></script>
 <script src="political-earth-data.js?v=72.24"></script>
 <script src="political-earth-hd.js?v=72.24"></script>
 <script src="political-earth-hyper.js?v=72.26"></script>
@@ -2165,6 +2174,20 @@ if ("serviceWorker" in navigator) {
     </div>
 </div>
 
+<div id="plaza1990Overlay" class="overlay" style="display:none;">
+    <div class="popup market-popup" style="max-width:min(860px,calc(100vw - 16px));text-align:left;">
+        <h2 style="text-align:center;margin:0 0 6px;">Plaza 1990</h2>
+        <p class="settings-hint" style="text-align:center;">Huge 1990s tower. WASD to walk. Mouse to look. E uses the elevator.</p>
+        <p id="plaza1990Hud">Lobby · Floor 1</p>
+        <canvas id="plaza1990Canvas" width="800" height="450" style="width:100%;height:auto;background:#8fb4d8;border-radius:12px;touch-action:none;"></canvas>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;">
+            <button type="button" onclick="plaza1990Floor(1)">Lobby</button>
+            <button type="button" onclick="plaza1990Floor(6)">Floor 6</button>
+            <button type="button" onclick="plaza1990Floor(12)">Floor 12</button>
+            <button type="button" onclick="closePlaza1990()">Close</button>
+        </div>
+    </div>
+</div>
 <div id="blockTowerOverlay" class="overlay" style="display:none;">
     <div class="popup market-popup" style="max-width:min(720px,calc(100vw - 16px));text-align:left;">
         <h2 style="text-align:center;margin:0 0 6px;">Block Tower</h2>

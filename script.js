@@ -11,9 +11,8 @@
 })();
 var AZORA_DEV_STAGE = "mid-alpha";
 var AZORA_DEV_STAGE_LABEL = "Mid Alpha";
-var AZORA_APP_VERSION = "73.16";
+var AZORA_APP_VERSION = "73.17";
 var AZORA_WHATS_NEW = [
-    "TEST theme: Corporate. Minimal white layout, black shadows, a little purple. Switch it off in Settings, Themes if you do not like it.",
     "Temporary Aturius shape images: type Generate an image of … Pictures are circles, boxes, and triangles only. Unsafe results show a sorry message and Try again (3 times max).",
     "2008 Gloss is the new default look: official glossy purple A logo, Web 2.0 gradients and shadows, pixel-3D avatars, and lower-quality game audio.",
     "Themes: Glossy RGBY (red, green, blue, yellow with shine and shadows) and Hearts & Stars (pink/purple falling hearts and stars).",
@@ -22,6 +21,7 @@ var AZORA_WHATS_NEW = [
     "Accounts now sync through Firebase: avatar, coins, inventory, theme, and settings follow you when you log in on another device.",
     "New Book Antiqua title font (BKANT) on headings and game names.",
     "Automatic UI: Azora picks Desktop Neo-Aero, Tablet touch layout, or Low-capability flat mode from device power. Only machines that cannot render at all are locked out.",
+    "New solo game: Plaza 1990. Walk a huge textured 1990s tower with brick, concrete, glass, and carpet.",
     "New solo game: Block Tower. Brick and wood blocks stack with gravity. Mid-floor heat weakens joints so the top can fall.",
     "Aturius: Generate me a Sound Sonification of [anything]. It reads a picture of that idea and builds a 10-second playable sound from brightness, color, edges, and grain.",
     "AzoraCoins menu → Azora Stock now shows platform revenue (fees + official sales), not coin balance. Missing years say More data coming soon!",
@@ -7774,8 +7774,7 @@ var AZORA_THEME_PRESETS = {
     hanukkah:   { bg1:"#1e3a8a", bg2:"#1d4ed8", bg3:"#cbd5e1", text1:"#f8fafc", text2:"#e2e8f0", accent:"#fbbf24", accent2:"#93c5fd", card:"rgba(30,58,138,0.9)", border:"#fbbf24", top:"#1e3a8a", grad:"linear-gradient(90deg,#1e3a8a,#93c5fd,#fbbf24)", pop:"#172554", foot:"#1e3a8a", ban:"rgba(251,191,36,0.2)" },
     glossyrgb: { bg1:"#111827", bg2:"#1e3a8a", bg3:"#166534", text1:"#fffbeb", text2:"#e2e8f0", accent:"#facc15", accent2:"#ef4444", card:"rgba(15,23,42,0.72)", border:"#38bdf8", top:"#1d4ed8", grad:"linear-gradient(90deg,#ef4444,#22c55e,#3b82f6,#facc15)", pop:"#0f172a", foot:"#111827", ban:"rgba(250,204,21,0.22)" },
     heartfall: { bg1:"#4c0519", bg2:"#6b21a8", bg3:"#db2777", text1:"#fff1f2", text2:"#f5d0fe", accent:"#f9a8d4", accent2:"#c4b5fd", card:"rgba(76,29,149,0.55)", border:"#f9a8d4", top:"#9d174d", grad:"linear-gradient(90deg,#db2777,#7c3aed,#f9a8d4)", pop:"#3b0764", foot:"#4c0519", ban:"rgba(249,168,212,0.28)" },
-    retro2008: { bg1:"#2a0a4a", bg2:"#5b21b6", bg3:"#7c3aed", text1:"#ffffff", text2:"#f3e8ff", accent:"#e9d5ff", accent2:"#c4b5fd", card:"rgba(255,255,255,0.16)", border:"#f5d0fe", top:"#6d28d9", grad:"linear-gradient(180deg,#c4b5fd 0%,#7c3aed 55%,#3b0764 100%)", pop:"#3b0764", foot:"#2e1065", ban:"rgba(233,213,255,0.28)" },
-    corporate: { bg1:"#f7f7f8", bg2:"#ffffff", bg3:"#f3f0f8", text1:"#111111", text2:"#3f3f46", accent:"#6d28d9", accent2:"#7c3aed", card:"#ffffff", border:"#e4e4e7", top:"#ffffff", grad:"linear-gradient(180deg,#ffffff 0%,#f4f4f5 100%)", pop:"#ffffff", foot:"#fafafa", ban:"rgba(109,40,217,0.08)" }
+    retro2008: { bg1:"#2a0a4a", bg2:"#5b21b6", bg3:"#7c3aed", text1:"#ffffff", text2:"#f3e8ff", accent:"#e9d5ff", accent2:"#c4b5fd", card:"rgba(255,255,255,0.16)", border:"#f5d0fe", top:"#6d28d9", grad:"linear-gradient(180deg,#c4b5fd 0%,#7c3aed 55%,#3b0764 100%)", pop:"#3b0764", foot:"#2e1065", ban:"rgba(233,213,255,0.28)" }
 };
 
 function resolveAzoraTheme(theme) {
@@ -7894,12 +7893,12 @@ function paintThemeGrid(active) {
         blueberry:"Blueberry", prism:"Prism", lava:"Lava", classic603:"Old Azora (603blox Web)",
         gold:"Gold", silver:"Silver", neon:"Neon Night", sparkle:"Nostalgic Sparkles",
         bronze:"Bronze", rosegold:"Rose Gold", chrome:"Chrome", softrainbow:"Soft Rainbow",
-        glossyrgb:"Glossy RGBY", heartfall:"Hearts & Stars", retro2008:"2008 Gloss", corporate:"Corporate Test",
+        glossyrgb:"Glossy RGBY", heartfall:"Hearts & Stars", retro2008:"2008 Gloss",
         original:"Original Azora", halloween:"Halloween", thanksgiving:"Thanksgiving", christmas:"Christmas",
         easter:"Easter", newyear:"New Year", valentines:"Valentine's Day", stpatricks:"St. Patrick's Day",
         july4:"Independence Day", hanukkah:"Hanukkah"
     };
-    var ids = ["corporate","retro2008","original","auto","midnight","void","ocean","cobalt","sapphire","storm","royal","grape","amethyst","orchid","nebula","galaxy","aurora","twilight","indigo","cyber","ice","moonlight","slate","forest","mint","ember","sunset","candy","blueberry","prism","lava","classic603","gold","silver","neon","sparkle","bronze","rosegold","chrome","softrainbow","glossyrgb","heartfall","halloween","thanksgiving","christmas","easter","newyear","valentines","stpatricks","july4","hanukkah"];
+    var ids = ["retro2008","original","auto","midnight","void","ocean","cobalt","sapphire","storm","royal","grape","amethyst","orchid","nebula","galaxy","aurora","twilight","indigo","cyber","ice","moonlight","slate","forest","mint","ember","sunset","candy","blueberry","prism","lava","classic603","gold","silver","neon","sparkle","bronze","rosegold","chrome","softrainbow","glossyrgb","heartfall","halloween","thanksgiving","christmas","easter","newyear","valentines","stpatricks","july4","hanukkah"];
     var html = ids.map(function (id) {
         var prev = id === "auto" ? "linear-gradient(135deg,#1d4ed8,#6d28d9)" : (AZORA_THEME_PRESETS[id] ? AZORA_THEME_PRESETS[id].grad : "#1e3a8a");
         var slow = id === "classic603" ? "applyOldAzoraTheme()" : ("changeTheme('" + id + "')");
@@ -8423,7 +8422,6 @@ function applyThemeFx(id) {
     document.documentElement.classList.toggle("theme-glossy-rgby", id === "glossyrgb");
     document.documentElement.classList.toggle("theme-heartfall", id === "heartfall");
     document.documentElement.classList.toggle("azora-retro-2008", id === "retro2008");
-    document.documentElement.classList.toggle("azora-corporate", id === "corporate");
     try { applyRetroFidelity(id === "retro2008"); } catch (eR) {}
 }
 
@@ -8563,16 +8561,14 @@ function loadTheme() {
         if (!localStorage.getItem("azoraHolidayMigrated")) {
             localStorage.setItem("azoraHoliday", "none");
             localStorage.setItem("azoraHalloween", "off");
-            if (!localStorage.getItem("azoraCorporateTest")) {
-                localStorage.setItem("azoraTheme", "corporate");
-                localStorage.setItem("azoraCorporateTest", "1");
-            } else if (!localStorage.getItem("azoraTheme") || localStorage.getItem("azoraTheme") === "auto") {
-                localStorage.setItem("azoraTheme", "corporate");
+            if (localStorage.getItem("azoraTheme") === "corporate") localStorage.setItem("azoraTheme", "retro2008");
+            if (!localStorage.getItem("azoraTheme") || localStorage.getItem("azoraTheme") === "auto") {
+                localStorage.setItem("azoraTheme", "retro2008");
             }
             localStorage.setItem("azoraHolidayMigrated", "1");
         }
     } catch (eMig) {}
-    const saved = localStorage.getItem("azoraTheme") || "corporate";
+    const saved = localStorage.getItem("azoraTheme") || "retro2008";
     const sel = document.getElementById("themeSelect");
     if (sel) sel.value = saved;
     applyTheme(saved);
@@ -8681,7 +8677,7 @@ function applyHolidayTheme(id, opts) {
     if (!opts.fromTheme && id !== "none") {
         applyTheme(id);
     } else if (!opts.fromTheme && id === "none") {
-        var current = localStorage.getItem("azoraTheme") || "corporate";
+        var current = localStorage.getItem("azoraTheme") || "retro2008";
         if (AZORA_HOLIDAY_IDS.indexOf(current) >= 0) applyTheme("original");
     }
 }
@@ -34102,3 +34098,151 @@ function closeEqetechEgg() {
 
 window.watchEqetechSearch = watchEqetechSearch;
 window.closeEqetechEgg = closeEqetechEgg;
+
+
+var _plaza90 = null;
+function plazaTex(kind) {
+    var c = document.createElement("canvas");
+    c.width = 256; c.height = 256;
+    var g = c.getContext("2d");
+    if (kind === "brick") {
+        g.fillStyle = "#8d4b3a"; g.fillRect(0,0,256,256);
+        for (var y = 0; y < 8; y++) {
+            for (var x = 0; x < 6; x++) {
+                var ox = (y % 2) * 22;
+                g.fillStyle = (x + y) % 3 ? "#a45a45" : "#7a3e32";
+                g.fillRect(ox + x * 44, y * 32 + 2, 40, 26);
+                g.strokeStyle = "#5c2e26"; g.strokeRect(ox + x * 44, y * 32 + 2, 40, 26);
+            }
+        }
+    } else if (kind === "concrete") {
+        g.fillStyle = "#b7b2a8"; g.fillRect(0,0,256,256);
+        for (var i = 0; i < 1400; i++) {
+            g.fillStyle = Math.random() > 0.5 ? "rgba(90,86,80,0.25)" : "rgba(255,255,255,0.18)";
+            g.fillRect(Math.random()*256, Math.random()*256, 2, 2);
+        }
+        g.strokeStyle = "rgba(80,76,70,0.35)";
+        g.strokeRect(8, 8, 240, 240);
+    } else if (kind === "glass") {
+        var grd = g.createLinearGradient(0,0,256,256);
+        grd.addColorStop(0, "#9fd4ea"); grd.addColorStop(1, "#3d6f92");
+        g.fillStyle = grd; g.fillRect(0,0,256,256);
+        g.fillStyle = "rgba(255,255,255,0.35)"; g.fillRect(16, 12, 70, 180);
+    } else if (kind === "carpet") {
+        g.fillStyle = "#3f6f78"; g.fillRect(0,0,256,256);
+        for (var yy = 0; yy < 256; yy += 8) {
+            g.strokeStyle = "rgba(20,50,55,0.25)";
+            g.beginPath(); g.moveTo(0, yy); g.lineTo(256, yy); g.stroke();
+        }
+    } else if (kind === "wood") {
+        g.fillStyle = "#8a5a32"; g.fillRect(0,0,256,256);
+        for (var w = 0; w < 8; w++) {
+            g.fillStyle = w % 2 ? "#9a6840" : "#74482a";
+            g.fillRect(0, w * 32, 256, 30);
+            g.strokeStyle = "rgba(40,20,8,0.35)";
+            g.beginPath(); g.moveTo(0, w * 32 + 10); g.bezierCurveTo(80, w * 32 + 4, 160, w * 32 + 18, 256, w * 32 + 8); g.stroke();
+        }
+    } else {
+        g.fillStyle = "#d9d3c7"; g.fillRect(0,0,256,256);
+        g.strokeStyle = "#b7b0a4";
+        for (var t = 0; t < 4; t++) g.strokeRect(t * 64 + 2, 2, 60, 252);
+    }
+    var tex = new THREE.CanvasTexture(c);
+    tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+    return tex;
+}
+function openPlaza1990() {
+    var ov = document.getElementById("plaza1990Overlay");
+    if (ov) ov.style.display = "flex";
+    startPlaza1990();
+}
+function closePlaza1990() {
+    if (_plaza90 && _plaza90.raf) cancelAnimationFrame(_plaza90.raf);
+    _plaza90 = null;
+    var ov = document.getElementById("plaza1990Overlay");
+    if (ov) ov.style.display = "none";
+}
+function plaza1990Floor(n) {
+    if (!_plaza90) return;
+    _plaza90.floor = n;
+    _plaza90.player.y = 1.6 + (n - 1) * 3.2;
+    var hud = document.getElementById("plaza1990Hud");
+    if (hud) hud.textContent = (n === 1 ? "Lobby" : "Office") + " · Floor " + n + " of 16";
+}
+function startPlaza1990() {
+    if (_plaza90 && _plaza90.raf) cancelAnimationFrame(_plaza90.raf);
+    var canvas = document.getElementById("plaza1990Canvas");
+    if (!canvas || typeof THREE === "undefined") return;
+    var scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x8fb4d8);
+    scene.fog = new THREE.Fog(0x8fb4d8, 28, 90);
+    var camera = new THREE.PerspectiveCamera(68, canvas.width / canvas.height, 0.1, 160);
+    var renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true });
+    renderer.setSize(canvas.width, canvas.height, false);
+    scene.add(new THREE.AmbientLight(0xfff4e5, 0.55));
+    var sun = new THREE.DirectionalLight(0xffe2b0, 0.9);
+    sun.position.set(20, 40, 10);
+    scene.add(sun);
+    var brick = plazaTex("brick"), concrete = plazaTex("concrete"), glass = plazaTex("glass");
+    var carpet = plazaTex("carpet"), wood = plazaTex("wood"), tile = plazaTex("tile");
+    brick.repeat.set(8, 10); concrete.repeat.set(6, 6); carpet.repeat.set(8, 8); wood.repeat.set(2, 1);
+    var ground = new THREE.Mesh(new THREE.PlaneGeometry(80, 80), new THREE.MeshLambertMaterial({ map: concrete }));
+    ground.rotation.x = -Math.PI / 2;
+    scene.add(ground);
+    function box(w, h, d, mat, x, y, z) {
+        var m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat);
+        m.position.set(x, y, z);
+        scene.add(m);
+        return m;
+    }
+    var floors = 16, fh = 3.2, bw = 22, bd = 16;
+    box(bw + 1.2, floors * fh, bd + 1.2, new THREE.MeshLambertMaterial({ map: brick }), 0, floors * fh / 2, 0);
+    box(bw - 0.4, floors * fh - 0.2, bd - 0.4, new THREE.MeshLambertMaterial({ map: concrete, color: 0xded8ce }), 0, floors * fh / 2, 0);
+    for (var f = 0; f < floors; f++) {
+        for (var wx = -4; wx <= 4; wx++) {
+            box(1.5, 1.6, 0.12, new THREE.MeshLambertMaterial({ map: glass, transparent: true, opacity: 0.72 }), wx * 2.2, 1.5 + f * fh, bd / 2 + 0.5);
+            box(1.5, 1.6, 0.12, new THREE.MeshLambertMaterial({ map: glass, transparent: true, opacity: 0.72 }), wx * 2.2, 1.5 + f * fh, -bd / 2 - 0.5);
+        }
+        box(bw - 1, 0.15, bd - 1, new THREE.MeshLambertMaterial({ map: f === 0 ? tile : carpet }), 0, f * fh + 0.08, 0);
+        if (f > 0) box(bw - 2, 1.1, 0.15, new THREE.MeshLambertMaterial({ map: wood }), 0, f * fh + 1.1, -bd / 2 + 0.7);
+    }
+    box(4.2, 3.2, 0.2, new THREE.MeshLambertMaterial({ color: 0x1f2937 }), 0, 1.6, bd / 2 + 0.2);
+    box(2.2, 2.4, 2.2, new THREE.MeshLambertMaterial({ color: 0xc9a227 }), -7.2, 1.3, 0);
+    var sign = box(6, 0.8, 0.12, new THREE.MeshLambertMaterial({ color: 0x1e3a5f }), 0, 4.2, bd / 2 + 0.7);
+    _plaza90 = { scene: scene, camera: camera, renderer: renderer, raf: 0, floor: 1, keys: {}, look: 0, player: { x: 0, y: 1.6, z: 10 }, yaw: Math.PI };
+    function setKey(e, down) {
+        var k = (e.key || "").toLowerCase();
+        if (["w","a","s","d","arrowup","arrowdown","arrowleft","arrowright","e"].indexOf(k) >= 0) e.preventDefault();
+        _plaza90.keys[k] = down;
+        if (down && k === "e") plaza1990Floor(_plaza90.floor >= 12 ? 1 : _plaza90.floor + 1);
+    }
+    canvas.onkeydown = function (e) { setKey(e, true); };
+    canvas.tabIndex = 0;
+    window.onkeydown = function (e) { if (_plaza90) setKey(e, true); };
+    window.onkeyup = function (e) { if (_plaza90) setKey(e, false); };
+    canvas.onmousemove = function (e) {
+        if (!_plaza90 || !e.buttons) return;
+        _plaza90.yaw -= e.movementX * 0.005;
+    };
+    plaza1990Floor(1);
+    function loop() {
+        if (!_plaza90) return;
+        var p = _plaza90.player;
+        var sp = 0.12;
+        var yaw = _plaza90.yaw;
+        if (_plaza90.keys.w || _plaza90.keys.arrowup) { p.x += Math.sin(yaw) * sp; p.z += Math.cos(yaw) * sp; }
+        if (_plaza90.keys.s || _plaza90.keys.arrowdown) { p.x -= Math.sin(yaw) * sp; p.z -= Math.cos(yaw) * sp; }
+        if (_plaza90.keys.a || _plaza90.keys.arrowleft) { p.x += Math.cos(yaw) * sp; p.z -= Math.sin(yaw) * sp; }
+        if (_plaza90.keys.d || _plaza90.keys.arrowright) { p.x -= Math.cos(yaw) * sp; p.z += Math.sin(yaw) * sp; }
+        p.x = Math.max(-9.2, Math.min(9.2, p.x));
+        p.z = Math.max(-6.4, Math.min(12, p.z));
+        camera.position.set(p.x, p.y, p.z);
+        camera.lookAt(p.x + Math.sin(yaw) * 4, p.y - 0.1, p.z + Math.cos(yaw) * 4);
+        renderer.render(scene, camera);
+        _plaza90.raf = requestAnimationFrame(loop);
+    }
+    loop();
+}
+window.openPlaza1990 = openPlaza1990;
+window.closePlaza1990 = closePlaza1990;
+window.plaza1990Floor = plaza1990Floor;
