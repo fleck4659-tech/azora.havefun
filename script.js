@@ -11,9 +11,9 @@
 })();
 var AZORA_DEV_STAGE = "mid-alpha";
 var AZORA_DEV_STAGE_LABEL = "Mid Alpha";
-var AZORA_APP_VERSION = "73.15";
+var AZORA_APP_VERSION = "73.16";
 var AZORA_WHATS_NEW = [
-    "TEST theme: Corporate. Mostly white, black shadows, a little purple. Switch it off in Settings, Themes if you do not like it.",
+    "TEST theme: Corporate. Minimal white layout, black shadows, a little purple. Switch it off in Settings, Themes if you do not like it.",
     "Temporary Aturius shape images: type Generate an image of … Pictures are circles, boxes, and triangles only. Unsafe results show a sorry message and Try again (3 times max).",
     "2008 Gloss is the new default look: official glossy purple A logo, Web 2.0 gradients and shadows, pixel-3D avatars, and lower-quality game audio.",
     "Themes: Glossy RGBY (red, green, blue, yellow with shine and shadows) and Hearts & Stars (pink/purple falling hearts and stars).",

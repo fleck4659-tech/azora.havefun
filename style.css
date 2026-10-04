@@ -8836,3 +8836,100 @@ html[data-theme="corporate"] .topbar-title {
 }
 html.azora-corporate a,
 html[data-theme="corporate"] a { color: #6d28d9; }
+
+/* Corporate Test = minimalist white */
+html.azora-corporate,
+html[data-theme="corporate"] {
+    background: #fafafa !important;
+    color: #111 !important;
+    font-family: "Segoe UI", Arial, sans-serif !important;
+}
+html.azora-corporate body,
+html[data-theme="corporate"] body {
+    background: #fafafa !important;
+    color: #111 !important;
+}
+html.azora-corporate .topbar,
+html[data-theme="corporate"] .topbar,
+html.azora-corporate .topbar-shell,
+html[data-theme="corporate"] .topbar-shell,
+html.azora-corporate .topbar-menu,
+html[data-theme="corporate"] .topbar-menu {
+    background: #fff !important;
+    background-image: none !important;
+    box-shadow: 0 1px 0 rgba(0,0,0,0.08) !important;
+    border: none !important;
+    border-radius: 0 !important;
+}
+html.azora-corporate #azoraWelcomeBanner,
+html[data-theme="corporate"] #azoraWelcomeBanner,
+html.azora-corporate .fun-chip small,
+html[data-theme="corporate"] .fun-chip small,
+html.azora-corporate .azora-play-mode-badge,
+html[data-theme="corporate"] .azora-play-mode-badge {
+    display: none !important;
+}
+html.azora-corporate button,
+html[data-theme="corporate"] button,
+html.azora-corporate .fun-chip,
+html[data-theme="corporate"] .fun-chip,
+html.azora-corporate .theme-chip,
+html[data-theme="corporate"] .theme-chip {
+    background: transparent !important;
+    background-image: none !important;
+    color: #111 !important;
+    border: 1px solid transparent !important;
+    box-shadow: none !important;
+    border-radius: 6px !important;
+    font-weight: 600 !important;
+}
+html.azora-corporate button:hover,
+html[data-theme="corporate"] button:hover {
+    background: #f4f4f5 !important;
+    border-color: #e4e4e7 !important;
+}
+html.azora-corporate #coinsMenuBtn,
+html[data-theme="corporate"] #coinsMenuBtn,
+html.azora-corporate .topbar-feed-btn,
+html[data-theme="corporate"] .topbar-feed-btn {
+    background: #6d28d9 !important;
+    color: #fff !important;
+    border-color: #6d28d9 !important;
+    box-shadow: 0 8px 18px rgba(0,0,0,0.16) !important;
+}
+html.azora-corporate .popup,
+html[data-theme="corporate"] .popup,
+html.azora-corporate .norm-game-card,
+html[data-theme="corporate"] .norm-game-card,
+html.azora-corporate .market-card,
+html[data-theme="corporate"] .market-card,
+html.azora-corporate [class*="card"],
+html[data-theme="corporate"] [class*="card"],
+html.azora-corporate [class*="panel"],
+html[data-theme="corporate"] [class*="panel"] {
+    background: #fff !important;
+    background-image: none !important;
+    color: #111 !important;
+    border: 1px solid #ececef !important;
+    border-radius: 8px !important;
+    box-shadow: 0 10px 24px rgba(0,0,0,0.08) !important;
+}
+html.azora-corporate h1,
+html.azora-corporate h2,
+html.azora-corporate h3,
+html[data-theme="corporate"] h1,
+html[data-theme="corporate"] h2,
+html[data-theme="corporate"] h3,
+html.azora-corporate .topbar-title,
+html[data-theme="corporate"] .topbar-title {
+    color: #111 !important;
+    letter-spacing: -0.03em;
+    font-weight: 700;
+}
+html.azora-corporate .logo,
+html[data-theme="corporate"] .logo {
+    width: 36px !important;
+    height: 36px !important;
+    border-radius: 8px !important;
+    box-shadow: 0 6px 14px rgba(0,0,0,0.16);
+}
