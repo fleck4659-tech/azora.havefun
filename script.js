@@ -11,9 +11,10 @@
 })();
 var AZORA_DEV_STAGE = "mid-alpha";
 var AZORA_DEV_STAGE_LABEL = "Mid Alpha";
-var AZORA_APP_VERSION = "73.17";
+var AZORA_APP_VERSION = "73.18";
 var AZORA_WHATS_NEW = [
     "Temporary Aturius shape images: type Generate an image of … Pictures are circles, boxes, and triangles only. Unsafe results show a sorry message and Try again (3 times max).",
+    "2008 Gloss popups are solid, not see-through. Aturius speaks in an older, lower-quality radio voice.",
     "2008 Gloss is the new default look: official glossy purple A logo, Web 2.0 gradients and shadows, pixel-3D avatars, and lower-quality game audio.",
     "Themes: Glossy RGBY (red, green, blue, yellow with shine and shadows) and Hearts & Stars (pink/purple falling hearts and stars).",
     "Azora is open on all devices. Automatic UI picks phone, tablet, desktop, or low-power layout from the machine.",
@@ -8561,10 +8562,7 @@ function loadTheme() {
         if (!localStorage.getItem("azoraHolidayMigrated")) {
             localStorage.setItem("azoraHoliday", "none");
             localStorage.setItem("azoraHalloween", "off");
-            if (localStorage.getItem("azoraTheme") === "corporate") localStorage.setItem("azoraTheme", "retro2008");
-            if (!localStorage.getItem("azoraTheme") || localStorage.getItem("azoraTheme") === "auto") {
-                localStorage.setItem("azoraTheme", "retro2008");
-            }
+            localStorage.setItem("azoraTheme", "retro2008");
             localStorage.setItem("azoraHolidayMigrated", "1");
         }
     } catch (eMig) {}
@@ -14731,11 +14729,54 @@ function loadAturiusVoiceUI() {
     }
     populateAturiusVoiceSelect();
 }
+function startAturiusRetroRadio() {
+    try {
+        var AC = window.AudioContext || window.webkitAudioContext;
+        if (!AC) return;
+        if (!window._aturiusRetroCtx) window._aturiusRetroCtx = new AC();
+        var ctx = window._aturiusRetroCtx;
+        if (ctx.state === "suspended") ctx.resume();
+        if (window._aturiusRetroStop) return;
+        var len = ctx.sampleRate * 2;
+        var buf = ctx.createBuffer(1, len, ctx.sampleRate);
+        var data = buf.getChannelData(0);
+        for (var i = 0; i < len; i++) data[i] = (Math.random() * 2 - 1) * 0.35;
+        var noise = ctx.createBufferSource();
+        noise.buffer = buf;
+        noise.loop = true;
+        var lp = ctx.createBiquadFilter();
+        lp.type = "lowpass";
+        lp.frequency.value = 900;
+        var crush = ctx.createWaveShaper();
+        var curve = new Float32Array(16);
+        for (var c = 0; c < 16; c++) curve[c] = Math.round((c / 15) * 6) / 6 * 2 - 1;
+        crush.curve = curve;
+        var gain = ctx.createGain();
+        gain.gain.value = 0.045;
+        noise.connect(lp); lp.connect(crush); crush.connect(gain); gain.connect(ctx.destination);
+        noise.start();
+        window._aturiusRetroStop = function () {
+            try { noise.stop(); } catch (e) {}
+            try { gain.disconnect(); } catch (e2) {}
+            window._aturiusRetroStop = null;
+        };
+        var watch = setInterval(function () {
+            var talking = window.speechSynthesis && window.speechSynthesis.speaking;
+            if (!talking) {
+                clearInterval(watch);
+                if (window._aturiusRetroStop) window._aturiusRetroStop();
+            }
+        }, 400);
+    } catch (e) {}
+}
 function applyAturiusVoiceToUtterance(u) {
     if (!u || !window.speechSynthesis) return;
     var saved = getAturiusVoiceSettings();
-    u.pitch = saved.pitch;
-    u.rate = 1;
+    var base = saved && saved.pitch ? Number(saved.pitch) : 1;
+    if (isNaN(base)) base = 1;
+    u.pitch = Math.max(0.35, Math.min(1.1, base * 0.62));
+    u.rate = 0.78;
+    try { startAturiusRetroRadio(); } catch (eRadio) {}
     try {
         var voices = window.speechSynthesis.getVoices() || [];
         var match = null;
