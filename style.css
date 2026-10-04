@@ -8832,3 +8832,15 @@ html[data-theme="retro2008"] .popup select {
     color: #ffffff !important;
     opacity: 1 !important;
 }
+
+.footer-privacy-btn {
+    display: inline-block;
+    margin-top: 8px;
+    padding: 8px 16px;
+    border-radius: 10px;
+    background: linear-gradient(180deg, #e9d5ff, #7c3aed);
+    color: #fff !important;
+    text-decoration: none;
+    font-weight: 700;
+    box-shadow: 0 3px 0 rgba(0,0,0,0.25);
+}
