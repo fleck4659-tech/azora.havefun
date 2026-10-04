@@ -8783,3 +8783,56 @@ html[data-theme="retro2008"] canvas {
 
 .aturius-try-again-btn { margin-top: 8px; }
 .aturius-gen-img { max-width: 280px; border-radius: 12px; display: block; margin-top: 8px; }
+
+html.azora-corporate,
+html[data-theme="corporate"] {
+    background: #ffffff !important;
+    color: #111111;
+}
+html.azora-corporate body,
+html[data-theme="corporate"] body,
+html.azora-corporate .topbar,
+html[data-theme="corporate"] .topbar,
+html.azora-corporate .popup,
+html[data-theme="corporate"] .popup,
+html.azora-corporate .norm-game-card,
+html[data-theme="corporate"] .norm-game-card,
+html.azora-corporate .market-card,
+html[data-theme="corporate"] .market-card,
+html.azora-corporate .dash-card,
+html[data-theme="corporate"] .dash-card {
+    background: #ffffff !important;
+    background-image: none !important;
+    color: #111111 !important;
+    border: 1px solid #e4e4e7 !important;
+    box-shadow: 0 10px 24px rgba(0,0,0,0.18), 0 2px 0 rgba(0,0,0,0.08) !important;
+}
+html.azora-corporate button,
+html[data-theme="corporate"] button {
+    background: #ffffff !important;
+    background-image: none !important;
+    color: #111111 !important;
+    border: 1px solid #d4d4d8 !important;
+    box-shadow: 0 6px 0 rgba(0,0,0,0.16), 0 10px 18px rgba(0,0,0,0.12) !important;
+    border-radius: 10px;
+}
+html.azora-corporate button.primary,
+html[data-theme="corporate"] .topbar button,
+html.azora-corporate .coins-btn,
+html[data-theme="corporate"] #coinsMenuBtn {
+    background: #6d28d9 !important;
+    color: #ffffff !important;
+    border-color: #5b21b6 !important;
+}
+html.azora-corporate h1,
+html.azora-corporate h2,
+html.azora-corporate h3,
+html[data-theme="corporate"] h1,
+html[data-theme="corporate"] h2,
+html[data-theme="corporate"] h3,
+html.azora-corporate .topbar-title,
+html[data-theme="corporate"] .topbar-title {
+    color: #111111 !important;
+}
+html.azora-corporate a,
+html[data-theme="corporate"] a { color: #6d28d9; }
