@@ -426,10 +426,7 @@
                 <p id="identitySettingsMsg" class="settings-hint" style="display:none;margin-top:8px;"></p>
             </div>
             <div class="settings-section">
-                <label class="settings-label">Code check</label>
-                <p class="settings-hint" style="margin-top:0;">Owner check. Azora walks the loaded code for about 5 minutes and counts problems. It does not change the game.</p>
-                <button type="button" onclick="startAzoraCodeCheck()" style="width:100%;">Run code check</button>
-                <p id="azoraCodeCheckMsg" class="settings-hint" style="margin-top:8px;"></p>
+
             </div>
                 <p class="settings-hint" style="margin-top:0;">See how Azora looks on a phone without using a phone. This is only a preview so we can fix the small screen layout later.</p>
                 <button type="button" onclick="openAzoraPhonePreview()" style="width:100%;">View as phone</button>
@@ -2497,6 +2494,12 @@ if ("serviceWorker" in navigator) {
     <div class="popup owner-mod-console owner-mod-dark" style="max-width:min(420px,calc(100vw - 20px));text-align:left;">
         <h2 style="margin-top:0;text-align:center;">🛡️ Owner Moderation</h2>
         <p style="font-size:0.85rem;color:#64748b;text-align:center;margin-top:0;">Only visible to Azora. Bans &amp; terminations apply by username.</p>
+        <div style="margin:0 0 14px;padding:10px;border:1px solid #334155;border-radius:10px;">
+            <strong>Code check</strong>
+            <p style="font-size:0.8rem;color:#94a3b8;margin:6px 0;">Only on the Azora account. Walks the loaded code for about 5 minutes and counts problems.</p>
+            <button type="button" onclick="startAzoraCodeCheck()" style="width:100%;">Run code check</button>
+            <p id="azoraCodeCheckMsg" class="settings-hint" style="margin-top:8px;"></p>
+        </div>
 
         <label for="omUsername"><strong>Username</strong> (required)</label>
         <input id="omUsername" type="text" placeholder="Type exact username" autocomplete="off" style="width:100%;box-sizing:border-box;padding:10px;margin:6px 0 10px;border-radius:8px;border:1px solid #cbd5e1;">
