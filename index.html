@@ -426,7 +426,11 @@
                 <p id="identitySettingsMsg" class="settings-hint" style="display:none;margin-top:8px;"></p>
             </div>
             <div class="settings-section">
-                <label class="settings-label">Phone preview</label>
+                <label class="settings-label">Code check</label>
+                <p class="settings-hint" style="margin-top:0;">Owner check. Azora walks the loaded code for about 5 minutes and counts problems. It does not change the game.</p>
+                <button type="button" onclick="startAzoraCodeCheck()" style="width:100%;">Run code check</button>
+                <p id="azoraCodeCheckMsg" class="settings-hint" style="margin-top:8px;"></p>
+            </div>
                 <p class="settings-hint" style="margin-top:0;">See how Azora looks on a phone without using a phone. This is only a preview so we can fix the small screen layout later.</p>
                 <button type="button" onclick="openAzoraPhonePreview()" style="width:100%;">View as phone</button>
                 <p class="settings-hint" id="azoraUiProtocolHint" style="margin-top:8px;">Layout protocol: checking…</p>
@@ -1970,7 +1974,7 @@
 
 <!-- Optional: trained Aturius brain (export from Azora account → Settings → Export code files) -->
 <script src="aturius-training-pack.js"></script>
-<script src="script.js?v=73.18"></script>
+<script src="script.js?v=73.19"></script>
 <script src="political-earth-data.js?v=72.24"></script>
 <script src="political-earth-hd.js?v=72.24"></script>
 <script src="political-earth-hyper.js?v=72.26"></script>

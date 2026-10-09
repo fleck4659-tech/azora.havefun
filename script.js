@@ -11,7 +11,7 @@
 })();
 var AZORA_DEV_STAGE = "mid-alpha";
 var AZORA_DEV_STAGE_LABEL = "Mid Alpha";
-var AZORA_APP_VERSION = "73.18";
+var AZORA_APP_VERSION = "73.19";
 var AZORA_WHATS_NEW = [
     "Temporary Aturius shape images: type Generate an image of … Pictures are circles, boxes, and triangles only. Unsafe results show a sorry message and Try again (3 times max).",
     "2008 Gloss popups are solid, not see-through. Aturius speaks in an older, lower-quality radio voice.",
@@ -34287,3 +34287,63 @@ function startPlaza1990() {
 window.openPlaza1990 = openPlaza1990;
 window.closePlaza1990 = closePlaza1990;
 window.plaza1990Floor = plaza1990Floor;
+
+window._azoraCodeErrors = window._azoraCodeErrors || [];
+window.addEventListener("error", function (ev) {
+    try {
+        window._azoraCodeErrors.push(String((ev && ev.message) || "script error"));
+    } catch (e) {}
+});
+function startAzoraCodeCheck() {
+    var msg = document.getElementById("azoraCodeCheckMsg");
+    if (window._azoraCodeTimer) {
+        if (msg) msg.textContent = "A code check is already running.";
+        return;
+    }
+    var found = [];
+    var steps = [
+        function () {
+            ["applyTheme", "openAturiusPanel", "joinNormGame", "openPlaza1990", "pullCloudProfile", "showAzoraLoadingScreen"].forEach(function (name) {
+                if (typeof window[name] !== "function") found.push(name + " is missing");
+            });
+        },
+        function () {
+            ["azoraLoadingScreen", "aturiusOverlay", "settingsOverlay", "normGamesList"].forEach(function (id) {
+                if (!document.getElementById(id)) found.push("missing screen: " + id);
+            });
+        },
+        function () {
+            try { localStorage.getItem("azoraTheme"); } catch (e) { found.push("settings storage is blocked"); }
+            if (typeof AZORA_APP_VERSION !== "string") found.push("version label is missing");
+        },
+        function () {
+            if (typeof THREE === "undefined") found.push("3D library did not load");
+            if (window._azoraCodeErrors && window._azoraCodeErrors.length) {
+                window._azoraCodeErrors.slice(0, 6).forEach(function (m) { found.push(m); });
+            }
+        }
+    ];
+    var i = 0;
+    var started = Date.now();
+    var limit = 5 * 60 * 1000;
+    if (msg) msg.textContent = "Checking the loaded Azora code...";
+    window._azoraCodeTimer = setInterval(function () {
+        try { steps[i % steps.length](); } catch (e) { found.push(String(e && e.message || e)); }
+        i++;
+        var left = Math.max(0, Math.ceil((limit - (Date.now() - started)) / 1000));
+        if (msg && left > 0) msg.textContent = "Still checking... " + left + "s left. Problems so far: " + found.length;
+        if (Date.now() - started >= limit) {
+            clearInterval(window._azoraCodeTimer);
+            window._azoraCodeTimer = null;
+            var uniq = [];
+            found.forEach(function (item) { if (uniq.indexOf(item) < 0) uniq.push(item); });
+            if (!uniq.length) {
+                if (msg) msg.textContent = "No errors were found!";
+                return;
+            }
+            var ask = "Tell Grok: Azora code check found " + uniq.length + " error" + (uniq.length === 1 ? "" : "s") + ". " + uniq.slice(0, 4).join("; ") + ".";
+            if (msg) msg.textContent = "Found " + uniq.length + " error" + (uniq.length === 1 ? "" : "s") + ". " + ask;
+        }
+    }, 8000);
+}
+window.startAzoraCodeCheck = startAzoraCodeCheck;
