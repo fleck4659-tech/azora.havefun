@@ -34398,52 +34398,95 @@ function memmemSolve(text) {
     } catch (e) { return ""; }
 }
 
-function drawBuddyBall(canvas, kind) {
+var _buddyT = 0;
+function drawBuddyBall(canvas, kind, t) {
     if (!canvas) return;
     var ctx = canvas.getContext("2d");
-    var w = canvas.width, h = canvas.height, r = Math.min(w, h) / 2 - 2;
+    var w = canvas.width, h = canvas.height, r = Math.min(w, h) / 2 - 3;
+    var bob = Math.sin((t || 0) / 280) * (r * 0.04);
+    var blink = Math.sin((t || 0) / 900) > 0.97;
     ctx.clearRect(0, 0, w, h);
-    var g = ctx.createRadialGradient(w/2 - r*0.3, h/2 - r*0.35, r*0.2, w/2, h/2, r);
+    ctx.save();
+    ctx.translate(w / 2, h / 2 + bob);
+    var g = ctx.createRadialGradient(-r * 0.25, -r * 0.3, r * 0.15, 0, 0, r);
     if (kind === "mem") {
-        g.addColorStop(0, "#dbeafe");
-        g.addColorStop(1, "#2563eb");
+        g.addColorStop(0, "#fff34a");
+        g.addColorStop(1, "#ffe600");
     } else {
-        g.addColorStop(0, "#fce7f3");
-        g.addColorStop(1, "#db2777");
+        g.addColorStop(0, "#ff8ac4");
+        g.addColorStop(1, "#ff4fa3");
     }
     ctx.beginPath();
-    ctx.arc(w/2, h/2, r, 0, Math.PI * 2);
+    ctx.arc(0, 0, r, 0, Math.PI * 2);
     ctx.fillStyle = g;
     ctx.fill();
-    ctx.lineWidth = 3;
-    ctx.strokeStyle = "#ffffff";
+    ctx.lineWidth = Math.max(3, r * 0.06);
+    ctx.strokeStyle = "#111111";
     ctx.stroke();
-    ctx.fillStyle = "#111827";
+    ctx.fillStyle = "rgba(255,255,255,0.85)";
     ctx.beginPath();
-    ctx.arc(w/2 - r*0.28, h/2 - r*0.08, r*0.08, 0, Math.PI*2);
-    ctx.arc(w/2 + r*0.28, h/2 - r*0.08, r*0.08, 0, Math.PI*2);
+    ctx.ellipse(r * 0.38, -r * 0.32, r * 0.16, r * 0.1, -0.4, 0, Math.PI * 2);
     ctx.fill();
-    ctx.strokeStyle = "#111827";
-    ctx.lineWidth = Math.max(2, r*0.06);
+    function eye(x) {
+        ctx.save();
+        ctx.translate(x, -r * 0.08);
+        ctx.rotate(-0.2);
+        ctx.fillStyle = "#111111";
+        if (blink) ctx.fillRect(-r * 0.12, -r * 0.02, r * 0.24, r * 0.05);
+        else {
+            ctx.beginPath();
+            ctx.ellipse(0, 0, r * 0.11, r * 0.2, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = "#ffffff";
+            ctx.beginPath();
+            ctx.arc(-r * 0.03, -r * 0.07, r * 0.035, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        if (kind === "candi" && !blink) {
+            ctx.strokeStyle = "#111";
+            ctx.lineWidth = Math.max(1.5, r * 0.035);
+            ctx.beginPath();
+            ctx.moveTo(-r * 0.12, -r * 0.18);
+            ctx.quadraticCurveTo(0, -r * 0.28, r * 0.1, -r * 0.16);
+            ctx.stroke();
+        }
+        ctx.restore();
+    }
+    eye(-r * 0.28);
+    eye(r * 0.28);
+    ctx.fillStyle = "#111111";
     ctx.beginPath();
-    if (kind === "mem") {
-        ctx.arc(w/2, h/2 + r*0.08, r*0.28, 0.15*Math.PI, 0.85*Math.PI);
-    } else {
-        ctx.arc(w/2, h/2 + r*0.02, r*0.22, 0.1*Math.PI, 0.9*Math.PI);
-    }
-    ctx.stroke();
+    ctx.ellipse(0, r * 0.28, r * 0.42, r * 0.28, 0, 0.05 * Math.PI, 0.95 * Math.PI);
+    ctx.fill();
     if (kind === "candi") {
-        ctx.fillStyle = "#fff";
+        ctx.fillStyle = "rgba(255,80,140,0.45)";
         ctx.beginPath();
-        ctx.arc(w/2, h/2 - r*0.62, r*0.16, 0, Math.PI*2);
+        ctx.arc(-r * 0.48, r * 0.08, r * 0.08, 0, Math.PI * 2);
+        ctx.arc(r * 0.48, r * 0.08, r * 0.08, 0, Math.PI * 2);
         ctx.fill();
+        ctx.fillStyle = "#ff4fa3";
+        ctx.strokeStyle = "#111";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(0, -r * 0.92);
+        ctx.lineTo(-r * 0.16, -r * 0.7);
+        ctx.lineTo(r * 0.16, -r * 0.7);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
     }
+    ctx.restore();
 }
 function paintBuddyBalls() {
-    drawBuddyBall(document.getElementById("memmemFace"), "mem");
-    drawBuddyBall(document.getElementById("candiluvFace"), "candi");
-    drawBuddyBall(document.getElementById("memmemFaceBig"), "mem");
-    drawBuddyBall(document.getElementById("candiluvFaceBig"), "candi");
+    drawBuddyBall(document.getElementById("memmemFace"), "mem", _buddyT);
+    drawBuddyBall(document.getElementById("candiluvFace"), "candi", _buddyT + 200);
+    drawBuddyBall(document.getElementById("memmemFaceBig"), "mem", _buddyT);
+    drawBuddyBall(document.getElementById("candiluvFaceBig"), "candi", _buddyT + 200);
+}
+function loopBuddyBalls(now) {
+    _buddyT = now || 0;
+    paintBuddyBalls();
+    requestAnimationFrame(loopBuddyBalls);
 }
 
 function openMemMem() {
@@ -34546,4 +34589,4 @@ window.closeCandiLuv = closeCandiLuv;
 window.sendCandiLuv = sendCandiLuv;
 window.candiluvNext = candiluvNext;
 
-try { if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', paintBuddyBalls); else paintBuddyBalls(); } catch (eBall) {}
+try { if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', paintBuddyBalls); else paintBuddyBalls(); requestAnimationFrame(loopBuddyBalls); } catch (eBall) {}
