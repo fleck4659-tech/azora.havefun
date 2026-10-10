@@ -426,6 +426,14 @@
                 <p id="identitySettingsMsg" class="settings-hint" style="display:none;margin-top:8px;"></p>
             </div>
             <div class="settings-section">
+                <label class="settings-label">Mouse</label>
+                <p class="settings-hint" style="margin-top:0;">Computers use Mouse.png inside Azora. Tablets keep the normal pointer. You can turn the custom mouse off.</p>
+                <label class="settings-label" style="font-size:12px;display:flex;align-items:center;gap:8px;">
+                    <input type="checkbox" id="azoraMouseToggle" checked onchange="setAzoraMouseEnabled(this.checked)" style="width:auto;margin:0;">
+                    Use Azora mouse
+                </label>
+            </div>
+            <div class="settings-section">
                 <label class="settings-label">Phone preview</label>
                 <p class="settings-hint" style="margin-top:0;">See how Azora looks on a phone without using a phone. This is only a preview so we can fix the small screen layout later.</p>
                 <button type="button" onclick="openAzoraPhonePreview()" style="width:100%;">View as phone</button>

@@ -8897,3 +8897,14 @@ html.aturius-open .candiluv-mascot {
 .candiluv-mascot { animation-delay: .4s; }
 .norm-game-card, .topbar-shop-btn, .topbar-feed-btn { transition: transform .18s ease, box-shadow .18s ease; }
 .norm-game-card:hover, .topbar-shop-btn:hover, .topbar-feed-btn:hover { transform: translateY(-3px); }
+
+html.azora-custom-mouse,
+html.azora-custom-mouse body,
+html.azora-custom-mouse button,
+html.azora-custom-mouse a,
+html.azora-custom-mouse input,
+html.azora-custom-mouse select,
+html.azora-custom-mouse textarea,
+html.azora-custom-mouse canvas {
+    cursor: url("Mouse.png") 24 16, auto !important;
+}

@@ -34590,3 +34590,29 @@ window.sendCandiLuv = sendCandiLuv;
 window.candiluvNext = candiluvNext;
 
 try { if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', paintBuddyBalls); else paintBuddyBalls(); requestAnimationFrame(loopBuddyBalls); } catch (eBall) {}
+
+function azoraIsComputer() {
+    try {
+        var fine = window.matchMedia && window.matchMedia("(pointer: fine)").matches;
+        var wide = window.innerWidth >= 900;
+        return !!(fine && wide);
+    } catch (e) { return false; }
+}
+function applyAzoraMouse() {
+    var saved = localStorage.getItem("azoraCustomMouse");
+    var on = saved !== "off";
+    var box = document.getElementById("azoraMouseToggle");
+    if (box) box.checked = on;
+    var use = on && azoraIsComputer();
+    document.documentElement.classList.toggle("azora-custom-mouse", use);
+}
+function setAzoraMouseEnabled(on) {
+    localStorage.setItem("azoraCustomMouse", on ? "on" : "off");
+    applyAzoraMouse();
+}
+window.setAzoraMouseEnabled = setAzoraMouseEnabled;
+window.applyAzoraMouse = applyAzoraMouse;
+try {
+    if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", applyAzoraMouse);
+    else applyAzoraMouse();
+} catch (eMouse) {}
