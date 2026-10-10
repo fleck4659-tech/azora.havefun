@@ -34602,18 +34602,27 @@ function azoraMouseSizePx() {
     var n = Number(localStorage.getItem("azoraMouseSize") || "1");
     if (isNaN(n)) n = 1;
     n = Math.max(1, Math.min(100, n));
-    return Math.round(20 + (n - 1) / 99 * 20);
+    // 1% is the small default. 100% is exactly twice that size.
+    return Math.round(18 + ((n - 1) / 99) * 18);
 }
 function setAzoraMouseSize(v) {
     var n = Math.max(1, Math.min(100, Number(v) || 1));
-    localStorage.setItem("azoraMouseSize", String(n));
+    localStorage.setItem("azoraMouseSize", String(Math.round(n)));
     var lab = document.getElementById("azoraMouseSizeLabel");
-    if (lab) lab.textContent = n + "%";
+    if (lab) lab.textContent = Math.round(n) + "% · " + (n <= 1 ? "small" : "bigger");
     applyAzoraMouse();
 }
 function setAzoraMouseColor(v) {
     localStorage.setItem("azoraMouseColor", v || "#ffffff");
     applyAzoraMouse();
+}
+function setAzoraMouseChoice(src) {
+    localStorage.setItem("azoraMouseChoice", src);
+    localStorage.removeItem("azoraMouseCustom");
+    applyAzoraMouse();
+}
+function azoraMouseSource() {
+    return localStorage.getItem("azoraMouseCustom") || localStorage.getItem("azoraMouseChoice") || "Mouse.png";
 }
 function buildAzoraCursorImage(done) {
     var img = new Image();
@@ -34622,6 +34631,7 @@ function buildAzoraCursorImage(done) {
         var canvas = document.createElement("canvas");
         canvas.width = size; canvas.height = size;
         var ctx = canvas.getContext("2d");
+        ctx.clearRect(0, 0, size, size);
         ctx.drawImage(img, 0, 0, size, size);
         var color = localStorage.getItem("azoraMouseColor") || "#ffffff";
         var m = /^#?([0-9a-f]{6})$/i.exec(color);
@@ -34631,8 +34641,8 @@ function buildAzoraCursorImage(done) {
         var data = ctx.getImageData(0, 0, size, size);
         var p = data.data;
         for (var i = 0; i < p.length; i += 4) {
-            var lum = (p[i] + p[i+1] + p[i+2]) / 3;
             if (p[i+3] < 20) continue;
+            var lum = (p[i] + p[i+1] + p[i+2]) / 3;
             if (lum > 170) {
                 var mix = (lum - 170) / 85;
                 p[i] = Math.round(p[i] * (1 - mix) + cr * mix);
@@ -34643,18 +34653,20 @@ function buildAzoraCursorImage(done) {
         ctx.putImageData(data, 0, 0);
         done(canvas.toDataURL("image/png"), size);
     };
-    img.src = "Mouse.png";
+    img.onerror = function () { done("", azoraMouseSizePx()); };
+    img.src = azoraMouseSource();
 }
 function applyAzoraMouse() {
+    if (!localStorage.getItem("azoraMouseSize")) localStorage.setItem("azoraMouseSize", "1");
     var saved = localStorage.getItem("azoraCustomMouse");
     var on = saved !== "off";
     var box = document.getElementById("azoraMouseToggle");
     if (box) box.checked = on;
-    var sizeBox = document.getElementById("azoraMouseSize");
     var size = Number(localStorage.getItem("azoraMouseSize") || "1");
+    var sizeBox = document.getElementById("azoraMouseSize");
     if (sizeBox) sizeBox.value = String(size);
     var lab = document.getElementById("azoraMouseSizeLabel");
-    if (lab) lab.textContent = size + "%";
+    if (lab) lab.textContent = size + "% · " + (size <= 1 ? "small" : "bigger");
     var colorBox = document.getElementById("azoraMouseColor");
     if (colorBox) colorBox.value = localStorage.getItem("azoraMouseColor") || "#ffffff";
     var use = on && azoraIsComputer();
@@ -34667,23 +34679,100 @@ function applyAzoraMouse() {
         document.addEventListener("mousemove", function (e) {
             var c = document.getElementById("azoraCursor");
             if (!c || c.style.display === "none") return;
-            var s = Number(c.dataset.size || 20);
+            var s = Number(c.dataset.size || 18);
             c.style.transform = "translate(" + (e.clientX - s * 0.78) + "px," + (e.clientY - s * 0.5) + "px)";
         });
     }
     if (!use) { el.style.display = "none"; return; }
     buildAzoraCursorImage(function (url, px) {
+        if (!url) { el.style.display = "none"; return; }
         el.style.display = "block";
         el.style.width = px + "px";
         el.style.height = px + "px";
-        el.style.backgroundImage = "url(" + url + ")";
+        el.style.backgroundImage = "url('" + url + "')";
         el.dataset.size = String(px);
     });
+}
+function uploadAzoraMouse(input) {
+    var file = input && input.files && input.files[0];
+    var note = document.getElementById("azoraMouseNote");
+    if (!file) return;
+    var name = String(file.name || "").toLowerCase();
+    if (!name.endsWith(".png") && !name.endsWith(".ahf")) {
+        if (note) note.textContent = "Only PNG or AHF files can be a mouse.";
+        return;
+    }
+    var reader = new FileReader();
+    reader.onload = function () {
+        var text = String(reader.result || "");
+        if (name.endsWith(".ahf")) {
+            var body = text.indexOf("AZORA_HAVE_FUN") === 0 ? text.split("\n").slice(1).join("\n") : text;
+            try {
+                var data = JSON.parse(body);
+                if (!data.image) throw new Error("bad");
+                localStorage.setItem("azoraMouseCustom", data.image);
+            } catch (e) {
+                if (note) note.textContent = "That AHF file could not be read.";
+                return;
+            }
+        } else {
+            localStorage.setItem("azoraMouseCustom", text);
+        }
+        if (note) note.textContent = "Uploaded mouse is on.";
+        applyAzoraMouse();
+    };
+    if (name.endsWith(".ahf")) reader.readAsText(file);
+    else reader.readAsDataURL(file);
+}
+function generateAzoraMouse() {
+    var canvas = document.createElement("canvas");
+    canvas.width = 64; canvas.height = 64;
+    var ctx = canvas.getContext("2d");
+    var color = localStorage.getItem("azoraMouseColor") || "#ffffff";
+    ctx.clearRect(0, 0, 64, 64);
+    ctx.fillStyle = color;
+    ctx.strokeStyle = "#111111";
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.moveTo(14, 10);
+    ctx.lineTo(52, 32);
+    ctx.lineTo(14, 54);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(24, 18);
+    ctx.lineTo(24, 46);
+    ctx.stroke();
+    var url = canvas.toDataURL("image/png");
+    localStorage.setItem("azoraMouseCustom", url);
+    localStorage.setItem("azoraMouseGenerated", url);
+    var note = document.getElementById("azoraMouseNote");
+    if (note) note.textContent = "Generated mouse is on. You can download it as an AHF file.";
+    applyAzoraMouse();
+}
+function downloadAzoraMouseAhf() {
+    var image = localStorage.getItem("azoraMouseCustom") || localStorage.getItem("azoraMouseGenerated");
+    if (!image) {
+        var note = document.getElementById("azoraMouseNote");
+        if (note) note.textContent = "Generate or upload a mouse first.";
+        return;
+    }
+    var ahf = "AZORA_HAVE_FUN\n" + JSON.stringify({ kind: "mouse", name: "Azora mouse", image: image });
+    var blob = new Blob([ahf], { type: "application/json" });
+    var a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "mouse.ahf";
+    a.click();
 }
 window.setAzoraMouseEnabled = setAzoraMouseEnabled;
 window.applyAzoraMouse = applyAzoraMouse;
 window.setAzoraMouseSize = setAzoraMouseSize;
 window.setAzoraMouseColor = setAzoraMouseColor;
+window.setAzoraMouseChoice = setAzoraMouseChoice;
+window.uploadAzoraMouse = uploadAzoraMouse;
+window.generateAzoraMouse = generateAzoraMouse;
+window.downloadAzoraMouseAhf = downloadAzoraMouseAhf;
 try {
     if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", applyAzoraMouse);
     else applyAzoraMouse();
