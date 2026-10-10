@@ -8844,3 +8844,47 @@ html[data-theme="retro2008"] .popup select {
     font-weight: 700;
     box-shadow: 0 3px 0 rgba(0,0,0,0.25);
 }
+
+
+.memmem-mascot, .candiluv-mascot {
+    position: fixed;
+    z-index: 9000;
+    width: 92px;
+    border: 0;
+    background: transparent;
+    cursor: pointer;
+    transition: opacity 0.35s ease, transform 0.35s ease;
+}
+.memmem-mascot { right: 16px; bottom: 16px; }
+.candiluv-mascot { left: 16px; bottom: 16px; }
+html.aturius-open .memmem-mascot,
+html.aturius-open .candiluv-mascot {
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(12px);
+}
+.memmem-face, .candiluv-face {
+    width: 84px; height: 84px; border-radius: 50%;
+    display: grid; place-items: center;
+    font-size: 34px;
+    box-shadow: 0 8px 0 rgba(0,0,0,0.18);
+}
+.memmem-face { background: linear-gradient(180deg,#bfdbfe,#3b82f6); }
+.candiluv-face { background: linear-gradient(180deg,#fbcfe8,#ec4899); }
+.memmem-name, .candiluv-name { font-size: 12px; font-weight: 800; color: #fff; text-shadow: 0 1px 2px #000; }
+.buddy-panel {
+    position: fixed; inset: 0; z-index: 9500;
+    display: none; align-items: center; justify-content: center;
+    background: rgba(15,23,42,0.45);
+}
+.buddy-card {
+    width: min(520px, calc(100vw - 24px));
+    border-radius: 22px; padding: 16px;
+    color: #fff;
+}
+.memmem-card { background: linear-gradient(180deg,#dbeafe,#1d4ed8); border: 3px solid #fff; }
+.candiluv-card { background: linear-gradient(180deg,#fce7f3,#be185d); border: 3px solid #fff; }
+.buddy-type { min-height: 72px; font-size: 18px; font-weight: 700; }
+.buddy-row { display: flex; gap: 8px; margin-top: 10px; }
+.buddy-row input, .buddy-row button, .buddy-next { border-radius: 12px; border: 0; padding: 10px 12px; font-weight: 700; }
+.buddy-row input { flex: 1; }

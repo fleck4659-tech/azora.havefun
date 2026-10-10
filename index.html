@@ -13,7 +13,7 @@
     <link rel="manifest" href="manifest-azora.json">
     <link rel="apple-touch-icon" href="logo.png?v=73.03">
     <link rel="icon" href="logo.png?v=73.03">
-    <link rel="stylesheet" href="style.css?v=73.18">
+    <link rel="stylesheet" href="style.css?v=73.20">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="azora-avatar.js?v=1.2"></script>
     <style>
@@ -426,8 +426,7 @@
                 <p id="identitySettingsMsg" class="settings-hint" style="display:none;margin-top:8px;"></p>
             </div>
             <div class="settings-section">
-
-            </div>
+                <label class="settings-label">Phone preview</label>
                 <p class="settings-hint" style="margin-top:0;">See how Azora looks on a phone without using a phone. This is only a preview so we can fix the small screen layout later.</p>
                 <button type="button" onclick="openAzoraPhonePreview()" style="width:100%;">View as phone</button>
                 <p class="settings-hint" id="azoraUiProtocolHint" style="margin-top:8px;">Layout protocol: checking…</p>
@@ -1971,7 +1970,7 @@
 
 <!-- Optional: trained Aturius brain (export from Azora account → Settings → Export code files) -->
 <script src="aturius-training-pack.js"></script>
-<script src="script.js?v=73.19"></script>
+<script src="script.js?v=73.20"></script>
 <script src="political-earth-data.js?v=72.24"></script>
 <script src="political-earth-hd.js?v=72.24"></script>
 <script src="political-earth-hyper.js?v=72.26"></script>
@@ -2609,6 +2608,42 @@ if ("serviceWorker" in navigator) {
             <button type="button" class="mod-lock-override" onclick="ownerOverrideRestoreAccess()">Owner override — restore access (testing)</button>
         </div>
         <button type="button" class="mod-lock-signout" onclick="modLockSignOut()">Sign out</button>
+    </div>
+</div>
+
+
+<button type="button" id="memmemMascot" class="memmem-mascot" onclick="openMemMem()" aria-label="Talk to MemMem">
+    <span class="memmem-face">🐻</span>
+    <span class="memmem-name">MemMem</span>
+</button>
+<button type="button" id="candiluvMascot" class="candiluv-mascot" onclick="openCandiLuv()" aria-label="Talk to Candi-Luv">
+    <span class="candiluv-face">🎀</span>
+    <span class="candiluv-name">Candi-Luv</span>
+</button>
+<div id="memmemPanel" class="buddy-panel" style="display:none;">
+    <div class="buddy-card memmem-card">
+        <h2 style="margin:0;">MemMem</h2>
+        <p style="margin:4px 0 8px;">Boy helper. Hard math, item gifts, and where things are. Aturius still does simple talk, pictures, videos, and easy math.</p>
+        <div id="memmemType" class="buddy-type">Hi! I am MemMem. Ask me where something is, or give me a math problem.</div>
+        <button type="button" id="memmemNext" class="buddy-next" style="display:none;" onclick="memmemNext()">Next</button>
+        <div class="buddy-row">
+            <input id="memmemInput" type="text" placeholder="Ask MemMem..." onkeydown="if(event.key==='Enter')sendMemMem()">
+            <button type="button" onclick="sendMemMem()">Send</button>
+        </div>
+        <button type="button" onclick="closeMemMem()" style="width:100%;margin-top:8px;">Close</button>
+    </div>
+</div>
+<div id="candiluvPanel" class="buddy-panel" style="display:none;">
+    <div class="buddy-card candiluv-card">
+        <h2 style="margin:0;">Candi-Luv</h2>
+        <p style="margin:4px 0 8px;">Girl helper. Avatar style, themes, shop looks, and events.</p>
+        <div id="candiluvType" class="buddy-type">Hi! I am Candi-Luv. I can help your avatar look cute and find event coins.</div>
+        <button type="button" id="candiluvNext" class="buddy-next" style="display:none;" onclick="candiluvNext()">Next</button>
+        <div class="buddy-row">
+            <input id="candiluvInput" type="text" placeholder="Ask Candi-Luv..." onkeydown="if(event.key==='Enter')sendCandiLuv()">
+            <button type="button" onclick="sendCandiLuv()">Send</button>
+        </div>
+        <button type="button" onclick="closeCandiLuv()" style="width:100%;margin-top:8px;">Close</button>
     </div>
 </div>
 

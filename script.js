@@ -11,7 +11,7 @@
 })();
 var AZORA_DEV_STAGE = "mid-alpha";
 var AZORA_DEV_STAGE_LABEL = "Mid Alpha";
-var AZORA_APP_VERSION = "73.19";
+var AZORA_APP_VERSION = "73.20";
 var AZORA_WHATS_NEW = [
     "Temporary Aturius shape images: type Generate an image of … Pictures are circles, boxes, and triangles only. Unsafe results show a sorry message and Try again (3 times max).",
     "2008 Gloss popups are solid, not see-through. Aturius speaks in an older, lower-quality radio voice.",
@@ -14879,6 +14879,9 @@ window.setAturiusFeeling = setAturiusFeeling;
 
 function openAturiusPanel() {
     try { refreshAturiusModelLine(); } catch (eML) {}
+    document.documentElement.classList.add("aturius-open");
+    try { if (typeof closeMemMem === "function") closeMemMem(); } catch (eM) {}
+    try { if (typeof closeCandiLuv === "function") closeCandiLuv(); } catch (eC2) {}
     var el = document.getElementById("aturiusOverlay");
     if (!el) return;
     el.style.display = "flex";
@@ -14926,6 +14929,7 @@ function openAturiusPanel() {
 function closeAturiusPanel() {
     var el = document.getElementById("aturiusOverlay");
     if (el) el.style.display = "none";
+    document.documentElement.classList.remove("aturius-open");
     try {
         if (window.speechSynthesis) window.speechSynthesis.cancel();
     } catch (e) {}
@@ -31332,7 +31336,7 @@ window.getAvatarDataForUsername = getAvatarDataForUsername;
 // ============================================================
 // Azora app update checker (PWA / service worker)
 // ============================================================
-var AZORA_APP_VERSION = "70.2";
+var AZORA_APP_VERSION = "73.20";
 var _azoraSwReg = null;
 var _azoraUpdateWaiting = false;
 var _azoraUpdateApplying = false;
@@ -34347,3 +34351,146 @@ function startAzoraCodeCheck() {
     }, 8000);
 }
 window.startAzoraCodeCheck = startAzoraCodeCheck;
+
+
+var _memmemSteps = [];
+var _memmemStep = 0;
+var _candiSteps = [];
+var _candiStep = 0;
+function typeBuddy(id, text, done) {
+    var el = document.getElementById(id);
+    if (!el) return;
+    el.textContent = "";
+    var i = 0;
+    var timer = setInterval(function () {
+        el.textContent += text.charAt(i);
+        i++;
+        if (i >= text.length) {
+            clearInterval(timer);
+            if (done) done();
+        }
+    }, 16);
+}
+function memmemPlaces() {
+    return {
+        settings: "Settings is the gear or Settings button in the top bar.",
+        shop: "Shop is the Shop button in the top bar.",
+        bag: "Bag is the Bag button in the top bar. That is your inventory.",
+        feed: "Feed is the Feed button in the top bar.",
+        aturius: "Aturius is the phone button by the chat bar, or Talk to Aturius.",
+        privacy: "Privacy is at the very bottom, under the creation date.",
+        games: "Norm Games are the game cards on the main page.",
+        themes: "Themes are in Settings, then the Themes tab.",
+        moderation: "Moderation is in the top bar, only on the Azora account.",
+        "code check": "Code check is inside Moderation on the Azora account."
+    };
+}
+function memmemSolve(text) {
+    var raw = String(text || "");
+    var expr = raw.replace(/[^0-9+\-*/().% ]/g, "");
+    if (!/[0-9]/.test(expr) || !/[+\-*/%]/.test(expr)) return "";
+    try {
+        var safe = expr.replace(/%/g, "/100");
+        if (!/^[0-9+\-*/().\s]+$/.test(safe)) return "";
+        var n = Function("return (" + safe + ")")();
+        if (typeof n !== "number" || !isFinite(n)) return "";
+        return "The answer is " + n + ".";
+    } catch (e) { return ""; }
+}
+function openMemMem() {
+    var p = document.getElementById("memmemPanel");
+    if (p) p.style.display = "flex";
+    typeBuddy("memmemType", "Hi! I am MemMem. Ask where something is, give me math, or say give me an item.");
+    var next = document.getElementById("memmemNext");
+    if (next) next.style.display = "none";
+}
+function closeMemMem() {
+    var p = document.getElementById("memmemPanel");
+    if (p) p.style.display = "none";
+}
+function memmemNext() {
+    _memmemStep++;
+    var line = _memmemSteps[_memmemStep];
+    var next = document.getElementById("memmemNext");
+    if (!line) {
+        if (next) next.style.display = "none";
+        return;
+    }
+    typeBuddy("memmemType", line, function () {
+        if (next) next.style.display = _memmemStep < _memmemSteps.length - 1 ? "inline-block" : "none";
+    });
+}
+function sendMemMem() {
+    var input = document.getElementById("memmemInput");
+    var text = input ? String(input.value || "").trim() : "";
+    if (input) input.value = "";
+    var lower = text.toLowerCase();
+    var steps = [];
+    var math = memmemSolve(text);
+    if (math) steps = [math, "Aturius can still do easy math. I take the longer problems."];
+    else if (/item|gift|coin/.test(lower)) {
+        var key = "memmemGift_" + new Date().toDateString();
+        if (localStorage.getItem(key)) steps = ["I already gave today's gift.", "Come back tomorrow for 5 more AzoraCoins."];
+        else {
+            localStorage.setItem(key, "1");
+            try { if (typeof addCoins === "function") addCoins(5); } catch (e) {}
+            steps = ["Gift time!", "I put 5 AzoraCoins in your balance."];
+        }
+    } else {
+        var places = memmemPlaces();
+        Object.keys(places).forEach(function (k) {
+            if (lower.indexOf(k) >= 0) steps.push(places[k]);
+        });
+        if (!steps.length) steps = ["I can find Settings, Shop, Bag, Feed, Aturius, Privacy, games, Themes, and Moderation.", "Or send me a math problem like 24*18+7."];
+    }
+    _memmemSteps = steps;
+    _memmemStep = 0;
+    var next = document.getElementById("memmemNext");
+    typeBuddy("memmemType", steps[0], function () {
+        if (next) next.style.display = steps.length > 1 ? "inline-block" : "none";
+    });
+}
+function openCandiLuv() {
+    var p = document.getElementById("candiluvPanel");
+    if (p) p.style.display = "flex";
+    typeBuddy("candiluvType", "Hi! I am Candi-Luv. I help with avatar style, themes, and events.");
+    var next = document.getElementById("candiluvNext");
+    if (next) next.style.display = "none";
+}
+function closeCandiLuv() {
+    var p = document.getElementById("candiluvPanel");
+    if (p) p.style.display = "none";
+}
+function candiluvNext() {
+    _candiStep++;
+    var line = _candiSteps[_candiStep];
+    var next = document.getElementById("candiluvNext");
+    if (!line) { if (next) next.style.display = "none"; return; }
+    typeBuddy("candiluvType", line, function () {
+        if (next) next.style.display = _candiStep < _candiSteps.length - 1 ? "inline-block" : "none";
+    });
+}
+function sendCandiLuv() {
+    var input = document.getElementById("candiluvInput");
+    var text = input ? String(input.value || "").trim() : "";
+    if (input) input.value = "";
+    var lower = text.toLowerCase();
+    var steps = ["Themes are in Settings, then Themes.", "Shop is the Shop button. Bag is where equipped looks live."];
+    if (/avatar|color|style/.test(lower)) steps = ["Open the avatar customizer on the main page.", "Pick colors, then Save Avatar so they stay."];
+    else if (/event|halloween|hallo/.test(lower)) steps = ["HalloCoins are event coins.", "You can convert them from the coin menu."];
+    else if (/theme/.test(lower)) steps = ["Open Settings.", "Tap Themes.", "2008 Gloss is the current look."];
+    _candiSteps = steps;
+    _candiStep = 0;
+    var next = document.getElementById("candiluvNext");
+    typeBuddy("candiluvType", steps[0], function () {
+        if (next) next.style.display = steps.length > 1 ? "inline-block" : "none";
+    });
+}
+window.openMemMem = openMemMem;
+window.closeMemMem = closeMemMem;
+window.sendMemMem = sendMemMem;
+window.memmemNext = memmemNext;
+window.openCandiLuv = openCandiLuv;
+window.closeCandiLuv = closeCandiLuv;
+window.sendCandiLuv = sendCandiLuv;
+window.candiluvNext = candiluvNext;
