@@ -432,6 +432,12 @@
                     <input type="checkbox" id="azoraMouseToggle" checked onchange="setAzoraMouseEnabled(this.checked)" style="width:auto;margin:0;">
                     Use Azora mouse
                 </label>
+                <label class="settings-label" style="font-size:12px;margin-top:8px;">Size <span id="azoraMouseSizeLabel">1%</span></label>
+                <input id="azoraMouseSize" type="range" min="1" max="100" value="1" oninput="setAzoraMouseSize(this.value)" style="width:100%;">
+                <p class="settings-hint" style="margin:4px 0 0;">1% is the smallest, just a bit bigger than a normal computer pointer. 100% is twice that size.</p>
+                <label class="settings-label" style="font-size:12px;margin-top:8px;">Light color</label>
+                <input id="azoraMouseColor" type="color" value="#ffffff" oninput="setAzoraMouseColor(this.value)" style="width:72px;height:32px;">
+                <p class="settings-hint" style="margin:4px 0 0;">Light parts change. Dark parts stay dark.</p>
             </div>
             <div class="settings-section">
                 <label class="settings-label">Phone preview</label>

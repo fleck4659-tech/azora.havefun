@@ -34598,20 +34598,92 @@ function azoraIsComputer() {
         return !!(fine && wide);
     } catch (e) { return false; }
 }
+function azoraMouseSizePx() {
+    var n = Number(localStorage.getItem("azoraMouseSize") || "1");
+    if (isNaN(n)) n = 1;
+    n = Math.max(1, Math.min(100, n));
+    return Math.round(20 + (n - 1) / 99 * 20);
+}
+function setAzoraMouseSize(v) {
+    var n = Math.max(1, Math.min(100, Number(v) || 1));
+    localStorage.setItem("azoraMouseSize", String(n));
+    var lab = document.getElementById("azoraMouseSizeLabel");
+    if (lab) lab.textContent = n + "%";
+    applyAzoraMouse();
+}
+function setAzoraMouseColor(v) {
+    localStorage.setItem("azoraMouseColor", v || "#ffffff");
+    applyAzoraMouse();
+}
+function buildAzoraCursorImage(done) {
+    var img = new Image();
+    img.onload = function () {
+        var size = azoraMouseSizePx();
+        var canvas = document.createElement("canvas");
+        canvas.width = size; canvas.height = size;
+        var ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0, size, size);
+        var color = localStorage.getItem("azoraMouseColor") || "#ffffff";
+        var m = /^#?([0-9a-f]{6})$/i.exec(color);
+        var cr = m ? parseInt(m[1].slice(0,2),16) : 255;
+        var cg = m ? parseInt(m[1].slice(2,4),16) : 255;
+        var cb = m ? parseInt(m[1].slice(4,6),16) : 255;
+        var data = ctx.getImageData(0, 0, size, size);
+        var p = data.data;
+        for (var i = 0; i < p.length; i += 4) {
+            var lum = (p[i] + p[i+1] + p[i+2]) / 3;
+            if (p[i+3] < 20) continue;
+            if (lum > 170) {
+                var mix = (lum - 170) / 85;
+                p[i] = Math.round(p[i] * (1 - mix) + cr * mix);
+                p[i+1] = Math.round(p[i+1] * (1 - mix) + cg * mix);
+                p[i+2] = Math.round(p[i+2] * (1 - mix) + cb * mix);
+            }
+        }
+        ctx.putImageData(data, 0, 0);
+        done(canvas.toDataURL("image/png"), size);
+    };
+    img.src = "Mouse.png";
+}
 function applyAzoraMouse() {
     var saved = localStorage.getItem("azoraCustomMouse");
     var on = saved !== "off";
     var box = document.getElementById("azoraMouseToggle");
     if (box) box.checked = on;
+    var sizeBox = document.getElementById("azoraMouseSize");
+    var size = Number(localStorage.getItem("azoraMouseSize") || "1");
+    if (sizeBox) sizeBox.value = String(size);
+    var lab = document.getElementById("azoraMouseSizeLabel");
+    if (lab) lab.textContent = size + "%";
+    var colorBox = document.getElementById("azoraMouseColor");
+    if (colorBox) colorBox.value = localStorage.getItem("azoraMouseColor") || "#ffffff";
     var use = on && azoraIsComputer();
     document.documentElement.classList.toggle("azora-custom-mouse", use);
-}
-function setAzoraMouseEnabled(on) {
-    localStorage.setItem("azoraCustomMouse", on ? "on" : "off");
-    applyAzoraMouse();
+    var el = document.getElementById("azoraCursor");
+    if (!el) {
+        el = document.createElement("div");
+        el.id = "azoraCursor";
+        document.body.appendChild(el);
+        document.addEventListener("mousemove", function (e) {
+            var c = document.getElementById("azoraCursor");
+            if (!c || c.style.display === "none") return;
+            var s = Number(c.dataset.size || 20);
+            c.style.transform = "translate(" + (e.clientX - s * 0.78) + "px," + (e.clientY - s * 0.5) + "px)";
+        });
+    }
+    if (!use) { el.style.display = "none"; return; }
+    buildAzoraCursorImage(function (url, px) {
+        el.style.display = "block";
+        el.style.width = px + "px";
+        el.style.height = px + "px";
+        el.style.backgroundImage = "url(" + url + ")";
+        el.dataset.size = String(px);
+    });
 }
 window.setAzoraMouseEnabled = setAzoraMouseEnabled;
 window.applyAzoraMouse = applyAzoraMouse;
+window.setAzoraMouseSize = setAzoraMouseSize;
+window.setAzoraMouseColor = setAzoraMouseColor;
 try {
     if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", applyAzoraMouse);
     else applyAzoraMouse();
