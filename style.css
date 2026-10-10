@@ -8888,3 +8888,6 @@ html.aturius-open .candiluv-mascot {
 .buddy-row { display: flex; gap: 8px; margin-top: 10px; }
 .buddy-row input, .buddy-row button, .buddy-next { border-radius: 12px; border: 0; padding: 10px 12px; font-weight: 700; }
 .buddy-row input { flex: 1; }
+
+.buddy-ball, .buddy-ball-big { display:block; margin:0 auto; border-radius:50%; }
+.memmem-mascot, .candiluv-mascot { background: transparent; }

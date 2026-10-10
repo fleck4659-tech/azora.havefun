@@ -2613,16 +2613,16 @@ if ("serviceWorker" in navigator) {
 
 
 <button type="button" id="memmemMascot" class="memmem-mascot" onclick="openMemMem()" aria-label="Talk to MemMem">
-    <span class="memmem-face">🐻</span>
+    <canvas id="memmemFace" class="buddy-ball" width="84" height="84"></canvas>
     <span class="memmem-name">MemMem</span>
 </button>
 <button type="button" id="candiluvMascot" class="candiluv-mascot" onclick="openCandiLuv()" aria-label="Talk to Candi-Luv">
-    <span class="candiluv-face">🎀</span>
+    <canvas id="candiluvFace" class="buddy-ball" width="84" height="84"></canvas>
     <span class="candiluv-name">Candi-Luv</span>
 </button>
 <div id="memmemPanel" class="buddy-panel" style="display:none;">
     <div class="buddy-card memmem-card">
-        <h2 style="margin:0;">MemMem</h2>
+        <canvas id="memmemFaceBig" class="buddy-ball-big" width="120" height="120"></canvas><h2 style="margin:6px 0 0;">MemMem</h2>
         <p style="margin:4px 0 8px;">Boy helper. Hard math, item gifts, and where things are. Aturius still does simple talk, pictures, videos, and easy math.</p>
         <div id="memmemType" class="buddy-type">Hi! I am MemMem. Ask me where something is, or give me a math problem.</div>
         <button type="button" id="memmemNext" class="buddy-next" style="display:none;" onclick="memmemNext()">Next</button>
@@ -2635,7 +2635,7 @@ if ("serviceWorker" in navigator) {
 </div>
 <div id="candiluvPanel" class="buddy-panel" style="display:none;">
     <div class="buddy-card candiluv-card">
-        <h2 style="margin:0;">Candi-Luv</h2>
+        <canvas id="candiluvFaceBig" class="buddy-ball-big" width="120" height="120"></canvas><h2 style="margin:6px 0 0;">Candi-Luv</h2>
         <p style="margin:4px 0 8px;">Girl helper. Avatar style, themes, shop looks, and events.</p>
         <div id="candiluvType" class="buddy-type">Hi! I am Candi-Luv. I can help your avatar look cute and find event coins.</div>
         <button type="button" id="candiluvNext" class="buddy-next" style="display:none;" onclick="candiluvNext()">Next</button>

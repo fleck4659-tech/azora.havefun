@@ -34397,7 +34397,57 @@ function memmemSolve(text) {
         return "The answer is " + n + ".";
     } catch (e) { return ""; }
 }
+
+function drawBuddyBall(canvas, kind) {
+    if (!canvas) return;
+    var ctx = canvas.getContext("2d");
+    var w = canvas.width, h = canvas.height, r = Math.min(w, h) / 2 - 2;
+    ctx.clearRect(0, 0, w, h);
+    var g = ctx.createRadialGradient(w/2 - r*0.3, h/2 - r*0.35, r*0.2, w/2, h/2, r);
+    if (kind === "mem") {
+        g.addColorStop(0, "#dbeafe");
+        g.addColorStop(1, "#2563eb");
+    } else {
+        g.addColorStop(0, "#fce7f3");
+        g.addColorStop(1, "#db2777");
+    }
+    ctx.beginPath();
+    ctx.arc(w/2, h/2, r, 0, Math.PI * 2);
+    ctx.fillStyle = g;
+    ctx.fill();
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = "#ffffff";
+    ctx.stroke();
+    ctx.fillStyle = "#111827";
+    ctx.beginPath();
+    ctx.arc(w/2 - r*0.28, h/2 - r*0.08, r*0.08, 0, Math.PI*2);
+    ctx.arc(w/2 + r*0.28, h/2 - r*0.08, r*0.08, 0, Math.PI*2);
+    ctx.fill();
+    ctx.strokeStyle = "#111827";
+    ctx.lineWidth = Math.max(2, r*0.06);
+    ctx.beginPath();
+    if (kind === "mem") {
+        ctx.arc(w/2, h/2 + r*0.08, r*0.28, 0.15*Math.PI, 0.85*Math.PI);
+    } else {
+        ctx.arc(w/2, h/2 + r*0.02, r*0.22, 0.1*Math.PI, 0.9*Math.PI);
+    }
+    ctx.stroke();
+    if (kind === "candi") {
+        ctx.fillStyle = "#fff";
+        ctx.beginPath();
+        ctx.arc(w/2, h/2 - r*0.62, r*0.16, 0, Math.PI*2);
+        ctx.fill();
+    }
+}
+function paintBuddyBalls() {
+    drawBuddyBall(document.getElementById("memmemFace"), "mem");
+    drawBuddyBall(document.getElementById("candiluvFace"), "candi");
+    drawBuddyBall(document.getElementById("memmemFaceBig"), "mem");
+    drawBuddyBall(document.getElementById("candiluvFaceBig"), "candi");
+}
+
 function openMemMem() {
+    paintBuddyBalls();
     var p = document.getElementById("memmemPanel");
     if (p) p.style.display = "flex";
     typeBuddy("memmemType", "Hi! I am MemMem. Ask where something is, give me math, or say give me an item.");
@@ -34451,6 +34501,7 @@ function sendMemMem() {
     });
 }
 function openCandiLuv() {
+    paintBuddyBalls();
     var p = document.getElementById("candiluvPanel");
     if (p) p.style.display = "flex";
     typeBuddy("candiluvType", "Hi! I am Candi-Luv. I help with avatar style, themes, and events.");
@@ -34494,3 +34545,5 @@ window.openCandiLuv = openCandiLuv;
 window.closeCandiLuv = closeCandiLuv;
 window.sendCandiLuv = sendCandiLuv;
 window.candiluvNext = candiluvNext;
+
+try { if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', paintBuddyBalls); else paintBuddyBalls(); } catch (eBall) {}
