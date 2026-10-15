@@ -8983,15 +8983,15 @@ function showAzoraLoadingScreen() {
     var status = document.getElementById("azoraLoadingStatus");
     var hint = document.getElementById("azoraLoadingHint");
     var err = document.getElementById("azoraOfflineError");
-    var canvas = document.getElementById("azoraEarthCanvas");
-    if (status) status.textContent = "Checking internet connection...";
-    if (status) status.style.display = "";
-    if (hint) {
-        hint.textContent = "";
-        hint.classList.remove("show");
-    }
+    var bar = document.getElementById("azoraLoadBarFill");
+    if (status) status.textContent = "Loading Azora...";
+    if (hint) hint.textContent = "This takes about 30 seconds.";
     if (err) err.style.display = "none";
-    if (canvas) canvas.style.display = "block";
+    if (bar) bar.style.width = "0%";
+    try {
+        var aud = document.getElementById("azoraLoadingAudio");
+        if (aud) { aud.currentTime = 0; aud.play(); }
+    } catch (eVid) {}
 
     _azoraEarthAngle = 0;
     _azoraLoadingState = {
@@ -9012,9 +9012,12 @@ function _azoraLoadingTick(now) {
     if (!(dt > 0)) dt = 0.016;
     st._last = now;
 
-    // Rotate Earth — visible frame-by-frame
-    _azoraEarthAngle = (_azoraEarthAngle + 28 * dt) % 360;
-    try { drawAzoraEarthFrame(document.getElementById("azoraEarthCanvas"), _azoraEarthAngle); } catch (e) {}
+    var elapsed = now - (st.startTime || now);
+    var pct = Math.max(0, Math.min(100, (elapsed / 30000) * 100));
+    var bar = document.getElementById("azoraLoadBarFill");
+    if (bar) bar.style.width = pct + "%";
+    var status = document.getElementById("azoraLoadingStatus");
+    if (status) status.textContent = "Loading Azora... " + Math.round(pct) + "%";
 
     _azoraLoadingRaf = requestAnimationFrame(_azoraLoadingTick);
 }
@@ -9036,6 +9039,10 @@ function hideAzoraLoadingScreen() {
     el.style.pointerEvents = "none";
     el.setAttribute("aria-hidden", "true");
     try {
+        var aud = document.getElementById("azoraLoadingAudio");
+        if (aud) aud.pause();
+    } catch (eVid) {}
+    try {
         if (!window._azoraBootSpreadPlayed) {
             window._azoraBootSpreadPlayed = true;
             playBootFeatureSpread();
@@ -9050,7 +9057,43 @@ function azoraHasInternet() {
     return true;
 }
 
+
+function playAzoraErrorVideo() {
+    try {
+        var a = document.getElementById("azoraErrorAudio");
+        if (!a) return;
+        a.src = "error.wav";
+        a.currentTime = 0;
+        a.play().catch(function () {});
+    } catch (e) {}
+}
+function showAzoraErrorPopup(message) {
+    var pop = document.getElementById("azoraErrorPopup");
+    var text = document.getElementById("azoraErrorPopupText");
+    if (text) text.textContent = message || "Azora hit an error. You can close this and keep going.";
+    if (pop) pop.style.display = "flex";
+    playAzoraErrorVideo();
+}
+function closeAzoraErrorPopup() {
+    var pop = document.getElementById("azoraErrorPopup");
+    if (pop) pop.style.display = "none";
+    try {
+        var a = document.getElementById("azoraErrorAudio");
+        if (a) a.pause();
+    } catch (e) {}
+}
+window.showAzoraErrorPopup = showAzoraErrorPopup;
+window.closeAzoraErrorPopup = closeAzoraErrorPopup;
+window.addEventListener("error", function (ev) {
+    if (window._azoraErrorPopupLock) return;
+    window._azoraErrorPopupLock = true;
+    setTimeout(function () { window._azoraErrorPopupLock = false; }, 20000);
+    showAzoraErrorPopup(String((ev && ev.message) || "Azora hit an error."));
+});
+
 function showAzoraOfflineError() {
+    try { showAzoraErrorPopup('No internet connection. Check your Wi-Fi or data, then tap Retry.'); } catch (ePop) {}
+
     var status = document.getElementById("azoraLoadingStatus");
     var err = document.getElementById("azoraOfflineError");
     var canvas = document.getElementById("azoraEarthCanvas");
@@ -9103,7 +9146,7 @@ function runAzoraLoadingThen(onDone) {
                 }
             } catch (eDaily2) {}
         }, 120);
-    }, 3000);
+    }, 30000);
 }
 
 window.showAzoraLoadingScreen = showAzoraLoadingScreen;

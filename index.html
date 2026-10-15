@@ -275,14 +275,23 @@
 
 <div id="azoraLoadingScreen" class="azora-loading-screen" style="display:none;" aria-hidden="true">
     <div class="azora-loading-stage" id="azoraLoadingStage">
-        <p class="azora-loading-status" id="azoraLoadingStatus">Checking internet connection...</p>
-        <canvas id="azoraEarthCanvas" class="azora-earth-canvas" width="280" height="280" aria-label="Rotating Earth"></canvas>
-        <p class="azora-loading-hint" id="azoraLoadingHint"></p>
+        <p class="azora-loading-status" id="azoraLoadingStatus">Loading Azora...</p>
+        <audio id="azoraLoadingAudio" src="loading.wav" autoplay loop></audio>
+        <div class="azora-load-bar" aria-hidden="true"><span id="azoraLoadBarFill"></span></div>
+        <p class="azora-loading-hint" id="azoraLoadingHint">This takes about 30 seconds.</p>
         <div id="azoraOfflineError" class="azora-offline-error" style="display:none;">
             <strong>No internet connection</strong>
             <p>Azora needs a connection to continue. Check your Wi‑Fi or data, then tap Retry.</p>
             <button type="button" onclick="retryAzoraInternetCheck()">Retry</button>
         </div>
+    </div>
+</div>
+<div id="azoraErrorPopup" class="overlay" style="display:none;z-index:100000;">
+    <div class="popup">
+        <h2>Something went wrong</h2>
+        <p id="azoraErrorPopupText">Azora hit an error. You can close this and keep going.</p>
+        <audio id="azoraErrorAudio" src="error.wav" autoplay></audio>
+        <button type="button" onclick="closeAzoraErrorPopup()" style="width:100%;">Close</button>
     </div>
 </div>
 
