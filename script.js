@@ -12575,6 +12575,7 @@ function aturiusWatchTyping(input) {
 window.aturiusWatchTyping = aturiusWatchTyping;
 
 function parseAturiusSonifyCommand(userText) {
+    return null;
     var raw = String(userText || "").trim();
     var m = raw.match(/^:?\s*generate(?:\s+me)?(?:\s+please)?\s+a\s+sound\s+sonification(?:\s+of|\s+for|\s+from|\s*:)?\s*(.+)$/i);
     if (!m) m = raw.match(/^:?\s*sound\s+sonification(?:\s+of|\s+for|\s*:)?\s*(.+)$/i);
@@ -18065,17 +18066,9 @@ function switchSettingsTab(tab) {
         try { paintThemeGrid(localStorage.getItem("azoraTheme") || "auto"); } catch (eT) {}
         return;
     }
-    if (tab === "protocols") {
-        if (protocols) protocols.style.display = "block";
-        if (tabProtocols) tabProtocols.classList.add("active");
-        var ds = document.getElementById("decadeSelect");
-        if (ds) ds.value = getDecadeTheme();
-        return;
-    }
-    if (tab === "versions") {
-        if (versions) versions.style.display = "block";
-        if (tabVersions) tabVersions.classList.add("active");
-        try { fillAzoraVersionSelect(); } catch (eV) {}
+    if (tab === "protocols" || tab === "versions") {
+        if (basic) basic.style.display = "block";
+        if (tabBasic) tabBasic.classList.add("active");
         return;
     }
 
