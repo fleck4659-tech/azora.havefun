@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html class="azora-resetify" lang="en" data-azora-shell="web">
+<html lang="en" data-azora-shell="web">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -763,7 +763,7 @@
     </div>
     <button type="button" id="azoraMobileMenuBtn" class="azora-mobile-menu-btn" onclick="toggleAzoraMobileMenu()" aria-label="Open menu">☰</button>
     <div class="topbar-right">
-        <span id="azoraPlayModeBadge" class="azora-play-mode-badge online" title="Connection status" onclick="azoraEggPlayClick(event)">Play Azora Online</span>
+        <button id="aturiusButtonTop" type="button" class="aturius-btn" onclick="openAturiusPanel()" title="Talk to Aturius">✨ Aturius</button>
         <div class="currency-display coins-menu-wrap" id="coinsMenuWrap">
             <button type="button" class="coins-menu-btn" id="coinsMenuBtn" onclick="toggleCoinsDropdown(event)" aria-haspopup="true">
                 🪙 AzoraCoins: <span id="bucks">0</span> ▾
@@ -790,6 +790,8 @@
         <button type="button" id="marketplaceBtn" class="topbar-shop-btn" onclick="openMarketplace()" title="Marketplace">🛒 Shop</button>
         <button type="button" id="inventoryBtn" class="topbar-shop-btn" onclick="openInventory()" title="Inventory">🎒 Bag</button>
         <button id="publicFeedButton" class="topbar-feed-btn" onclick="openPublicFeed()">🎮 Feed</button>
+        <button type="button" onclick="openSettings()">⚙️ Settings</button>
+        <span id="azoraPlayModeBadge" class="azora-play-mode-badge online" title="Connection status" onclick="azoraEggPlayClick(event)">Play Azora Online</span>
         <button type="button" id="installAppBtn" class="install-app-btn" onclick="installAzoraApp()" title="Download Azora app">⬇️ Download Azora</button>
         <div id="guestButtons" class="topbar-guest-btns">
             <button type="button" onclick="openCreateAccount()">Create Account</button>
@@ -818,14 +820,18 @@
         </div>
     </div>
     <div class="topbar-fun-right" id="topbarFunRight">
-        <button id="searchButton" type="button" onclick="openSearch()">🔍 Search</button>
         <button id="aturiusButton" type="button" class="aturius-btn" onclick="openAturiusPanel()" title="Talk to Aturius">✨ Aturius</button>
+        <button id="settingsButton" type="button" onclick="openSettings()">⚙️ Settings</button>
+        <button type="button" onclick="openAzoraStudio()">✂️ Studio</button>
+        <button type="button" onclick="openMarketplace()">🛒 Shop</button>
+        <button type="button" onclick="openInventory()">🎒 Bag</button>
+        <button type="button" onclick="openPublicFeed()">🎮 Feed</button>
         <button id="chatButton" type="button" onclick="openChatPanel()" class="chat-btn-wrap">💬 Chat<span id="chatBadge" class="notif-badge chat-badge" style="display:none;">0</span></button>
+        <button id="searchButton" type="button" onclick="openSearch()">🔍 Search</button>
         <button id="notifButton" class="notif-bell-btn" type="button" onclick="toggleNotifPanel()">
             🔔<span id="notifBadge" class="notif-badge" style="display:none;">0</span>
         </button>
         <button id="profileButton" type="button" onclick="openMyProfile()">👤 Username</button>
-        <button id="settingsButton" type="button" onclick="openSettings()">⚙️ Settings</button>
         <button id="ownerModBtn" type="button" onclick="openOwnerModConsole()" style="display:none;background:#111;color:#fff;border:1px solid #444;">🛡️ Moderation</button>
     </div>
 </div>
@@ -941,45 +947,45 @@
         </div>
 
         <div class="azora-action-grid" role="navigation" aria-label="Quick actions">
+            <button type="button" class="azora-action-card avatar" onclick="document.getElementById('avatar3d-canvas')?.scrollIntoView({behavior:'smooth'})">
+                <span class="azora-action-emoji">🎨</span>
+                <span class="azora-action-title">Avatar</span>
+                <span class="azora-action-desc">Remix your look</span>
+            </button>
+            <button type="button" class="azora-action-card" onclick="openAturiusPanel()">
+                <span class="azora-action-emoji">✨</span>
+                <span class="azora-action-title">Aturius</span>
+                <span class="azora-action-desc">Talk, pictures, and videos</span>
+            </button>
+            <button type="button" class="azora-action-card create" onclick="openAzoraStudio()">
+                <span class="azora-action-emoji">✂️</span>
+                <span class="azora-action-title">Studio</span>
+                <span class="azora-action-desc">Creator Studio</span>
+            </button>
+            <button type="button" class="azora-action-card" onclick="toggleCoinsDropdown(event)">
+                <span class="azora-action-emoji">🪙</span>
+                <span class="azora-action-title">Coins</span>
+                <span class="azora-action-desc">AzoraCoins</span>
+            </button>
+            <button type="button" class="azora-action-card" onclick="openSettings()">
+                <span class="azora-action-emoji">⚙️</span>
+                <span class="azora-action-title">Settings</span>
+                <span class="azora-action-desc">Look, mouse, and account</span>
+            </button>
             <button type="button" class="azora-action-card play" onclick="document.getElementById('azoraGamesSection')?.scrollIntoView({behavior:'smooth'})">
                 <span class="azora-action-emoji">🕹️</span>
                 <span class="azora-action-title">Play Games</span>
                 <span class="azora-action-desc">Join Norm Games or Quick Games</span>
-            </button>
-            <button type="button" class="azora-action-card create" onclick="handleCreateClick(event)">
-                <span class="azora-action-emoji">🛠️</span>
-                <span class="azora-action-title">Create</span>
-                <span class="azora-action-desc">Build your own 3D world</span>
             </button>
             <button type="button" class="azora-action-card shop" onclick="openMarketplace()">
                 <span class="azora-action-emoji">🛍️</span>
                 <span class="azora-action-title">Shop</span>
                 <span class="azora-action-desc">Hair, faces, t-shirts & more</span>
             </button>
-            <button type="button" class="azora-action-card friends" onclick="openChatPanel()">
-                <span class="azora-action-emoji">💬</span>
-                <span class="azora-action-title">Friends</span>
-                <span class="azora-action-desc">Chat and accept requests</span>
-            </button>
-            <button type="button" class="azora-action-card avatar" onclick="document.getElementById('avatar3d-canvas')?.scrollIntoView({behavior:'smooth'})">
-                <span class="azora-action-emoji">🎨</span>
-                <span class="azora-action-title">Avatar</span>
-                <span class="azora-action-desc">Remix your look</span>
-            </button>
             <button type="button" class="azora-action-card feed" onclick="openPublicFeed()">
                 <span class="azora-action-emoji">📱</span>
                 <span class="azora-action-title">Feed</span>
                 <span class="azora-action-desc">Scroll short Quick Games</span>
-            </button>
-            <button type="button" class="azora-action-card ads" onclick="openAdsBoard()">
-                <span class="azora-action-emoji">📣</span>
-                <span class="azora-action-title">Ads</span>
-                <span class="azora-action-desc">Post a free text ad or boost it</span>
-            </button>
-            <button type="button" class="azora-action-card feed" onclick="openAzoraVideos()">
-                <span class="azora-action-emoji">🎬</span>
-                <span class="azora-action-title">Videos</span>
-                <span class="azora-action-desc">Family-safe videos · heavy review</span>
             </button>
         </div>
 
