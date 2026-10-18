@@ -8919,7 +8919,8 @@ html.azora-custom-mouse, html.azora-custom-mouse * { cursor: none !important; }
 
 
 /* Authentic Frutiger Aero Button CSS */
-.frutiger-aero-button {
+.frutiger-aero-button,
+.norm-join-btn {
   --hue: 245;
   --sat: 0.44;
   --glow-intensity: 0.85;
@@ -8942,7 +8943,8 @@ html.azora-custom-mouse, html.azora-custom-mouse * { cursor: none !important; }
   user-select: none;
   -webkit-user-select: none;
 }
-.frutiger-aero-button::before {
+.frutiger-aero-button::before,
+.norm-join-btn::before {
   content: "";
   position: absolute;
   inset: 0;
@@ -8950,7 +8952,8 @@ html.azora-custom-mouse, html.azora-custom-mouse * { cursor: none !important; }
   border-radius: inherit;
   pointer-events: none;
 }
-.frutiger-aero-button::after {
+.frutiger-aero-button::after,
+.norm-join-btn::after {
   content: "";
   position: absolute;
   top: 4%;
@@ -8963,11 +8966,14 @@ html.azora-custom-mouse, html.azora-custom-mouse * { cursor: none !important; }
   pointer-events: none;
 }
 .frutiger-aero-button:hover,
-.frutiger-aero-button:focus {
+.frutiger-aero-button:focus,
+.norm-join-btn:hover,
+.norm-join-btn:focus {
   box-shadow: 0 6px 8px rgba(0, 0, 0, 0.4) !important;
   transform: translateY(-1px);
 }
-.frutiger-aero-button:active {
+.frutiger-aero-button:active,
+.norm-join-btn:active {
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4) !important;
   transform: translateY(1px);
 }
