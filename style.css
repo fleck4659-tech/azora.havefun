@@ -8916,3 +8916,46 @@ html.azora-custom-mouse, html.azora-custom-mouse * { cursor: none !important; }
 
 
 
+
+/* Frutiger Aero Join buttons */
+button.frutiger-aero-button,
+a.frutiger-aero-button {
+  --hue: 210;
+  --sat: 0.55;
+  --glow-intensity: 0.9;
+  --fg: #ffffff !important;
+  --bg: oklch(72% var(--sat) var(--hue) / 0.9);
+  --bg-dark: oklch(48% var(--sat) var(--hue) / 0.9);
+  background-color: #3aa0ff !important;
+  background-image: radial-gradient(farthest-corner at bottom center, rgba(255,255,255,0.9), transparent 55%), linear-gradient(to bottom, #1d6fd6, #7ec8ff) !important;
+  border: 1px solid #d7f0ff !important;
+  border-radius: 9999px !important;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.7) !important;
+  color: #ffffff !important;
+  font-family: "Segoe UI", Tahoma, system-ui, sans-serif !important;
+  font-weight: 700 !important;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.35) !important;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  padding: 0.5em 1.5em !important;
+}
+button.frutiger-aero-button::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(120deg, transparent 28%, rgba(255,255,255,0.55) 46%, rgba(255,255,255,0.08) 56%, transparent 72%);
+  pointer-events: none;
+}
+button.frutiger-aero-button::after {
+  content: "";
+  position: absolute;
+  top: 6%;
+  left: 12%;
+  width: 76%;
+  height: 38%;
+  background: linear-gradient(to bottom, rgba(255,255,255,0.85), rgba(255,255,255,0.05));
+  border-radius: 999px;
+  pointer-events: none;
+}
+button.frutiger-aero-button:hover { transform: translateY(-1px); }
