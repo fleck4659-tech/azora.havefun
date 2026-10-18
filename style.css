@@ -8914,3 +8914,73 @@ html.azora-custom-mouse, html.azora-custom-mouse * { cursor: none !important; }
 .azora-loading-video { width:min(280px,70vw); border-radius:12px; background:#111; }
 #azoraEarthCanvas { display:none !important; }
 
+
+/* Layout B — full page rebuild */
+html.azora-layout-b body { display:block !important; }
+html.azora-layout-b .topbar-shell {
+    position: fixed !important;
+    left: 0; top: 0; bottom: 0;
+    width: 220px;
+    z-index: 40;
+    display: flex;
+    flex-direction: column;
+    background: #12306e !important;
+    overflow: auto;
+}
+html.azora-layout-b .topbar {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    height: auto !important;
+    background: transparent !important;
+    padding: 12px !important;
+    gap: 8px;
+}
+html.azora-layout-b .topbar-left,
+html.azora-layout-b .topbar-right,
+html.azora-layout-b #userPanel,
+html.azora-layout-b .topbar-fun-left,
+html.azora-layout-b .topbar-fun-right {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 8px;
+    width: 100%;
+}
+html.azora-layout-b .topbar-title { color: #fff !important; font-size: 16px !important; }
+html.azora-layout-b .topbar button,
+html.azora-layout-b .coins-menu-btn,
+html.azora-layout-b #azoraPlayModeBadge {
+    width: 100% !important;
+    text-align: left !important;
+}
+html.azora-layout-b .community-banner,
+html.azora-layout-b .avatar-customizer-container,
+html.azora-layout-b .main-content-layout,
+html.azora-layout-b footer {
+    margin-left: 232px !important;
+}
+html.azora-layout-b .avatar-customizer-container {
+    order: 5;
+    float: right;
+    width: 340px;
+    margin-right: 12px;
+}
+html.azora-layout-b .main-content-layout {
+    display: flex !important;
+    flex-direction: column-reverse !important;
+}
+html.azora-layout-b .azora-action-grid {
+    display: flex !important;
+    flex-direction: column !important;
+}
+html.azora-layout-b .community-banner { display: none !important; }
+html.azora-layout-b footer { clear: both; }
+@media (max-width: 900px) {
+    html.azora-layout-b .topbar-shell { position: relative; width: 100%; height: auto; }
+    html.azora-layout-b .community-banner,
+    html.azora-layout-b .avatar-customizer-container,
+    html.azora-layout-b .main-content-layout,
+    html.azora-layout-b footer { margin-left: 0 !important; }
+    html.azora-layout-b .avatar-customizer-container { float: none; width: auto; }
+}
