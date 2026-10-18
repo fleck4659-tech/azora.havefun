@@ -8992,3 +8992,5 @@ html.azora-custom-mouse, html.azora-custom-mouse * { cursor: none !important; }
 .frutiger-aero-button.aero-shop { --hue: 65; --sat: 0.44; }
 
 .frutiger-aero-button.aero-search { --hue: 267; --sat: 0.44; }
+
+.frutiger-aero-button.aero-bell { --hue: 65; --sat: 0.18; }
