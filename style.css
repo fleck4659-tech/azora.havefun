@@ -8913,3 +8913,71 @@ html.azora-custom-mouse, html.azora-custom-mouse * { cursor: none !important; }
 #azoraLoadBarFill { display:block; height:100%; width:0; background:linear-gradient(90deg,#c4b5fd,#7c3aed); }
 .azora-loading-video { width:min(280px,70vw); border-radius:12px; background:#111; }
 #azoraEarthCanvas { display:none !important; }
+
+/* Operation Resetify — hide extras, keep avatar, Aturius, loading, settings, privacy, studio, coins */
+html.azora-resetify #azoraPlayModeBadge,
+html.azora-resetify #azoraRecordBtn,
+html.azora-resetify #marketplaceBtn,
+html.azora-resetify #inventoryBtn,
+html.azora-resetify #publicFeedButton,
+html.azora-resetify #installAppBtn,
+html.azora-resetify #dailyGiftBtn,
+html.azora-resetify #surpriseGameBtn,
+html.azora-resetify #streakChip,
+html.azora-resetify #funTipChip,
+html.azora-resetify #searchButton,
+html.azora-resetify #chatButton,
+html.azora-resetify #notifButton,
+html.azora-resetify #profileButton,
+html.azora-resetify #ownerModBtn,
+html.azora-resetify .azora-mobile-tabbar,
+html.azora-resetify .community-banner,
+html.azora-resetify .azora-fun-home,
+html.azora-resetify #normGamesList,
+html.azora-resetify .memmem-mascot,
+html.azora-resetify .candiluv-mascot,
+html.azora-resetify .coins-dropdown,
+html.azora-resetify #azoraXpDesktop,
+html.azora-resetify #win95Desktop {
+    display: none !important;
+}
+html.azora-resetify,
+html.azora-resetify body,
+html.azora-resetify .topbar,
+html.azora-resetify .popup,
+html.azora-resetify button,
+html.azora-resetify .avatar-customizer-container,
+html.azora-resetify .customizer-controls,
+html.azora-resetify footer {
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    background-image: none !important;
+}
+html.azora-resetify body {
+    background: #ffffff !important;
+    color: #111111 !important;
+}
+html.azora-resetify .topbar,
+html.azora-resetify footer {
+    background: #f2f2f2 !important;
+    color: #111111 !important;
+}
+html.azora-resetify .topbar h2,
+html.azora-resetify button,
+html.azora-resetify .coins-menu-btn {
+    color: #111111 !important;
+    background: #ffffff !important;
+    border: 1px solid #111111 !important;
+    border-radius: 0 !important;
+}
+html.azora-resetify .avatar-customizer-container,
+html.azora-resetify .customizer-controls {
+    background: #ffffff !important;
+    color: #111111 !important;
+    border: 1px solid #111111 !important;
+}
+html.azora-resetify .customizer-controls h3,
+html.azora-resetify .customizer-controls label,
+html.azora-resetify .customizer-controls p {
+    color: #111111 !important;
+}
