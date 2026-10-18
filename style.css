@@ -851,20 +851,20 @@ input:checked + .slider:before {
 
 /* === THEME SYSTEM — logo colors (purple → blue) === */
 :root {
-    --bg-1: #c026d3;
-    --bg-2: #7c3aed;
-    --bg-3: #2563eb;
+    --bg-1: #7ec8f0;
+    --bg-2: #4aa3e0;
+    --bg-3: #1a3a8c;
     --text-1: #ffffff;
-    --text-2: #f3e8ff;
-    --accent: #a855f7;
-    --accent-2: #3b82f6;
-    --card-bg: rgba(255, 255, 255, 0.18);
-    --card-border: rgba(255, 255, 255, 0.55);
-    --topbar: #7c3aed;
-    --topbar-grad: linear-gradient(90deg, #c026d3 0%, #7c3aed 45%, #2563eb 100%);
-    --popup-bg: rgba(255, 255, 255, 0.96);
-    --footer: #4c1d95;
-    --banner: rgba(168, 85, 247, 0.22);
+    --text-2: #e8f4ff;
+    --accent: #1a3a8c;
+    --accent-2: #3d7fd4;
+    --card-bg: rgba(255, 255, 255, 0.82);
+    --card-border: rgba(26, 58, 140, 0.35);
+    --topbar: #1a3a8c;
+    --topbar-grad: linear-gradient(180deg, #7ec8f0 0%, #4aa3e0 42%, #1a3a8c 100%);
+    --popup-bg: rgba(255, 255, 255, 0.97);
+    --footer: #12306e;
+    --banner: rgba(255, 255, 255, 0.55);
 }
 
 html[data-theme="dark"] {
@@ -886,7 +886,7 @@ html[data-theme="dark"] {
 
 body {
     /* Solid color only — edge wipe layers paint the animated background */
-    background: var(--bg-2, #7c3aed) !important;
+    background: linear-gradient(180deg, #7ec8f0 0%, #4aa3e0 48%, #d7ecfb 100%) !important;
     color: var(--text-1) !important;
     font-family: "Javelin Obsidian", Arial, sans-serif;
 }
@@ -8908,3 +8908,8 @@ html.azora-custom-mouse, html.azora-custom-mouse * { cursor: none !important; }
     display: none;
     background: center / contain no-repeat;
 }
+
+.azora-load-bar { width:min(420px,80vw); height:16px; border-radius:999px; background:#1e1b4b; border:2px solid #fff; overflow:hidden; margin:14px auto; }
+#azoraLoadBarFill { display:block; height:100%; width:0; background:linear-gradient(90deg,#c4b5fd,#7c3aed); }
+.azora-loading-video { width:min(280px,70vw); border-radius:12px; background:#111; }
+#azoraEarthCanvas { display:none !important; }
