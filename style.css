@@ -8915,72 +8915,112 @@ html.azora-custom-mouse, html.azora-custom-mouse * { cursor: none !important; }
 #azoraEarthCanvas { display:none !important; }
 
 
-/* Layout B — full page rebuild */
-html.azora-layout-b body { display:block !important; }
+
+/* Layout B — clean split page */
 html.azora-layout-b .topbar-shell {
-    position: fixed !important;
-    left: 0; top: 0; bottom: 0;
-    width: 220px;
-    z-index: 40;
-    display: flex;
-    flex-direction: column;
+    position: relative !important;
+    width: 100% !important;
     background: #12306e !important;
-    overflow: auto;
 }
 html.azora-layout-b .topbar {
     display: flex !important;
     flex-direction: column !important;
-    align-items: stretch !important;
+    align-items: center !important;
     height: auto !important;
+    padding: 16px 12px 8px !important;
     background: transparent !important;
-    padding: 12px !important;
-    gap: 8px;
+    gap: 10px;
 }
-html.azora-layout-b .topbar-left,
+html.azora-layout-b .topbar-left {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    gap: 6px;
+}
+html.azora-layout-b .topbar-title { color: #fff !important; margin: 0 !important; }
 html.azora-layout-b .topbar-right,
-html.azora-layout-b #userPanel,
-html.azora-layout-b .topbar-fun-left,
-html.azora-layout-b .topbar-fun-right {
+html.azora-layout-b #userPanel {
     display: flex !important;
-    flex-direction: column !important;
-    align-items: stretch !important;
-    gap: 8px;
-    width: 100%;
-}
-html.azora-layout-b .topbar-title { color: #fff !important; font-size: 16px !important; }
-html.azora-layout-b .topbar button,
-html.azora-layout-b .coins-menu-btn,
-html.azora-layout-b #azoraPlayModeBadge {
-    width: 100% !important;
-    text-align: left !important;
-}
-html.azora-layout-b .community-banner,
-html.azora-layout-b .avatar-customizer-container,
-html.azora-layout-b .main-content-layout,
-html.azora-layout-b footer {
-    margin-left: 232px !important;
-}
-html.azora-layout-b .avatar-customizer-container {
-    order: 5;
-    float: right;
-    width: 340px;
-    margin-right: 12px;
-}
-html.azora-layout-b .main-content-layout {
-    display: flex !important;
-    flex-direction: column-reverse !important;
-}
-html.azora-layout-b .azora-action-grid {
-    display: flex !important;
-    flex-direction: column !important;
+    flex-wrap: wrap !important;
+    justify-content: center !important;
+    gap: 8px !important;
+    width: min(980px, 100%) !important;
 }
 html.azora-layout-b .community-banner { display: none !important; }
-html.azora-layout-b footer { clear: both; }
-@media (max-width: 900px) {
-    html.azora-layout-b .topbar-shell { position: relative; width: 100%; height: auto; }
-    html.azora-layout-b .community-banner,
-    html.azora-layout-b .avatar-customizer-container,
-    html.azora-layout-b .main-content-layout,
-    html.azora-layout-b footer { margin-left: 0 !important; }
-    html.azora-layout-b .avatar-customizer-container { float: none; width: auto; }
+html.azora-layout-b .avatar-customizer-container,
+html.azora-layout-b .main-content-layout {
+    width: min(1100px, calc(100% - 24px)) !important;
+    margin: 16px auto !important;
+    float: none !important;
 }
+html.azora-layout-b .main-content-layout {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: 16px !important;
+}
+html.azora-layout-b .azora-action-grid {
+    display: grid !important;
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+    gap: 10px !important;
+}
+html.azora-layout-b footer { clear: both; }
+@media (max-width: 800px) {
+    html.azora-layout-b .azora-action-grid { grid-template-columns: 1fr 1fr !important; }
+}
+
+/* Authentic Frutiger Aero Button CSS */
+.frutiger-aero-button {
+  --hue: 245;
+  --sat: 0.44;
+  --glow-intensity: 0.85;
+  --fg: oklch(15% calc(var(--sat) * 0.5) var(--hue));
+  --bg: oklch(75% var(--sat) var(--hue) / 0.8);
+  --bg-dark: oklch(45% var(--sat) var(--hue) / 0.75);
+  --bottom-glow: radial-gradient(farthest-corner at bottom center, rgba(255, 255, 255, var(--glow-intensity)), transparent);
+  background-color: var(--bg);
+  background: var(--bottom-glow), linear-gradient(to bottom, var(--bg-dark), var(--bg));
+  border: 1px solid var(--bg);
+  border-radius: 9999px;
+  box-shadow: 0 4px 4px rgba(0, 0, 0, 0.4);
+  color: var(--fg);
+  font-family: "Segoe UI", Tahoma, "Segoe UI Web", system-ui, sans-serif;
+  font-weight: 700;
+  text-shadow: 0 2px 0.5em rgba(0, 0, 0, 0.2);
+  cursor: pointer;
+  position: relative;
+  transition: all 300ms ease;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.frutiger-aero-button::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(120deg, transparent 30%, rgba(255, 255, 255, 0.35) 45%, rgba(255, 255, 255, 0.05) 55%, transparent 70%);
+  border-radius: inherit;
+  pointer-events: none;
+}
+.frutiger-aero-button::after {
+  content: "";
+  position: absolute;
+  top: 4%;
+  left: 0.75em;
+  width: calc(100% - 1.5em);
+  height: 40%;
+  background: linear-gradient(to bottom, rgba(255, 255, 255, 0.8), rgba(255, 255, 255, 0.1));
+  border-radius: inherit;
+  transition: background 400ms ease;
+  pointer-events: none;
+}
+.frutiger-aero-button:hover,
+.frutiger-aero-button:focus {
+  box-shadow: 0 6px 8px rgba(0, 0, 0, 0.4);
+  transform: translateY(-1px);
+}
+.frutiger-aero-button:active {
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+  transform: translateY(1px);
+}
+.frutiger-aero-button.small { padding: 0.5em 1.5em; font-size: 0.875rem; }
+.frutiger-aero-button.medium { padding: 0.75em 2em; font-size: 1rem; }
+.frutiger-aero-button.large { padding: 1em 3em; font-size: 1.125rem; }

@@ -18923,7 +18923,7 @@ function renderStudioNormGameCards() {
             '<p><span class="by-creator"></span>. 3D world built in Creator Studio.</p>' +
             '<span class="norm-game-meta">3D · Studio · Multiplayer · ' + partCount + ' parts</span>' +
             '</div>' +
-            '<button type="button" class="norm-join-btn">Join</button>';
+            '<button type="button" class="norm-join-btn frutiger-aero-button small">Join</button>';
         card.querySelector("h4").textContent = g.title || g.name || "Studio Game";
         card.querySelector(".by-creator").textContent = "By " + author;
         card.querySelector(".norm-join-btn").onclick = function () {
