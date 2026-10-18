@@ -8917,45 +8917,60 @@ html.azora-custom-mouse, html.azora-custom-mouse * { cursor: none !important; }
 
 
 
-/* Frutiger Aero Join buttons */
-button.frutiger-aero-button,
-a.frutiger-aero-button {
-  --hue: 210;
-  --sat: 0.55;
-  --glow-intensity: 0.9;
-  --fg: #ffffff !important;
-  --bg: oklch(72% var(--sat) var(--hue) / 0.9);
-  --bg-dark: oklch(48% var(--sat) var(--hue) / 0.9);
-  background-color: #3aa0ff !important;
-  background-image: radial-gradient(farthest-corner at bottom center, rgba(255,255,255,0.9), transparent 55%), linear-gradient(to bottom, #1d6fd6, #7ec8ff) !important;
-  border: 1px solid #d7f0ff !important;
+
+/* Authentic Frutiger Aero Button CSS */
+.frutiger-aero-button {
+  --hue: 245;
+  --sat: 0.44;
+  --glow-intensity: 0.85;
+  --fg: oklch(15% calc(var(--sat) * 0.5) var(--hue));
+  --bg: oklch(75% var(--sat) var(--hue) / 0.8);
+  --bg-dark: oklch(45% var(--sat) var(--hue) / 0.75);
+  --bottom-glow: radial-gradient(farthest-corner at bottom center, rgba(255, 255, 255, var(--glow-intensity)), transparent);
+  background-color: var(--bg) !important;
+  background: var(--bottom-glow), linear-gradient(to bottom, var(--bg-dark), var(--bg)) !important;
+  border: 1px solid var(--bg) !important;
   border-radius: 9999px !important;
-  box-shadow: 0 4px 8px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.7) !important;
-  color: #ffffff !important;
-  font-family: "Segoe UI", Tahoma, system-ui, sans-serif !important;
+  box-shadow: 0 4px 4px rgba(0, 0, 0, 0.4) !important;
+  color: var(--fg) !important;
+  font-family: "Segoe UI", Tahoma, "Segoe UI Web", system-ui, sans-serif !important;
   font-weight: 700 !important;
-  text-shadow: 0 1px 2px rgba(0,0,0,0.35) !important;
+  text-shadow: 0 2px 0.5em rgba(0, 0, 0, 0.2) !important;
   cursor: pointer;
   position: relative;
-  overflow: hidden;
-  padding: 0.5em 1.5em !important;
+  transition: all 300ms ease;
+  user-select: none;
+  -webkit-user-select: none;
 }
-button.frutiger-aero-button::before {
+.frutiger-aero-button::before {
   content: "";
   position: absolute;
   inset: 0;
-  background: linear-gradient(120deg, transparent 28%, rgba(255,255,255,0.55) 46%, rgba(255,255,255,0.08) 56%, transparent 72%);
+  background: linear-gradient(120deg, transparent 30%, rgba(255, 255, 255, 0.35) 45%, rgba(255, 255, 255, 0.05) 55%, transparent 70%);
+  border-radius: inherit;
   pointer-events: none;
 }
-button.frutiger-aero-button::after {
+.frutiger-aero-button::after {
   content: "";
   position: absolute;
-  top: 6%;
-  left: 12%;
-  width: 76%;
-  height: 38%;
-  background: linear-gradient(to bottom, rgba(255,255,255,0.85), rgba(255,255,255,0.05));
-  border-radius: 999px;
+  top: 4%;
+  left: 0.75em;
+  width: calc(100% - 1.5em);
+  height: 40%;
+  background: linear-gradient(to bottom, rgba(255, 255, 255, 0.8), rgba(255, 255, 255, 0.1));
+  border-radius: inherit;
+  transition: background 400ms ease;
   pointer-events: none;
 }
-button.frutiger-aero-button:hover { transform: translateY(-1px); }
+.frutiger-aero-button:hover,
+.frutiger-aero-button:focus {
+  box-shadow: 0 6px 8px rgba(0, 0, 0, 0.4) !important;
+  transform: translateY(-1px);
+}
+.frutiger-aero-button:active {
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4) !important;
+  transform: translateY(1px);
+}
+.frutiger-aero-button.small { padding: 0.5em 1.5em !important; font-size: 0.875rem !important; }
+.frutiger-aero-button.medium { padding: 0.75em 2em !important; font-size: 1rem !important; }
+.frutiger-aero-button.large { padding: 1em 3em !important; font-size: 1.125rem !important; }
