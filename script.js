@@ -8988,10 +8988,7 @@ function showAzoraLoadingScreen() {
     if (hint) hint.textContent = "This takes about 30 seconds.";
     if (err) err.style.display = "none";
     if (bar) bar.style.width = "0%";
-    try {
-        var aud = document.getElementById("azoraLoadingAudio");
-        if (aud) { aud.currentTime = 0; aud.play(); }
-    } catch (eVid) {}
+    /* loading sound removed */
 
     _azoraEarthAngle = 0;
     _azoraLoadingState = {
@@ -9039,9 +9036,9 @@ function hideAzoraLoadingScreen() {
     el.style.pointerEvents = "none";
     el.setAttribute("aria-hidden", "true");
     try {
-        var aud = document.getElementById("azoraLoadingAudio");
-        if (aud) aud.pause();
-    } catch (eVid) {}
+        var theme = document.getElementById("azoraThemeAudio");
+        if (theme) { theme.currentTime = 0; theme.play(); }
+    } catch (eTheme) {}
     try {
         if (!window._azoraBootSpreadPlayed) {
             window._azoraBootSpreadPlayed = true;
