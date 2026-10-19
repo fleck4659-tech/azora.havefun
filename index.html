@@ -128,7 +128,7 @@
         <header>
             <strong>Phone preview</strong>
             <span>390 × 844</span>
-            <button type="button" onclick="closeAzoraPhonePreview()">Close</button>
+            <button class="frutiger-aero-button small aero-close" type="button" onclick="closeAzoraPhonePreview()">Close</button>
         </header>
         <div class="azora-phone-bezel">
             <iframe id="azoraPhonePreviewFrame" title="Azora phone preview"></iframe>
@@ -177,7 +177,7 @@
         <p class="azora-feature-fail-title" id="azoraFeatureFailTitle">Feature could not be loaded</p>
         <p class="azora-feature-fail-name" id="azoraFeatureFailName"></p>
         <p class="azora-feature-fail-detail" id="azoraFeatureFailDetail">This part of Azora did not start. You can keep using the rest of the site.</p>
-        <button type="button" class="azora-feature-fail-close" id="azoraFeatureFailClose" onclick="hideFeatureLoadError()">Close</button>
+        <button type="button" class="frutiger-aero-button small aero-close azora-feature-fail-close" id="azoraFeatureFailClose" onclick="hideFeatureLoadError()">Close</button>
     </div>
 </div>
 
@@ -201,7 +201,7 @@
     <div class="azora-forum-shell">
         <header>
             <strong>Azora Community Forum</strong>
-            <button type="button" onclick="closeAzoraForum()">Close</button>
+            <button class="frutiger-aero-button small aero-close" type="button" onclick="closeAzoraForum()">Close</button>
         </header>
         <div id="azoraForumThreads" class="azora-forum-threads"></div>
         <form onsubmit="postAzoraForumThread(event)">
@@ -291,7 +291,7 @@
         <h2>Something went wrong</h2>
         <p id="azoraErrorPopupText">Azora hit an error. You can close this and keep going.</p>
         <audio id="azoraErrorAudio" src="error.wav" autoplay></audio>
-        <button type="button" onclick="closeAzoraErrorPopup()" style="width:100%;">Close</button>
+        <button class="frutiger-aero-button small aero-close" type="button" onclick="closeAzoraErrorPopup()" style="width:100%;">Close</button>
     </div>
 </div>
 
@@ -397,7 +397,7 @@
         </div>
         <input id="searchInput" type="text" placeholder="Search usernames..." oninput="watchEqetechSearch(this);performSearch()">
         <div class="search-results" id="searchResultsContainer"></div>
-        <button onclick="closeSearch()">Close</button>
+        <button class="frutiger-aero-button small aero-close" onclick="closeSearch()">Close</button>
     </div>
 </div>
 
@@ -736,7 +736,7 @@
             </div>
         </div>
 
-        <button onclick="closeSettings()" style="width:100%;">Close</button>
+        <button class="frutiger-aero-button small aero-close" onclick="closeSettings()" style="width:100%;">Close</button>
     </div>
 </div>
 
@@ -832,7 +832,7 @@
             🔔<span id="notifBadge" class="notif-badge" style="display:none;">0</span>
         </button>
         <button id="profileButton" type="button" class="frutiger-aero-button small aero-username" onclick="openMyProfile()">👤 Username</button>
-        <button id="ownerModBtn" type="button" onclick="openOwnerModConsole()" style="display:none;background:#111;color:#fff;border:1px solid #444;">🛡️ Moderation</button>
+        <button id="ownerModBtn" type="button" class="frutiger-aero-button small aero-mod" onclick="openOwnerModConsole()" style="display:none;">🛡️ Moderation</button>
     </div>
 </div>
 </div>
@@ -855,7 +855,7 @@
         <button type="button" onclick="openMyProfile(); closeAzoraMobileMenu();">👤 Profile</button>
         <button type="button" class="frutiger-aero-button small aero-settings" onclick="openSettings(); closeAzoraMobileMenu();">⚙️ Settings</button>
         <button type="button" onclick="openAzoraXp(); closeAzoraMobileMenu();">💻 XP</button>
-        <button type="button" class="azora-mobile-sheet-close" onclick="closeAzoraMobileMenu()">Close</button>
+        <button type="button" class="frutiger-aero-button small aero-close azora-mobile-sheet-close" onclick="closeAzoraMobileMenu()">Close</button>
     </div>
 </div>
 
@@ -920,7 +920,7 @@
         <button type="button" id="loadPrevAvatarsBtn" class="load-prev-avatars-btn" onclick="openAvatarHistory()">📂 Load previous avatars</button>
         <button type="button" id="resetPreviousAvatarBtn" class="reset-previous-avatar-btn" onclick="resetToPreviousAvatar()" title="Load the avatar you had before the latest save">↩ Reset to previous avatar</button>
         <button type="button" id="resetDefaultAvatarBtn" class="reset-default-avatar-btn" onclick="resetToDefaultAvatar()" title="Reset to Azora's default avatar">↺ Reset to default avatar</button>
-        <button onclick="saveAvatar()" id="saveAvatarBtn">Save Avatar</button>
+        <button onclick="saveAvatar()" id="saveAvatarBtn" class="frutiger-aero-button small aero-save">Save Avatar</button>
         <p id="guestAvatarLock" style="display:none;color:#ffcc00;font-size:12px;font-weight:bold;text-align:center;margin-top:8px;">
             Guest profiles can customize and save. Your Guest name cannot be changed.
         </p>
@@ -1001,7 +1001,7 @@
             <div class="azora-daily-card" id="azoraDailyFunCard">
                 <div class="azora-daily-title">🎁 Daily fun</div>
                 <p class="azora-daily-text" id="azoraDailyFunText">Come back every day for coins, streaks, and new things to try.</p>
-                <button type="button" class="azora-daily-btn" id="azoraDailyFunBtn" onclick="if(typeof claimDailyCoins==='function')claimDailyCoins(); else if(typeof openDailyReward==='function')openDailyReward();">Check daily reward</button>
+                <button type="button" class="azora-daily-btn frutiger-aero-button small aero-daily" id="azoraDailyFunBtn" onclick="if(typeof claimDailyCoins==='function')claimDailyCoins(); else if(typeof openDailyReward==='function')openDailyReward();">Check daily reward</button>
             </div>
         </div>
     </section>
@@ -1193,7 +1193,7 @@
 
     <div class="menu">
         <div class="dropdown">
-            <button class="dropbtn" onclick="toggleDropdown()">Other Socials ▼</button>
+            <button class="dropbtn frutiger-aero-button small aero-socials" onclick="toggleDropdown()">Other Socials ▼</button>
             <div class="dropdown-content" id="socialDropdown">
                 <a href="https://www.youtube.com/@Official_Azora" target="_blank">YouTube</a>
                 <a href="#" target="_blank">Twitter (X)</a>
@@ -1201,8 +1201,8 @@
                 <a href="https://www.tiktok.com/@603blox" target="_blank">TikTok</a>
             </div>
         </div>
-        <button onclick="window.open('https://www.roblox.com/users/9744531169/profile','_blank')">Roblox Profile</button>
-        <button id="createGameBtn" type="button" onclick="handleCreateClick(event)">🛠️ Create a Game</button>
+        <button class="frutiger-aero-button small aero-roblox" onclick="window.open('https://www.roblox.com/users/9744531169/profile','_blank')">Roblox Profile</button>
+        <button id="createGameBtn" type="button" class="frutiger-aero-button small aero-create" onclick="handleCreateClick(event)">🛠️ Create a Game</button>
     </div>
 </div>
 
@@ -1226,7 +1226,7 @@
         <div class="azafn-tabs">
             <button type="button" onclick="setPublicFeedTab('games')">Games</button>
             <button type="button" onclick="setPublicFeedTab('videos')">Videos</button>
-            <button onclick="closePublicFeed()" style="margin:0;background:#ff3b30;color:#fff;">✕ Close</button>
+            <button class="frutiger-aero-button small aero-close" onclick="closePublicFeed()" style="margin:0;background:#ff3b30;color:#fff;">✕ Close</button>
         </div>
     </div>
     <div class="azafn-body">
@@ -1299,7 +1299,7 @@
             <div class="profile-meta-row"><span class="profile-meta-label">Last online</span><span id="profileLastOnline">—</span></div>
             <div class="profile-meta-row"><span class="profile-meta-label">Joined</span><span id="profileJoinedDate">—</span></div>
         </div>
-        <button type="button" onclick="closeProfile()" style="margin-top:15px;">Close</button>
+        <button class="frutiger-aero-button small aero-close" type="button" onclick="closeProfile()" style="margin-top:15px;">Close</button>
     </div>
 </div>
 
@@ -1308,7 +1308,7 @@
     <div class="azafn-header">
         <h2><img src="logo.jpg?v=70.2" alt="Azora"> Chat</h2>
         <div class="azafn-tabs">
-            <button type="button" onclick="closeChatPanel()" style="margin:0;background:#ff3b30;color:#fff;">✕ Close</button>
+            <button class="frutiger-aero-button small aero-close" type="button" onclick="closeChatPanel()" style="margin:0;background:#ff3b30;color:#fff;">✕ Close</button>
         </div>
     </div>
     <div class="chat-layout">
@@ -1362,7 +1362,7 @@
             <button type="button" class="aturius-tab-btn" id="aturiusTabChat" onclick="setAturiusTab('chat')">Chat</button>
             <button type="button" class="aturius-tab-btn" id="aturiusTabSettings" onclick="setAturiusTab('settings')">Settings</button>
             <button type="button" class="aturius-tab-btn" onclick="openAzoraStudio()">✂️ Studio</button>
-            <button type="button" onclick="closeAturiusPanel()" style="margin:0;background:#ff3b30;color:#fff;">✕ Close</button>
+            <button class="frutiger-aero-button small aero-close" type="button" onclick="closeAturiusPanel()" style="margin:0;background:#ff3b30;color:#fff;">✕ Close</button>
         </div>
     </div>
     <div class="aturius-layout">
@@ -1505,7 +1505,7 @@
         <h1 style="font-size:1.25rem;">Message Archives</h1>
         <p style="color:#666;font-size:12px;margin-top:-6px;">Every friend message is saved here, even if removed from the live chat.</p>
         <div id="chatArchivesBody" style="text-align:left;overflow-y:auto;flex:1;max-height:50vh;font-size:13px;"></div>
-        <button type="button" class="secondary" onclick="closeChatArchives()">Close</button>
+        <button type="button" class="frutiger-aero-button small aero-close secondary" onclick="closeChatArchives()">Close</button>
     </div>
 </div>
 
@@ -1515,7 +1515,7 @@
         <h1 style="font-size:1.3rem;">Aturius</h1>
         <p style="color:#666;font-size:13px;">Open Aturius from the top bar for chat and settings.</p>
         <button type="button" class="secondary" onclick="closeAICompanionSettings(); openAturiusPanel();">Open Aturius</button>
-        <button type="button" class="secondary" onclick="closeAICompanionSettings()">Close</button>
+        <button type="button" class="frutiger-aero-button small aero-close secondary" onclick="closeAICompanionSettings()">Close</button>
         <input id="aiCompName" type="hidden" value="Aturius">
         <select id="aiCompPersonality" style="display:none;"><option value="friendly">Friendly</option></select>
         <input type="color" id="aiCompHead" value="#ffcc00" style="display:none;">
@@ -1535,7 +1535,7 @@
         <div style="display:flex;gap:8px;margin-top:15px;">
             <button onclick="markAllNotifsRead()" style="flex:1;">Mark all read</button>
             <button onclick="askAzoraDeviceNotifs(true)" style="flex:1;">Device alerts</button>
-            <button onclick="closeNotifPanel()" style="flex:1;">Close</button>
+            <button class="frutiger-aero-button small aero-close" onclick="closeNotifPanel()" style="flex:1;">Close</button>
         </div>
     </div>
 </div>
@@ -1556,7 +1556,7 @@
     <div class="azafn-header">
         <h2><img src="logo.jpg?v=70.2" alt="Azora"> Game Preview</h2>
         <div class="azafn-tabs">
-            <button onclick="closeGamePreview()" style="margin:0;background:#ff3b30;color:#fff;">✕ Close</button>
+            <button class="frutiger-aero-button small aero-close" onclick="closeGamePreview()" style="margin:0;background:#ff3b30;color:#fff;">✕ Close</button>
         </div>
     </div>
     <div class="game-preview-body">
@@ -1816,7 +1816,7 @@
         <p class="ai-img-policy">Newest saves appear at the top. Loading one applies it to your customizer — saving again adds a <strong>new</strong> entry (old ones stay).</p>
         <div id="avatarHistoryList" class="avatar-history-list"></div>
         <div style="display:flex;gap:10px;margin-top:12px;">
-            <button type="button" onclick="closeAvatarHistory()" style="flex:1;">Close</button>
+            <button class="frutiger-aero-button small aero-close" type="button" onclick="closeAvatarHistory()" style="flex:1;">Close</button>
         </div>
     </div>
 </div>
@@ -1954,7 +1954,7 @@
     <div class="azora-wire-top">
         <strong>AZORA WIRE MAP</strong>
         <span id="azoraWireLive">Hidden board — packets moving</span>
-        <button type="button" id="azoraWireClose" onclick="closeAzoraWireMap()">Close</button>
+        <button class="frutiger-aero-button small aero-close" type="button" id="azoraWireClose" onclick="closeAzoraWireMap()">Close</button>
     </div>
     <div class="azora-wire-wrap">
         <div class="azora-wire-stage" id="azoraWireStage"></div>
@@ -1966,7 +1966,7 @@
     <div class="unknown-error-sheet">
         <div class="unknown-error-bar">
             <span>UNKNOWN · PUBLISH REPORT</span>
-            <button type="button" class="unknown-error-close" onclick="closeUnknownErrorLayout()">Close</button>
+            <button type="button" class="frutiger-aero-button small aero-close unknown-error-close" onclick="closeUnknownErrorLayout()">Close</button>
         </div>
         <div class="unknown-error-body" id="unknownErrorBody"></div>
         <p class="unknown-error-hint">Select any word for its definition.</p>
@@ -1974,7 +1974,7 @@
     <div id="unknownWordPopup" class="unknown-word-popup" style="display:none;" role="dialog">
         <strong id="unknownWordTitle"></strong>
         <p id="unknownWordDef"></p>
-        <button type="button" onclick="closeUnknownWordPopup()">Close</button>
+        <button class="frutiger-aero-button small aero-close" type="button" onclick="closeUnknownWordPopup()">Close</button>
     </div>
 </div>
 
@@ -1982,7 +1982,7 @@
     <div class="azora-videos-shell">
         <header class="azora-videos-head">
             <h2>🎬 Azora Videos</h2>
-            <button type="button" onclick="closeAzoraVideos()">✕ Close</button>
+            <button class="frutiger-aero-button small aero-close" type="button" onclick="closeAzoraVideos()">✕ Close</button>
         </header>
         <p class="azora-videos-banner">Separate from Feed. Every video is scanned, then held for review before anyone else can watch it.</p>
         <nav class="azora-videos-tabs">
@@ -2083,7 +2083,7 @@ if ("serviceWorker" in navigator) {
         </div>
         <p id="aturiusMarketHint" style="display:none;text-align:center;font-size:0.82rem;opacity:0.85;margin:0 0 8px;">Buy items here, then equip them in <strong>Aturius → Settings</strong>.</p>
         <div id="marketplaceList" class="market-list"></div>
-        <button type="button" onclick="closeMarketplace()" style="width:100%;margin-top:12px;">Close</button>
+        <button class="frutiger-aero-button small aero-close" type="button" onclick="closeMarketplace()" style="width:100%;margin-top:12px;">Close</button>
     </div>
 </div>
 
@@ -2099,7 +2099,7 @@ if ("serviceWorker" in navigator) {
     <div class="popup" style="max-width:480px;text-align:left;">
         <h2 style="text-align:center;">Recordings</h2>
         <div id="azoraRecordingsList"></div>
-        <button type="button" onclick="closeAzoraRecordings()" style="width:100%;margin-top:10px;">Close</button>
+        <button class="frutiger-aero-button small aero-close" type="button" onclick="closeAzoraRecordings()" style="width:100%;margin-top:10px;">Close</button>
     </div>
 </div>
 <div id="azoraStudioOverlay" class="azora-studio-overlay" style="display:none;" aria-hidden="true">
@@ -2107,7 +2107,7 @@ if ("serviceWorker" in navigator) {
         <header class="azora-studio-head">
             <strong>Azora Studio</strong>
             <span class="azora-studio-sub">Edit clips, pictures, audio, and shapes</span>
-            <button type="button" onclick="closeAzoraStudio()">Close</button>
+            <button class="frutiger-aero-button small aero-close" type="button" onclick="closeAzoraStudio()">Close</button>
         </header>
         <div class="azora-studio-main">
             <canvas id="azoraStudioCanvas" width="640" height="360" aria-label="Studio preview"></canvas>
@@ -2192,14 +2192,14 @@ if ("serviceWorker" in navigator) {
         <h2 style="text-align:center;">My Videos</h2>
         <p class="azora-studio-hint">Private clips saved from Studio.</p>
         <div id="azoraMyVideosList"></div>
-        <button type="button" onclick="closeAzoraMyVideos()" style="width:100%;margin-top:10px;">Close</button>
+        <button class="frutiger-aero-button small aero-close" type="button" onclick="closeAzoraMyVideos()" style="width:100%;margin-top:10px;">Close</button>
     </div>
 </div>
 <div id="eventCalendarOverlay" class="overlay" style="display:none;">
     <div class="popup" style="max-width:440px;text-align:left;">
         <h2 style="text-align:center;">Event calendar</h2>
         <ul id="eventCalendarList" class="event-cal-list"></ul>
-        <button type="button" onclick="closeEventCalendar()" style="width:100%;margin-top:8px;">Close</button>
+        <button class="frutiger-aero-button small aero-close" type="button" onclick="closeEventCalendar()" style="width:100%;margin-top:8px;">Close</button>
     </div>
 </div>
 <div id="halloConvertOverlay" class="overlay" style="display:none;">
@@ -2210,7 +2210,7 @@ if ("serviceWorker" in navigator) {
         <label>Amount <input id="halloConvertAmt" class="settings-input" type="number" min="1" value="1"></label>
         <button type="button" onclick="convertAzoraToHallo()">AzoraCoins → HalloCoins</button>
         <button type="button" onclick="convertHalloToAzora()">HalloCoins → AzoraCoins</button>
-        <button type="button" onclick="closeHalloConvert()" style="width:100%;margin-top:8px;">Close</button>
+        <button class="frutiger-aero-button small aero-close" type="button" onclick="closeHalloConvert()" style="width:100%;margin-top:8px;">Close</button>
     </div>
 </div>
 
@@ -2224,7 +2224,7 @@ if ("serviceWorker" in navigator) {
             <button type="button" onclick="plaza1990Floor(1)">Lobby</button>
             <button type="button" onclick="plaza1990Floor(6)">Floor 6</button>
             <button type="button" onclick="plaza1990Floor(12)">Floor 12</button>
-            <button type="button" onclick="closePlaza1990()">Close</button>
+            <button class="frutiger-aero-button small aero-close" type="button" onclick="closePlaza1990()">Close</button>
         </div>
     </div>
 </div>
@@ -2237,7 +2237,7 @@ if ("serviceWorker" in navigator) {
         <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;">
             <button type="button" onclick="startBlockTowerHeat()">Start heat</button>
             <button type="button" onclick="resetBlockTower()">Reset tower</button>
-            <button type="button" onclick="closeBlockTower()">Close</button>
+            <button class="frutiger-aero-button small aero-close" type="button" onclick="closeBlockTower()">Close</button>
         </div>
     </div>
 </div>
@@ -2247,7 +2247,7 @@ if ("serviceWorker" in navigator) {
         <p id="pumpkinSmashHud">Time 30 · Smashed 0 · Seeds 0</p>
         <canvas id="pumpkinSmashCanvas" width="480" height="280" style="width:100%;background:#1a0b24;border-radius:12px;touch-action:none;"></canvas>
         <button type="button" onclick="startPumpkinSmash()">Start</button>
-        <button type="button" onclick="closePumpkinSmash()">Close</button>
+        <button class="frutiger-aero-button small aero-close" type="button" onclick="closePumpkinSmash()">Close</button>
     </div>
 </div>
 
@@ -2259,7 +2259,7 @@ if ("serviceWorker" in navigator) {
         <div style="display:flex;gap:8px;margin-top:10px;">
             <button type="button" onclick="saveChangePrices()">Save prices</button>
             <button type="button" onclick="resetChangePrices()">Restore originals</button>
-            <button type="button" onclick="closeChangePrices()">Close</button>
+            <button class="frutiger-aero-button small aero-close" type="button" onclick="closeChangePrices()">Close</button>
         </div>
     </div>
 </div>
@@ -2270,7 +2270,7 @@ if ("serviceWorker" in navigator) {
         <div id="azoraStockNow" class="azora-stock-now"></div>
         <canvas id="azoraStockGraph" width="420" height="180" class="azora-stock-graph"></canvas>
         <div id="azoraStockList" class="azora-stock-list"></div>
-        <button type="button" onclick="closeAzoraStock()" style="width:100%;margin-top:12px;">Close</button>
+        <button class="frutiger-aero-button small aero-close" type="button" onclick="closeAzoraStock()" style="width:100%;margin-top:12px;">Close</button>
     </div>
 </div>
 
@@ -2290,7 +2290,7 @@ if ("serviceWorker" in navigator) {
             </label>
         </div>
         <div id="inventoryList" class="market-list"></div>
-        <button type="button" onclick="closeInventory()" style="width:100%;margin-top:12px;">Close</button>
+        <button class="frutiger-aero-button small aero-close" type="button" onclick="closeInventory()" style="width:100%;margin-top:12px;">Close</button>
     </div>
 </div>
 
@@ -2318,7 +2318,7 @@ if ("serviceWorker" in navigator) {
 
         <div class="buy-coins-footer">
             <button type="button" class="members-btn-text" onclick="cancelMembership()">Cancel subscription</button>
-            <button type="button" class="members-btn-secondary" onclick="closeBuyAzoraCoins()">Close</button>
+            <button type="button" class="frutiger-aero-button small aero-close members-btn-secondary" onclick="closeBuyAzoraCoins()">Close</button>
         </div>
         <p class="buy-coins-note">Real payments use Azora Checkout. Payment processing will connect when your parent finishes account setup.</p>
     </div>
@@ -2340,7 +2340,7 @@ if ("serviceWorker" in navigator) {
         <div id="membershipList" class="members-list"></div>
         <div class="members-footer-actions">
             <button type="button" class="members-btn-text" onclick="cancelMembership()">Cancel plan</button>
-            <button type="button" class="members-btn-secondary" onclick="closeMembership()">Close</button>
+            <button type="button" class="frutiger-aero-button small aero-close members-btn-secondary" onclick="closeMembership()">Close</button>
         </div>
     </div>
 </div>
@@ -2401,7 +2401,7 @@ if ("serviceWorker" in navigator) {
         <div id="donateProcessSpinner" class="donate-spinner"></div>
         <p id="donateProcessTitle" style="text-align:center;font-weight:800;margin:12px 0 6px;">Processing…</p>
         <p id="donateProcessMsg" style="text-align:center;margin:0;opacity:0.9;line-height:1.4;"></p>
-        <button type="button" id="donateProcessCloseBtn" class="donate-cancel-btn" style="display:none;margin-top:14px;width:100%;" onclick="closeDonateProcess()">Close</button>
+        <button type="button" id="donateProcessCloseBtn" class="frutiger-aero-button small aero-close donate-cancel-btn" style="display:none;margin-top:14px;width:100%;" onclick="closeDonateProcess()">Close</button>
     </div>
 </div>
 
@@ -2594,7 +2594,7 @@ if ("serviceWorker" in navigator) {
 
         <button type="button" id="omApplyBtn" class="btn-ban" onclick="applyOwnerModeration()" style="width:100%;margin:0 0 8px;">Apply ban</button>
         <button type="button" class="btn-unban" onclick="clearOwnerModerationFromConsole()" style="width:100%;margin:0 0 8px;">Clear ban / termination for this username</button>
-        <button type="button" class="secondary" onclick="closeOwnerModConsole()" style="width:100%;margin:0;">Close</button>
+        <button type="button" class="frutiger-aero-button small aero-close secondary" onclick="closeOwnerModConsole()" style="width:100%;margin:0;">Close</button>
     </div>
 </div>
 
@@ -2669,7 +2669,7 @@ if ("serviceWorker" in navigator) {
             <input id="memmemInput" type="text" placeholder="Ask MemMem..." onkeydown="if(event.key==='Enter')sendMemMem()">
             <button type="button" onclick="sendMemMem()">Send</button>
         </div>
-        <button type="button" onclick="closeMemMem()" style="width:100%;margin-top:8px;">Close</button>
+        <button class="frutiger-aero-button small aero-close" type="button" onclick="closeMemMem()" style="width:100%;margin-top:8px;">Close</button>
     </div>
 </div>
 <div id="candiluvPanel" class="buddy-panel" style="display:none;">
@@ -2682,7 +2682,7 @@ if ("serviceWorker" in navigator) {
             <input id="candiluvInput" type="text" placeholder="Ask Candi-Luv..." onkeydown="if(event.key==='Enter')sendCandiLuv()">
             <button type="button" onclick="sendCandiLuv()">Send</button>
         </div>
-        <button type="button" onclick="closeCandiLuv()" style="width:100%;margin-top:8px;">Close</button>
+        <button class="frutiger-aero-button small aero-close" type="button" onclick="closeCandiLuv()" style="width:100%;margin-top:8px;">Close</button>
     </div>
 </div>
 

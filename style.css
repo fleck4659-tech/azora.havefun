@@ -9007,3 +9007,23 @@ html.azora-custom-mouse, html.azora-custom-mouse * { cursor: none !important; }
 .frutiger-aero-button.aero-chat { --hue: 175; --sat: 0.44; }
 
 .frutiger-aero-button.aero-menu { --hue: 245; --sat: 0.2; --glow-intensity: 0.7; }
+
+.frutiger-aero-button.aero-mod { --hue: 180; --sat: 0.02; }
+
+.frutiger-aero-button.aero-daily { --hue: 35; --sat: 0.4; }
+
+.frutiger-aero-button.aero-create { --hue: 280; --sat: 0.6; }
+
+.frutiger-aero-button.aero-close { --hue: 245; --sat: 0.6; }
+
+.frutiger-aero-button.aero-save { --hue: 245; --sat: 0.6; }
+
+.frutiger-aero-button.aero-socials { --hue: 245; --sat: 0.6; }
+
+.frutiger-aero-button.aero-roblox {
+  --fg: #9a9a9a !important;
+  background-color: #111 !important;
+  background-image: radial-gradient(farthest-corner at bottom center, rgba(255,255,255,0.35), transparent 55%), linear-gradient(to bottom, #000, #222) !important;
+  border-color: #333 !important;
+  color: #9a9a9a !important;
+}
