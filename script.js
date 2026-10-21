@@ -14607,11 +14607,14 @@ function scheduleAIReply(userText, aiChatId, attachment) {
         try {
             if (!(Date.now() < (_aturiusLaughUntil || 0))) setAturiusMood("idle");
         } catch (eM2) {}
+        if (apiText) _aturiusErrorFace = false;
         var extra = apiText;
         if (!extra) {
             var cfgNow = getAturiusApiSettings();
             if (cfgNow.key && cfgNow.provider === "huggingface" && aturiusShouldUseApi(userText)) {
                 extra = "I could not reach Hugging Face yet. Check that AHF-Assist is pasted, then ask me again in a few seconds.";
+                _aturiusErrorFace = true;
+                try { paintAturiusFace(); } catch (eErrFace) {}
             } else {
                 extra = generateAIReply(userText, attachment);
             }
@@ -14723,6 +14726,7 @@ var _aturiusMouthOpen = 0;
 var _aturiusMouthShape = "smile"; // smile | smileBig | line | o | oval | openTop | openBottom
 var _aturiusEyeStyle = "normal"; // normal | happy | lookUp | lookLeft | lookRight | curious | sad | mad
 var _aturiusFeeling = "neutral"; // happy | neutral | sad | upset — how Aturius feels about you
+var _aturiusErrorFace = false;
 var _aturiusBlinkUntil = 0; // timestamp while eyes are closed for blink
 var _aturiusNextBlink = 0;
 /** Topic-driven look: left | right | up | down | center | wander */
@@ -16668,6 +16672,7 @@ function sendAturiusMessage(presetText) {
     } catch (eS) {}
     saveAIChatStore(store);
     aturiusClearPendingAttach();
+    _aturiusErrorFace = false;
     try { adjustAturiusFeelingFromMessage(text); } catch (eFeel) {}
     try { aturiusReactToTopic(text); } catch (eTop) {}
     // Start laugh right away on joke / haha messages (don't wait for reply delay)
@@ -16930,6 +16935,7 @@ function paintAturiusFace() {
     // Eyes: feeling wins for sad/upset; otherwise topic eyes (entertaining)
     var feeling = _aturiusFeeling || getAturiusFeeling();
     var eyeStyle = _aturiusTopicEye || _aturiusEyeStyle || "normal";
+    if (_aturiusErrorFace) eyeStyle = "error";
     if (feeling === "sad") eyeStyle = "sad";
     else if (feeling === "upset") eyeStyle = "mad";
     else if (feeling === "happy" && (eyeStyle === "normal" || !eyeStyle)) eyeStyle = "happy";
@@ -16945,6 +16951,7 @@ function paintAturiusFace() {
 
     // Talking: smile cycle. Laughing: big smile. Idle: smile or frown by mood.
     var mouthShape = talking ? (_aturiusMouthShape || "smileBig") : (thinking ? "line" : "smile");
+    if (_aturiusErrorFace) mouthShape = "errorFrown";
     if (laughing) mouthShape = (now % 400 < 200) ? "smileBig" : "oval";
     if (!talking && !thinking && !laughing && (feeling === "sad" || feeling === "upset")) {
         mouthShape = "frown";
@@ -17053,6 +17060,23 @@ function paintAturiusFace() {
         ctx.moveTo(rx + eyeRx, eyeY - eyeRy * 1.15);
         ctx.lineTo(rx - eyeRx * 0.55, eyeY - eyeRy * 0.45);
         ctx.stroke();
+    } else if (eyeStyle === "error") {
+        // Sketch-style error face, redrawn in Aturius style (not a sticker)
+        ctx.strokeStyle = "#111111";
+        ctx.lineWidth = Math.max(8, w * 0.04);
+        ctx.beginPath();
+        ctx.moveTo(lx - eyeRx * 0.7, eyeY);
+        ctx.lineTo(lx + eyeRx * 0.7, eyeY);
+        ctx.stroke();
+        ctx.fillStyle = "#111111";
+        ctx.beginPath();
+        ctx.arc(rx, eyeY, eyeRx * 1.15, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = "#ffffff";
+        ctx.beginPath();
+        ctx.arc(rx + eyeRx * 0.15, eyeY - eyeRy * 0.2, eyeRx * 0.28, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = "#111111";
     } else {
         // Default calm eyes — matching pair, soft highlight
         drawSolidEye(lx, eyeY, eyeRx, eyeRy, 0);
@@ -17089,6 +17113,12 @@ function paintAturiusFace() {
         ctx.beginPath();
         ctx.ellipse(w * 0.5, mouthY + h * 0.03, w * 0.14, h * 0.09, 0, 0, Math.PI * 2);
         ctx.fill();
+    } else if (mouthShape === "errorFrown") {
+        ctx.lineWidth = Math.max(12, w * 0.06);
+        ctx.beginPath();
+        ctx.moveTo(w * 0.30, mouthY + h * 0.02);
+        ctx.quadraticCurveTo(w * 0.5, mouthY + h * 0.14, w * 0.70, mouthY + h * 0.02);
+        ctx.stroke();
     } else if (mouthShape === "frown") {
         // Mood: sad/upset — inverted curve
         ctx.lineWidth = Math.max(10, w * 0.055);
