@@ -16945,13 +16945,13 @@ function paintAturiusFace() {
     if (cosFace === "aturius_face_wink" && feeling !== "sad" && feeling !== "upset" && !blinking) eyeStyle = "wink";
     if (cosFace === "aturius_face_spark" && feeling !== "sad" && feeling !== "upset") eyeStyle = "spark";
     // While talking/laughing and not sad/upset → happy smile-eyes (unless cool/wink equipped)
-    if ((talking || laughing) && feeling !== "sad" && feeling !== "upset" && cosFace !== "aturius_face_cool" && cosFace !== "aturius_face_wink") {
+    if (!_aturiusErrorFace && (talking || laughing) && feeling !== "sad" && feeling !== "upset" && cosFace !== "aturius_face_cool" && cosFace !== "aturius_face_wink") {
         eyeStyle = "happy";
     }
 
     // Talking: smile cycle. Laughing: big smile. Idle: smile or frown by mood.
     var mouthShape = talking ? (_aturiusMouthShape || "smileBig") : (thinking ? "line" : "smile");
-    if (_aturiusErrorFace) mouthShape = "errorFrown";
+    if (_aturiusErrorFace) { mouthShape = "errorFrown"; eyeStyle = "error"; }
     if (laughing) mouthShape = (now % 400 < 200) ? "smileBig" : "oval";
     if (!talking && !thinking && !laughing && (feeling === "sad" || feeling === "upset")) {
         mouthShape = "frown";
@@ -17114,10 +17114,13 @@ function paintAturiusFace() {
         ctx.ellipse(w * 0.5, mouthY + h * 0.03, w * 0.14, h * 0.09, 0, 0, Math.PI * 2);
         ctx.fill();
     } else if (mouthShape === "errorFrown") {
-        ctx.lineWidth = Math.max(12, w * 0.06);
+        // Straight across, then a sharp curve that drops down
+        ctx.lineWidth = Math.max(12, w * 0.062);
         ctx.beginPath();
-        ctx.moveTo(w * 0.30, mouthY + h * 0.02);
-        ctx.quadraticCurveTo(w * 0.5, mouthY + h * 0.14, w * 0.70, mouthY + h * 0.02);
+        ctx.moveTo(w * 0.28, mouthY + h * 0.06);
+        ctx.quadraticCurveTo(w * 0.32, mouthY - h * 0.01, w * 0.38, mouthY);
+        ctx.lineTo(w * 0.62, mouthY);
+        ctx.quadraticCurveTo(w * 0.68, mouthY, w * 0.72, mouthY + h * 0.1);
         ctx.stroke();
     } else if (mouthShape === "frown") {
         // Mood: sad/upset — inverted curve
