@@ -14500,7 +14500,7 @@ function getAturiusApiSettings() {
     return {
         provider: localStorage.getItem("azoraAturiusApiProvider") || "huggingface",
         key: localStorage.getItem("azoraAturiusApiKey") || "",
-        model: localStorage.getItem("azoraAturiusHfModel") || "HuggingFaceH4/zephyr-7b-beta"
+        model: localStorage.getItem("azoraAturiusHfModel") || "Qwen/Qwen2.5-7B-Instruct"
     };
 }
 function saveAturiusApiSettings() {
@@ -14539,7 +14539,7 @@ function aturiusApiReply(userText) {
     var isHf = cfg.provider === "huggingface";
     var isGrok = cfg.provider === "grok";
     var url = isHf
-        ? ("https://api-inference.huggingface.co/models/" + encodeURIComponent(cfg.model || "HuggingFaceH4/zephyr-7b-beta"))
+        ? ("https://api-inference.huggingface.co/models/" + encodeURIComponent(cfg.model || "Qwen/Qwen2.5-7B-Instruct"))
         : (isGrok ? "https://api.x.ai/v1/chat/completions" : "https://api.openai.com/v1/chat/completions");
     var model = isGrok ? "grok-3" : "gpt-4o-mini";
     var body = isHf
