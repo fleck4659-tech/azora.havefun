@@ -287,11 +287,18 @@
     </div>
 </div>
 <div id="azoraErrorPopup" class="overlay" style="display:none;z-index:100000;">
-    <div class="popup">
-        <h2>Something went wrong</h2>
-        <p id="azoraErrorPopupText">Azora hit an error. You can close this and keep going.</p>
+    <div class="aero-window inactive">
+        <div class="aero-titlebar">
+            <svg class="aero-titlebar-icon" width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><rect x="1" y="1" width="14" height="14" rx="2" fill="#4a90d9"/><rect x="4" y="4" width="8" height="1.5" rx="0.75" fill="#fff"/><rect x="4" y="7" width="8" height="1.5" rx="0.75" fill="#fff"/><rect x="4" y="10" width="5" height="1.5" rx="0.75" fill="#fff"/></svg>
+            <span class="aero-titlebar-text">Error - Notepad</span>
+            <div class="aero-caption">
+                <button class="min" type="button" aria-label="Minimize"></button>
+                <button class="max" type="button" aria-label="Maximize"></button>
+                <button class="close" type="button" aria-label="Close" onclick="closeAzoraErrorPopup()"></button>
+            </div>
+        </div>
+        <div class="aero-body" id="azoraErrorPopupText">Something went wrong.</div>
         <audio id="azoraErrorAudio" src="error.wav" autoplay></audio>
-        <button class="frutiger-aero-button small aero-close" type="button" onclick="closeAzoraErrorPopup()" style="width:100%;">Close</button>
     </div>
 </div>
 
@@ -1422,6 +1429,23 @@
             </label>
             <p class="aturius-settings-note" id="aturiusJoinNote">Joins are <strong>ON</strong> by default.</p>
 
+
+            <div class="aturius-voice-block" id="aturiusApiBlock">
+                <h4 class="aturius-train-title">Aturius API</h4>
+                <p class="aturius-settings-note">Use the token named <strong>AHF-Assist</strong>. Paste the hf_ value. It stays on this device.</p>
+                <label class="aturius-field-label" for="aturiusApiProvider"><strong>Provider</strong></label>
+                <select id="aturiusApiProvider" class="aturius-voice-select" onchange="saveAturiusApiSettings()">
+                    <option value="huggingface">Hugging Face (free token)</option>
+                    <option value="grok">Grok (xAI)</option>
+                    <option value="chatgpt">ChatGPT (OpenAI)</option>
+                    <option value="off">Off (local replies)</option>
+                </select>
+                <label class="aturius-field-label" for="aturiusApiKey"><strong>API key</strong></label>
+                <input id="aturiusApiKey" type="password" placeholder="Paste AHF-Assist token (hf_...)" style="width:100%;box-sizing:border-box;padding:8px;margin:4px 0 8px;" onchange="saveAturiusApiSettings()">
+                <label class="aturius-field-label" for="aturiusHfModel"><strong>Hugging Face model</strong></label>
+                <input id="aturiusHfModel" type="text" placeholder="HuggingFaceH4/zephyr-7b-beta" value="HuggingFaceH4/zephyr-7b-beta" style="width:100%;box-sizing:border-box;padding:8px;margin:4px 0 8px;" onchange="saveAturiusApiSettings()">
+                <p class="aturius-settings-note" id="aturiusApiNote">API is off until a key is saved.</p>
+            </div>
             <div class="aturius-voice-block">
                 <label class="aturius-field-label" for="aturiusVoiceSelect"><strong>Voice</strong></label>
                 <select id="aturiusVoiceSelect" class="aturius-voice-select"></select>

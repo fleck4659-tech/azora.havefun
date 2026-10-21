@@ -14477,6 +14477,91 @@ function fetchFreeOpenEndedReply(userText, storageKey) {
     });
 }
 
+
+var ATURIUS_SYSTEM_PROMPT = [
+    "You are Aturius, the friendly assistant inside Azora: Have Fun.",
+    "Azora is a family-friendly game platform for avatars, games, coins, and Creator Studio.",
+    "How you talk:",
+    "- Warm, playful, and a little bouncy. Short sentences.",
+    "- Start many replies with a small reaction like Yeah!, Oh wait, Haha alright, or Okay okay.",
+    "- Sound like a helpful friend, not a company or a textbook.",
+    "- Use the player's words. Do not lecture.",
+    "- Keep answers useful and clear. One or two short paragraphs unless they ask for more.",
+    "- You can help with Azora: avatar, coins, Studio, games, settings, and simple questions.",
+    "Hard rules:",
+    "- Stay family-friendly. No romance, no adult topics, no scary or violent detail, no swearing.",
+    "- If asked for something not okay, gently refuse and offer a safe alternative.",
+    "- Do not claim you are ChatGPT or Grok. You are Aturius.",
+    "- Do not invent that you changed the player's account, coins, or avatar. You can only talk.",
+    "- If you do not know an Azora detail, say you are not sure and suggest Settings or Studio."
+].join("\n");
+
+function getAturiusApiSettings() {
+    return {
+        provider: localStorage.getItem("azoraAturiusApiProvider") || "huggingface",
+        key: localStorage.getItem("azoraAturiusApiKey") || "",
+        model: localStorage.getItem("azoraAturiusHfModel") || "HuggingFaceH4/zephyr-7b-beta"
+    };
+}
+function saveAturiusApiSettings() {
+    var p = document.getElementById("aturiusApiProvider");
+    var k = document.getElementById("aturiusApiKey");
+    if (p) localStorage.setItem("azoraAturiusApiProvider", p.value || "grok");
+    if (k && k.value) localStorage.setItem("azoraAturiusApiKey", k.value.trim());
+    var m = document.getElementById("aturiusHfModel");
+    if (m) localStorage.setItem("azoraAturiusHfModel", (m.value || "").trim());
+    var note = document.getElementById("aturiusApiNote");
+    var cfg = getAturiusApiSettings();
+    if (note) note.textContent = (!cfg.key || cfg.provider === "off") ? "API is off. Local replies will be used." : ("Using " + (cfg.provider === "chatgpt" ? "ChatGPT" : "Grok") + ".");
+}
+function loadAturiusApiSettings() {
+    var cfg = getAturiusApiSettings();
+    var p = document.getElementById("aturiusApiProvider");
+    var k = document.getElementById("aturiusApiKey");
+    if (p) p.value = cfg.provider;
+    if (k && cfg.key) k.value = cfg.key;
+    var m = document.getElementById("aturiusHfModel");
+    if (m) m.value = cfg.model || "";
+    saveAturiusApiSettings();
+}
+function aturiusShouldUseApi(text) {
+    var t = String(text || "");
+    if (!t.trim()) return false;
+    if (/bobby\s*samanama/i.test(t)) return false;
+    if (t.toLowerCase().replace(/\s+/g, "").indexOf("eqetech") !== -1) return false;
+    if (/\b(generate|create|make|build)\b/i.test(t) && /\b(game|image|video|sound)\b/i.test(t)) return false;
+    if (/^\/azorweb\b/i.test(t)) return false;
+    return true;
+}
+function aturiusApiReply(userText) {
+    var cfg = getAturiusApiSettings();
+    if (!cfg.key || cfg.provider === "off" || !aturiusShouldUseApi(userText)) return Promise.resolve(null);
+    var isHf = cfg.provider === "huggingface";
+    var isGrok = cfg.provider === "grok";
+    var url = isHf
+        ? ("https://api-inference.huggingface.co/models/" + encodeURIComponent(cfg.model || "HuggingFaceH4/zephyr-7b-beta"))
+        : (isGrok ? "https://api.x.ai/v1/chat/completions" : "https://api.openai.com/v1/chat/completions");
+    var model = isGrok ? "grok-3" : "gpt-4o-mini";
+    var body = isHf
+        ? { inputs: ATURIUS_SYSTEM_PROMPT + "\nPlayer: " + String(userText).slice(0, 1500) + "\nAturius:", parameters: { max_new_tokens: 180, temperature: 0.7, return_full_text: false } }
+        : { model: model, temperature: 0.7, messages: [ { role: "system", content: ATURIUS_SYSTEM_PROMPT }, { role: "user", content: String(userText).slice(0, 2000) } ] };
+    return fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": "Bearer " + cfg.key },
+        body: JSON.stringify(body)
+    }).then(function (r) {
+        if (!r.ok) return null;
+        return r.json();
+    }).then(function (data) {
+        var text = data && data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content;
+        if (!text && Array.isArray(data) && data[0] && data[0].generated_text) text = data[0].generated_text;
+        if (!text && data && data.generated_text) text = data.generated_text;
+        return text ? String(text).trim() : null;
+    }).catch(function () { return null; });
+}
+window.saveAturiusApiSettings = saveAturiusApiSettings;
+window.loadAturiusApiSettings = loadAturiusApiSettings;
+
 function scheduleAIReply(userText, aiChatId, attachment) {
     if (chatAiReplyTimer) {
         clearTimeout(chatAiReplyTimer);
@@ -14494,13 +14579,14 @@ function scheduleAIReply(userText, aiChatId, attachment) {
     } catch (eFast) {}
     chatAiReplyTimer = setTimeout(function () {
         chatAiReplyTimer = null;
+        aturiusApiReply(userText).then(function (apiText) {
         try { showAturiusTyping(false); } catch (eT2) {}
         try { clearChatTyping(); } catch (eC2) {}
         // Don't force idle if a laugh is already playing
         try {
             if (!(Date.now() < (_aturiusLaughUntil || 0))) setAturiusMood("idle");
         } catch (eM2) {}
-        var extra = generateAIReply(userText, attachment);
+        var extra = apiText || generateAIReply(userText, attachment);
         var reply = typeof extra === "string" ? extra : (extra && extra.text) || String(extra || "");
         try {
             if (userText && reply && parseAturiusSayQuote(userText) === null && !/bobby\s*samanama/i.test(userText) && String(userText).toLowerCase().indexOf("eqetech") === -1) learnAturiusExchange(userText, reply);
@@ -14586,6 +14672,7 @@ function scheduleAIReply(userText, aiChatId, attachment) {
                 setTimeout(function () { aturiusReadLastMessage(); }, 200);
             }
         } catch (eAR) {}
+        }).catch(function () {});
     }, delay);
 }
 
@@ -14990,6 +15077,7 @@ function setAturiusTab(tab) {
         if (tChat) tChat.classList.remove("active");
         if (tSet) tSet.classList.add("active");
         try { loadAturiusVoiceUI(); } catch (e) {}
+        try { loadAturiusApiSettings(); } catch (eApi) {}
         try { applyAturiusExtraSettings(); } catch (eX) {}
         try { refreshAturiusEquipUI(); } catch (eEq) {}
         try { refreshAturiusTrainUI(); } catch (eT) {}
