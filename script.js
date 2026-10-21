@@ -14727,6 +14727,7 @@ var _aturiusMouthShape = "smile"; // smile | smileBig | line | o | oval | openTo
 var _aturiusEyeStyle = "normal"; // normal | happy | lookUp | lookLeft | lookRight | curious | sad | mad
 var _aturiusFeeling = "neutral"; // happy | neutral | sad | upset — how Aturius feels about you
 var _aturiusErrorFace = false;
+var _aturiusTears = [];
 var _aturiusBlinkUntil = 0; // timestamp while eyes are closed for blink
 var _aturiusNextBlink = 0;
 /** Topic-driven look: left | right | up | down | center | wander */
@@ -17144,6 +17145,20 @@ function paintAturiusFace() {
         ctx.quadraticCurveTo(w * 0.5, mouthY + h * 0.16, w * 0.72, mouthY);
         ctx.stroke();
     }
+    if (_aturiusErrorFace && _aturiusTears.length) {
+        for (var ti = 0; ti < _aturiusTears.length; ti++) {
+            var tear = _aturiusTears[ti];
+            var dropH = 10 + tear.v * 0.35;
+            ctx.fillStyle = "rgba(120, 190, 255, 0.85)";
+            ctx.beginPath();
+            ctx.ellipse(tear.x, tear.y, 4.5, dropH, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = "rgba(255,255,255,0.7)";
+            ctx.beginPath();
+            ctx.arc(tear.x - 1.2, tear.y - dropH * 0.25, 1.6, 0, Math.PI * 2);
+            ctx.fill();
+        }
+    }
     _aturiusFaceTex.needsUpdate = true;
 }
 
@@ -17226,6 +17241,21 @@ function initAturius3D() {
         _aturiusAnimId = requestAnimationFrame(tick);
         if (!_aturiusSphere || !_aturiusRenderer) return;
         _aturiusLookT = (t || 0) * 0.001;
+        if (_aturiusErrorFace) {
+            if (_aturiusTears.length < 6 && Math.random() < 0.08) {
+                var side = Math.random() < 0.5 ? 0.36 : 0.64;
+                _aturiusTears.push({ x: 512 * side + (Math.random() * 16 - 8), y: 512 * 0.48, v: 1.2 + Math.random() * 0.8 });
+            }
+            for (var td = _aturiusTears.length - 1; td >= 0; td--) {
+                var drop = _aturiusTears[td];
+                drop.v += 0.18;
+                drop.y += drop.v;
+                if (drop.y > 540) _aturiusTears.splice(td, 1);
+            }
+            try { paintAturiusFace(); } catch (eTear) {}
+        } else if (_aturiusTears.length) {
+            _aturiusTears = [];
+        }
         var now = Date.now();
         // Natural blink every ~2.5–5.5s (eyes close briefly)
         if (now >= (_aturiusNextBlink || 0) && now >= (_aturiusBlinkUntil || 0)) {
