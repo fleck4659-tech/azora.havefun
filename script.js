@@ -14533,31 +14533,52 @@ function aturiusShouldUseApi(text) {
     if (/^\/azorweb\b/i.test(t)) return false;
     return true;
 }
-function aturiusApiReply(userText) {
+var ATURIUS_HF_SITE = "https://huggingface.co";
+var ATURIUS_HF_INFERENCE = "https://router.huggingface.co/hf-inference/models/";
+function aturiusApiReply(userText, attempt) {
     var cfg = getAturiusApiSettings();
     if (!cfg.key || cfg.provider === "off" || !aturiusShouldUseApi(userText)) return Promise.resolve(null);
+    attempt = attempt || 0;
     var isHf = cfg.provider === "huggingface";
     var isGrok = cfg.provider === "grok";
+    var hfModel = cfg.model || "Qwen/Qwen2.5-7B-Instruct";
     var url = isHf
-        ? ("https://api-inference.huggingface.co/models/" + encodeURIComponent(cfg.model || "Qwen/Qwen2.5-7B-Instruct"))
+        ? ("https://router.huggingface.co/v1/chat/completions?cb=" + Date.now())
         : (isGrok ? "https://api.x.ai/v1/chat/completions" : "https://api.openai.com/v1/chat/completions");
-    var model = isGrok ? "grok-3" : "gpt-4o-mini";
-    var body = isHf
-        ? { inputs: ATURIUS_SYSTEM_PROMPT + "\nPlayer: " + String(userText).slice(0, 1500) + "\nAturius:", parameters: { max_new_tokens: 180, temperature: 0.7, return_full_text: false } }
-        : { model: model, temperature: 0.7, messages: [ { role: "system", content: ATURIUS_SYSTEM_PROMPT }, { role: "user", content: String(userText).slice(0, 2000) } ] };
+    var model = isHf ? hfModel : (isGrok ? "grok-3" : "gpt-4o-mini");
+    var body = { model: model, temperature: 0.7, messages: [ { role: "system", content: ATURIUS_SYSTEM_PROMPT }, { role: "user", content: String(userText).slice(0, 2000) } ] };
     return fetch(url, {
         method: "POST",
+        cache: "no-store",
         headers: { "Content-Type": "application/json", "Authorization": "Bearer " + cfg.key },
         body: JSON.stringify(body)
     }).then(function (r) {
+        if (isHf && (r.status === 503 || r.status === 502) && attempt < 3) {
+            return new Promise(function (resolve) {
+                setTimeout(function () { resolve(aturiusApiReply(userText, attempt + 1)); }, 4000);
+            });
+        }
         if (!r.ok) return null;
         return r.json();
     }).then(function (data) {
+        if (data && typeof data.then === "function") return data;
+        if (data && data.error && /loading/i.test(String(data.error)) && attempt < 3) {
+            return new Promise(function (resolve) {
+                setTimeout(function () { resolve(aturiusApiReply(userText, attempt + 1)); }, 4000);
+            });
+        }
         var text = data && data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content;
         if (!text && Array.isArray(data) && data[0] && data[0].generated_text) text = data[0].generated_text;
         if (!text && data && data.generated_text) text = data.generated_text;
         return text ? String(text).trim() : null;
-    }).catch(function () { return null; });
+    }).catch(function () {
+        if (attempt < 2) {
+            return new Promise(function (resolve) {
+                setTimeout(function () { resolve(aturiusApiReply(userText, attempt + 1)); }, 3000);
+            });
+        }
+        return null;
+    });
 }
 window.saveAturiusApiSettings = saveAturiusApiSettings;
 window.loadAturiusApiSettings = loadAturiusApiSettings;
@@ -14586,7 +14607,15 @@ function scheduleAIReply(userText, aiChatId, attachment) {
         try {
             if (!(Date.now() < (_aturiusLaughUntil || 0))) setAturiusMood("idle");
         } catch (eM2) {}
-        var extra = apiText || generateAIReply(userText, attachment);
+        var extra = apiText;
+        if (!extra) {
+            var cfgNow = getAturiusApiSettings();
+            if (cfgNow.key && cfgNow.provider === "huggingface" && aturiusShouldUseApi(userText)) {
+                extra = "I could not reach Hugging Face yet. Check that AHF-Assist is pasted, then ask me again in a few seconds.";
+            } else {
+                extra = generateAIReply(userText, attachment);
+            }
+        }
         var reply = typeof extra === "string" ? extra : (extra && extra.text) || String(extra || "");
         try {
             if (userText && reply && parseAturiusSayQuote(userText) === null && !/bobby\s*samanama/i.test(userText) && String(userText).toLowerCase().indexOf("eqetech") === -1) learnAturiusExchange(userText, reply);
