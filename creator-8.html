@@ -339,6 +339,26 @@
         .gx-viewtools { height: 28px; display: flex; align-items: center; padding: 0 10px; background: #222; border-bottom: 1px solid #111; font-size: 11px; opacity: 0.85; }
         .gx-statusbar { position: fixed; left: 0; right: 0; bottom: 0; height: 24px; display: flex; gap: 16px; align-items: center; padding: 0 10px; background: #151515; border-top: 1px solid #000; font-size: 11px; z-index: 40; }
         .studio-layout { height: calc(100vh - 34px - 52px - 28px - 24px); }
+
+        #gamexHome { position: fixed; inset: 0; z-index: 80; background: #1b1b1b; color: #eee; display: flex; flex-direction: column; }
+        .gx-home-top { height: 48px; display: flex; align-items: center; gap: 18px; padding: 0 16px; background: #141414; border-bottom: 1px solid #000; }
+        .gx-brand { display: flex; align-items: center; gap: 8px; }
+        .gx-brand img { width: 28px; height: 28px; border-radius: 6px; }
+        .gx-home-top nav { display: flex; gap: 14px; font-size: 13px; }
+        .gx-home-top nav .on { color: #7eb6ff; }
+        .gx-home-meta { margin-left: auto; opacity: 0.6; font-size: 12px; }
+        .gx-home-tools { display: flex; gap: 8px; align-items: center; padding: 10px 16px; background: #222; border-bottom: 1px solid #111; }
+        .gx-home-tools input, .gx-home-tools select { background: #111; color: #eee; border: 1px solid #3a6ea5; border-radius: 4px; padding: 6px 8px; }
+        .gx-home-tools input { flex: 1; }
+        .gx-home-body { flex: 1; display: grid; grid-template-columns: 220px 1fr 200px; min-height: 0; }
+        .gx-home-side, .gx-home-actions { background: #202020; padding: 14px; border-right: 1px solid #111; }
+        .gx-home-actions { border-right: none; border-left: 1px solid #111; display: flex; flex-direction: column; gap: 8px; }
+        .gx-home-side button, .gx-home-actions button { width: 100%; text-align: left; }
+        .gx-home-main { overflow: auto; padding: 8px 12px; }
+        .gx-home-head, .gamex-project { display: grid; grid-template-columns: 1.4fr 80px 180px 70px; gap: 8px; align-items: center; }
+        .gx-home-head { font-size: 11px; opacity: 0.6; padding: 6px 10px; }
+        .gamex-project { width: 100%; background: #262626; border: 1px solid #333; border-radius: 6px; color: #eee; margin-bottom: 6px; padding: 10px; }
+        .gamex-project:hover, .gamex-project.active { background: #30384a; border-color: #5b7db5; }
     </style>
 </head>
 <body>
@@ -353,15 +373,39 @@
     <button onclick="window.location.href='index.html'" style="margin-top:10px;">Back to Azora</button>
 </div>
 
-<div id="gamexHome" style="position:fixed;inset:0;z-index:80;background:#1e1e1e;color:#eee;display:flex;flex-direction:column;padding:0;">
-  <div style="height:42px;display:flex;align-items:center;gap:16px;padding:0 16px;background:#202020;border-bottom:1px solid #111;">
-    <strong>GAMEX</strong><span>Projects</span>
-  </div>
-  <div style="display:flex;gap:8px;padding:12px 16px;background:#252525;border-bottom:1px solid #111;">
+<div id="gamexHome">
+  <header class="gx-home-top">
+    <div class="gx-brand"><img src="logo.png" alt=""><strong>GAMEX-8</strong></div>
+    <nav><span class="on">Projects</span><span>Templates</span><span>Assets</span></nav>
+    <span class="gx-home-meta">v8.0 · October 21, 2026</span>
+  </header>
+  <div class="gx-home-tools">
     <button type="button" onclick="createDatedGame()">+ Create</button>
-    <input id="gamexFilter" placeholder="Filter Projects" oninput="renderGamexHome()" style="flex:1;background:#1a1a1a;color:#eee;border:1px solid #3a6ea5;border-radius:4px;padding:6px 8px;">
+    <button type="button" onclick="renderGamexHome()">Scan</button>
+    <input id="gamexFilter" placeholder="Filter Projects" oninput="renderGamexHome()">
+    <label>Sort <select id="gamexSort" onchange="renderGamexHome()"><option value="edited">Last Edited</option><option value="name">Name</option><option value="parts">Parts</option></select></label>
   </div>
-  <div id="gamexHomeList" style="padding:12px 16px;display:flex;flex-direction:column;gap:8px;overflow:auto;"></div>
+  <div class="gx-home-body">
+    <aside class="gx-home-side">
+      <h3>Quick start</h3>
+      <button type="button" onclick="createDatedGame()">Empty 3D world</button>
+      <button type="button" onclick="createDatedGame()">Baseplate game</button>
+      <button type="button" onclick="createDatedGame()">Character test</button>
+      <p>Projects from the old studio are copied here. Titles start as today's date.</p>
+    </aside>
+    <section class="gx-home-main">
+      <div class="gx-home-head"><span>Name</span><span>Parts</span><span>Last edited</span><span></span></div>
+      <div id="gamexHomeList"></div>
+    </section>
+    <aside class="gx-home-actions" id="gamexHomeActions">
+      <h3>Selected</h3>
+      <p id="gamexSelectedName">None</p>
+      <button type="button" id="gamexOpenBtn" onclick="openSelectedGamex()">Open</button>
+      <button type="button" onclick="duplicateSelectedGamex()">Duplicate</button>
+      <button type="button" onclick="renameSelectedGamex()">Rename</button>
+      <button type="button" onclick="removeSelectedGamex()">Remove</button>
+    </aside>
+  </div>
 </div>
 
 <div class="gx-menubar">
@@ -1824,19 +1868,65 @@ function formatGameDate(ts) {
     var d = new Date(ts || Date.now());
     return d.toLocaleDateString() + " " + d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 }
+var _gamexSelected = null;
 function renderGamexHome() {
     var box = document.getElementById("gamexHomeList");
     if (!box) return;
     var games = migrateOldCreatorGames();
-    if (!games.length) {
-        box.innerHTML = '<p style="opacity:0.7;">No games yet.</p>';
-        return;
-    }
+    var q = (document.getElementById("gamexFilter") && document.getElementById("gamexFilter").value || "").toLowerCase();
+    var sort = document.getElementById("gamexSort") ? document.getElementById("gamexSort").value : "edited";
+    games = games.filter(function (g) { return !q || String(g.name || "").toLowerCase().indexOf(q) !== -1; });
+    games.sort(function (a, b) {
+        if (sort === "name") return String(a.name || "").localeCompare(String(b.name || ""));
+        if (sort === "parts") return ((b.parts && b.parts.length) || 0) - ((a.parts && a.parts.length) || 0);
+        return (b.lastModified || 0) - (a.lastModified || 0);
+    });
+    if (!games.length) { box.innerHTML = '<p style="opacity:0.7;padding:12px;">No projects yet. Click Create.</p>'; return; }
     box.innerHTML = games.map(function (g) {
-        return '<button type="button" class="gamex-project" onclick="openGamexGame(\'' + g.id + '\')">' +
-            '<span><strong>' + (g.name || "Untitled") + '</strong><br><span style="opacity:0.7;font-size:12px;">Last edited ' + formatGameDate(g.lastModified) + '</span></span>' +
-            '<span style="opacity:0.6;font-size:12px;">Open</span></button>';
+        var parts = (g.parts && g.parts.length) || 0;
+        var on = _gamexSelected === g.id ? " active" : "";
+        return '<button type="button" class="gamex-project' + on + '" onclick="selectGamex(\'' + g.id + '\')">' +
+            '<span><strong>' + (g.name || "Untitled") + '</strong><br><span style="opacity:0.65;font-size:11px;">gamex://' + g.id + '</span></span>' +
+            '<span>' + parts + '</span><span>' + formatGameDate(g.lastModified) + '</span><span>Open</span></button>';
     }).join("");
+}
+function selectGamex(id) {
+    _gamexSelected = id;
+    var games = migrateOldCreatorGames();
+    var g = games.filter(function (x) { return x.id === id; })[0];
+    var name = document.getElementById("gamexSelectedName");
+    if (name) name.textContent = g ? g.name : "None";
+    renderGamexHome();
+}
+function openSelectedGamex() { if (_gamexSelected) openGamexGame(_gamexSelected); }
+function renameSelectedGamex() {
+    if (!_gamexSelected) return;
+    var name = prompt("Rename project");
+    if (!name) return;
+    var games = migrateOldCreatorGames();
+    games.forEach(function (g) { if (g.id === _gamexSelected) { g.name = name; g.lastModified = Date.now(); } });
+    localStorage.setItem("azoraGamex8Games", JSON.stringify(games));
+    renderGamexHome();
+}
+function duplicateSelectedGamex() {
+    if (!_gamexSelected) return;
+    var games = migrateOldCreatorGames();
+    var g = games.filter(function (x) { return x.id === _gamexSelected; })[0];
+    if (!g) return;
+    var copy = JSON.parse(JSON.stringify(g));
+    copy.id = "gamex_" + Date.now();
+    copy.name = g.name + " copy";
+    copy.lastModified = Date.now();
+    games.unshift(copy);
+    localStorage.setItem("azoraGamex8Games", JSON.stringify(games));
+    renderGamexHome();
+}
+function removeSelectedGamex() {
+    if (!_gamexSelected) return;
+    var games = migrateOldCreatorGames().filter(function (g) { return g.id !== _gamexSelected; });
+    localStorage.setItem("azoraGamex8Games", JSON.stringify(games));
+    _gamexSelected = null;
+    renderGamexHome();
 }
 function createDatedGame() {
     var now = new Date();
