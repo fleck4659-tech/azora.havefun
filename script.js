@@ -4311,22 +4311,36 @@ document.querySelectorAll(".overlay").forEach(overlay => {
 });
 
 // --- Creator site handling ---
-function handleCreateClick(event) {
+function toggleCreateGameMenu(event) {
+    if (event) event.stopPropagation();
     if (typeof AZORA_TEMP_DISABLE_CREATE !== "undefined" && AZORA_TEMP_DISABLE_CREATE) {
         handleDisabledFeatureClick(event || window.event, document.getElementById("createGameBtn"));
         return;
     }
-    const loggedIn = localStorage.getItem("loggedIn");
-    if (loggedIn === "true") {
-        window.open("creator.html", "_blank");
-    } else if (loggedIn === "guest") {
+    var loggedIn = localStorage.getItem("loggedIn");
+    if (loggedIn === "guest") {
         alert("Guests can't use Creator Studio. Create a free account first!");
         openCreateAccount();
-    } else {
+        return;
+    }
+    if (loggedIn !== "true") {
         alert("Please sign up first to access the Creator Studio!");
         openCreateAccount();
+        return;
     }
+    var menu = document.getElementById("createGameMenu");
+    if (menu) menu.style.display = menu.style.display === "block" ? "none" : "block";
 }
+function openCreatorStudio(which) {
+    var menu = document.getElementById("createGameMenu");
+    if (menu) menu.style.display = "none";
+    window.open(which === "original" ? "creator.html" : "creator-8.html", "_blank");
+}
+function handleCreateClick(event) { toggleCreateGameMenu(event); }
+document.addEventListener("click", function () {
+    var menu = document.getElementById("createGameMenu");
+    if (menu) menu.style.display = "none";
+});
 
 // --- BasicCharacterService toggle ---
 function toggleCharacterService() {

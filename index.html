@@ -1209,7 +1209,13 @@
             </div>
         </div>
         <button class="frutiger-aero-button small aero-roblox" onclick="window.open('https://www.roblox.com/users/9744531169/profile','_blank')">Roblox Profile</button>
-        <button id="createGameBtn" type="button" class="frutiger-aero-button small aero-create" onclick="handleCreateClick(event)">🛠️ Create a Game</button>
+        <div class="create-game-drop" style="position:relative;display:inline-block;">
+            <button id="createGameBtn" type="button" class="frutiger-aero-button small aero-create" onclick="toggleCreateGameMenu(event)">🛠️ Create a Game ▾</button>
+            <div id="createGameMenu" style="display:none;position:absolute;top:110%;left:0;z-index:40;min-width:240px;background:#0f172a;border:1px solid #334155;border-radius:12px;padding:8px;">
+                <button type="button" class="frutiger-aero-button small aero-create" style="width:100%;margin:0 0 6px;" onclick="openCreatorStudio('modern')">Azora Gamex-8 Studio</button>
+                <button type="button" class="frutiger-aero-button small aero-settings" style="width:100%;" onclick="openCreatorStudio('original')">Original Studio</button>
+            </div>
+        </div>
     </div>
 </div>
 

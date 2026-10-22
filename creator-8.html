@@ -1,0 +1,1856 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Azora Gamex-8 Studio</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <style>
+        * { box-sizing: border-box; }
+        html, body {
+            margin: 0; padding: 0; height: 100%; width: 100%;
+            font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+            background: linear-gradient(160deg, #0b1220 0%, #152238 50%, #0f172a 100%);
+            color: #fff; overflow: hidden;
+        }
+        button {
+            cursor: pointer; border: 1px solid rgba(255,255,255,0.35);
+            background: rgba(255,255,255,0.12); color: #fff;
+            border-radius: 8px; padding: 8px 12px; font-weight: 700; font-size: 12px;
+        }
+        button:hover { background: rgba(30,96,255,0.45); }
+        button.test-on {
+            background: linear-gradient(180deg,#f59e0b,#d97706); border-color: #fbbf24; color: #111;
+        }
+        #desktopError {
+            display: none; position: fixed; inset: 0; background: #0d1117; color: #fff;
+            z-index: 99999; flex-direction: column; justify-content: center; align-items: center;
+            text-align: center; padding: 20px;
+        }
+        #desktopError h1 { color: #ff3b30; font-size: 2rem; }
+        .topbar {
+            height: 56px; display: flex; align-items: center; justify-content: space-between;
+            padding: 0 14px; border-bottom: 1px solid rgba(255,255,255,0.15);
+            background: rgba(0,0,0,0.35);
+        }
+        .topbar h2 { margin: 0; font-size: 16px; }
+        .topbar .actions { display: flex; gap: 8px; flex-wrap: wrap; }
+        .games-bar {
+            display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
+            margin: 8px 10px 0; padding: 8px 10px;
+            background: rgba(0,0,0,0.25); border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 10px; min-height: 44px;
+        }
+        .games-list { display: flex; gap: 6px; flex-wrap: wrap; flex: 1; min-width: 0; }
+        .game-chip {
+            display: inline-flex; align-items: center; gap: 6px;
+            padding: 5px 10px; border-radius: 999px; font-size: 11px; font-weight: 700;
+            background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.25);
+            color: #fff; cursor: pointer;
+        }
+        .game-chip.active { background: #1e60ff; border-color: #93c5fd; }
+        .game-chip .vis { opacity: 0.85; font-size: 10px; }
+        .studio-layout {
+            display: grid; grid-template-columns: 260px 1fr 300px;
+            gap: 10px; padding: 10px;
+            height: calc(100vh - 56px - 60px);
+        }
+        .studio-panel {
+            background: rgba(255,255,255,0.1); border: 2px solid rgba(255,255,255,0.85);
+            border-radius: 12px; padding: 12px; display: flex; flex-direction: column;
+            overflow: auto; min-height: 0;
+        }
+        .panel-title {
+            font-size: 14px; font-weight: 800; border-bottom: 2px solid rgba(255,255,255,0.25);
+            padding-bottom: 6px; margin-bottom: 10px; display: flex;
+            justify-content: space-between; align-items: center; gap: 6px;
+        }
+        .hierarchy-item {
+            padding: 7px 9px; margin: 3px 0; border-radius: 6px; cursor: pointer;
+            background: rgba(255,255,255,0.06); font-size: 13px; user-select: none;
+        }
+        .hierarchy-item:hover { background: rgba(255,255,255,0.14); }
+        .hierarchy-item.selected {
+            background: #1e60ff; border: 1px solid #93c5fd;
+            box-shadow: 0 0 0 2px rgba(147,197,253,0.45);
+        }
+        .viewport-container {
+            position: relative; background: #0a1220; border: 2px solid #fff;
+            border-radius: 12px; overflow: hidden; display: flex; flex-direction: column;
+            min-height: 0; height: 100%;
+        }
+        .viewport-tabs {
+            display: flex; flex-shrink: 0;
+            background: rgba(0,0,0,0.55); border-bottom: 1px solid rgba(255,255,255,0.2);
+        }
+        .view-tab {
+            padding: 8px 14px; cursor: pointer; border-right: 1px solid rgba(255,255,255,0.1);
+            font-size: 12px; font-weight: 800; background: rgba(255,255,255,0.05); user-select: none;
+        }
+        .view-tab.active { background: #1e60ff; }
+        #canvas3d {
+            position: relative; flex: 1 1 auto; width: 100%;
+            min-height: 320px; height: 100%; background: #87ceeb; cursor: default;
+        }
+        #canvas3d.dragging { cursor: grabbing; }
+        #canvas3d canvas { display: block; width: 100% !important; height: 100% !important; }
+        .viewport-toolbar {
+            flex-shrink: 0; display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
+            padding: 8px; background: rgba(0,0,0,0.45); border-top: 1px solid rgba(255,255,255,0.15);
+        }
+        #scriptEditorContainer {
+            display: none; flex: 1; flex-direction: column; padding: 10px; min-height: 0;
+        }
+        #codeArea {
+            flex: 1; width: 100%; min-height: 160px; padding: 10px; border-radius: 8px;
+            border: 1px solid #fff; background: rgba(255,255,255,0.92); color: #222;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12px;
+            resize: none;
+        }
+        .property-row {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 10px; font-size: 12px; gap: 8px;
+        }
+        .property-row label { font-weight: 700; flex: 1; }
+        .property-row input[type="number"],
+        .property-row input[type="color"],
+        .property-row input[type="range"],
+        .property-row select {
+            width: 110px; padding: 4px; border-radius: 4px; border: 1px solid #fff;
+            background: rgba(255,255,255,0.12); color: #fff; text-align: center;
+        }
+        .property-row input[type="range"] { width: 90px; }
+        .toggle-row {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 10px; font-size: 12px;
+        }
+        .toggle-row label { font-weight: 700; }
+        .toggle-btn {
+            min-width: 64px; padding: 5px 10px; border-radius: 999px; font-size: 11px;
+            border: 1px solid rgba(255,255,255,0.35);
+        }
+        .toggle-btn.on { background: #059669; border-color: #34d399; }
+        .toggle-btn.off { background: #7f1d1d; border-color: #f87171; }
+        .mat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 6px; }
+        .mat-chip {
+            padding: 8px 6px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.3);
+            background: rgba(0,0,0,0.25); color: #fff; font-size: 11px; font-weight: 800;
+            cursor: pointer; text-align: center;
+        }
+        .mat-chip:hover { background: rgba(30,96,255,0.45); }
+        .mat-chip.active { border-color: #93c5fd; box-shadow: 0 0 0 2px rgba(147,197,253,0.5); }
+
+        .materials-popup-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 5000;
+            background: rgba(8, 10, 24, 0.72);
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+        }
+        .materials-popup-overlay.open { display: flex; }
+        .materials-popup {
+            width: min(420px, 96vw);
+            max-height: min(80vh, 560px);
+            overflow: auto;
+            background: linear-gradient(160deg, #1e1b4b, #0f172a);
+            border: 2px solid rgba(147, 197, 253, 0.45);
+            border-radius: 16px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.55);
+            padding: 16px 16px 18px;
+            color: #fff;
+        }
+        .materials-popup h3 {
+            margin: 0 0 10px;
+            font-size: 1.15rem;
+        }
+        .materials-popup-top {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+        .materials-popup-top label { font-size: 12px; opacity: 0.9; white-space: nowrap; }
+        .materials-dropdown {
+            flex: 1;
+            padding: 8px 10px;
+            border-radius: 10px;
+            border: 1.5px solid rgba(255,255,255,0.35);
+            background: rgba(0,0,0,0.35);
+            color: #fff;
+            font-size: 13px;
+        }
+        .materials-popup .mat-grid {
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+        .materials-popup .mat-chip {
+            padding: 12px 10px;
+            font-size: 13px;
+            text-align: center;
+            border-radius: 12px;
+            background: rgba(255,255,255,0.08);
+            border: 1.5px solid rgba(255,255,255,0.28);
+            color: #fff;
+            cursor: pointer;
+        }
+        .materials-popup .mat-chip .mat-swatch {
+            display: block;
+            height: 28px;
+            border-radius: 8px;
+            margin-bottom: 6px;
+            border: 1px solid rgba(255,255,255,0.25);
+        }
+        .materials-popup-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 14px;
+        }
+        .materials-popup-actions button {
+            flex: 1;
+            padding: 10px;
+            border-radius: 10px;
+            border: 1.5px solid rgba(255,255,255,0.35);
+            cursor: pointer;
+            font-weight: 700;
+        }
+        .materials-popup-apply {
+            background: linear-gradient(180deg, #60a5fa, #2563eb);
+            color: #fff;
+        }
+        .materials-popup-close {
+            background: rgba(255,255,255,0.1);
+            color: #fff;
+        }
+
+        .shape-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 8px; }
+        .shape-chip {
+            padding: 8px 6px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.3);
+            background: rgba(0,0,0,0.25); color: #fff; font-size: 11px; font-weight: 800;
+            cursor: pointer; text-align: center;
+        }
+        .shape-chip:hover { background: rgba(30,96,255,0.45); }
+        .shape-chip.active { border-color: #93c5fd; box-shadow: 0 0 0 2px rgba(147,197,253,0.5); }
+        .hint-mini { font-size: 11px; opacity: 0.85; line-height: 1.35; margin: 6px 0; }
+        .arrow-friend {
+            margin-top: auto; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.2);
+        }
+        .arrow-bubble {
+            background: rgba(30,96,255,0.25); border: 1px solid rgba(147,197,253,0.5);
+            border-radius: 10px; padding: 10px; font-size: 12px; line-height: 1.4; min-height: 54px;
+        }
+        .script-block {
+            background: rgba(30,96,255,0.85); border: 1.5px solid #fff; color: #fff;
+            border-radius: 6px; padding: 6px 10px; font-size: 12px; cursor: grab;
+            text-align: left; margin: 4px 0;
+        }
+        #statusLine {
+            position: fixed; left: 12px; bottom: 10px; z-index: 50;
+            background: rgba(0,0,0,0.65); border: 1px solid rgba(255,255,255,0.25);
+            border-radius: 8px; padding: 6px 10px; font-size: 11px; opacity: 0.9;
+            pointer-events: none;
+        }
+        #orientCubeWrap {
+            position: absolute; right: 12px; top: 48px; width: 72px; height: 72px;
+            z-index: 20; perspective: 400px; user-select: none;
+        }
+        #orientCube {
+            width: 48px; height: 48px; margin: 12px auto 0;
+            position: relative; transform-style: preserve-3d;
+            transform: rotateX(-25deg) rotateY(35deg); cursor: grab;
+        }
+        #orientCube:active { cursor: grabbing; }
+        .oc-face {
+            position: absolute; width: 48px; height: 48px;
+            display: flex; align-items: center; justify-content: center;
+            font-weight: 900; font-size: 14px; color: #fff;
+            border: 1px solid rgba(255,255,255,0.7);
+            backface-visibility: hidden;
+            box-shadow: inset 0 0 12px rgba(0,0,0,0.25);
+        }
+        .oc-face.px { background: #dc2626; transform: rotateY(0deg) translateZ(24px); }
+        .oc-face.nx { background: #991b1b; transform: rotateY(180deg) translateZ(24px); }
+        .oc-face.py { background: #16a34a; transform: rotateX(90deg) translateZ(24px); }
+        .oc-face.ny { background: #166534; transform: rotateX(-90deg) translateZ(24px); }
+        .oc-face.pz { background: #2563eb; transform: rotateY(90deg) translateZ(24px); }
+        .oc-face.nz { background: #1e3a8a; transform: rotateY(-90deg) translateZ(24px); }
+        #testBanner {
+            display: none; position: absolute; left: 50%; top: 52px; transform: translateX(-50%);
+            z-index: 25; background: rgba(245,158,11,0.95); color: #111;
+            padding: 6px 14px; border-radius: 999px; font-size: 12px; font-weight: 800;
+            border: 1px solid #fff; pointer-events: none;
+        }
+        @media (max-width: 900px) {
+            .studio-layout { grid-template-columns: 1fr; height: auto; overflow: auto; }
+            body { overflow: auto; }
+            #canvas3d { min-height: 360px; height: 50vh; }
+        }
+
+        .frutiger-aero-button {
+            --hue: 245; --sat: 0.44; --glow-intensity: 0.85;
+            --fg: oklch(15% calc(var(--sat) * 0.5) var(--hue));
+            --bg: oklch(75% var(--sat) var(--hue) / 0.8);
+            --bg-dark: oklch(45% var(--sat) var(--hue) / 0.75);
+            background-color: var(--bg);
+            background-image: radial-gradient(farthest-corner at bottom center, rgba(255,255,255,var(--glow-intensity)), transparent), linear-gradient(to bottom, var(--bg-dark), var(--bg));
+            border: 1px solid var(--bg); border-radius: 9999px; color: var(--fg);
+            font-weight: 700; text-shadow: 0 2px 0.5em rgba(0,0,0,0.2);
+            position: relative; box-shadow: 0 4px 4px rgba(0,0,0,0.4);
+        }
+        .frutiger-aero-button::before {
+            content: ""; position: absolute; inset: 0; pointer-events: none; border-radius: inherit;
+            background: linear-gradient(120deg, transparent 30%, rgba(255,255,255,0.35) 45%, rgba(255,255,255,0.05) 55%, transparent 70%);
+        }
+        .studio-logo {
+            width: 36px; height: 36px; border-radius: 10px; object-fit: cover;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.35);
+        }
+        .topbar-brand { display: flex; align-items: center; gap: 10px; }
+    </style>
+</head>
+<body>
+
+<div id="desktopError">
+    <img src="logo.jpg" alt="Azora Logo" style="width:100px;border-radius:50%;margin-bottom:20px;" onerror="this.style.display='none'">
+    <h1>Desktop Recommended</h1>
+    <p style="max-width:500px;font-size:16px;line-height:1.6;">
+        Creator works best on a computer. You can continue anyway on this device.
+    </p>
+    <button onclick="forceContinueStudio()" style="margin-top:18px;">Continue Anyway</button>
+    <button onclick="window.location.href='index.html'" style="margin-top:10px;">Back to Azora</button>
+</div>
+
+<div id="gamexHome" style="position:fixed;inset:0;z-index:80;background:linear-gradient(160deg,#0b1220,#152238);color:#fff;display:flex;flex-direction:column;padding:24px;">
+  <h1 style="margin:8px 0 4px;">Azora Gamex-8 Studio</h1>
+  <p style="opacity:0.8;margin:0 0 16px;">Click a game to open it, or create a new one. Titles start as today's date.</p>
+  <button type="button" class="frutiger-aero-button" onclick="createDatedGame()" style="max-width:220px;">+ Create a Game</button>
+  <div id="gamexHomeList" style="margin-top:16px;display:flex;flex-direction:column;gap:8px;overflow:auto;"></div>
+</div>
+
+<div class="topbar" id="topbar">
+    <div class="topbar-brand"><img class="studio-logo" src="logo.png" alt="Azora"><h2>Azora Gamex-8 Studio</h2></div>
+    <div class="actions">
+        <button class="frutiger-aero-button" id="testBtn" onclick="toggleTestMode()">▶ Test Game</button>
+        <button class="frutiger-aero-button" id="saveProjectBtn" onclick="saveProject()">Save Workspace</button>
+        <button class="frutiger-aero-button" onclick="publishCurrentGame()" style="background:linear-gradient(180deg,#34d399,#059669);color:#fff;border-color:#34d399;">Publish</button>
+        <button class="frutiger-aero-button" onclick="handleBack()">Back to Azora</button>
+    </div>
+</div>
+
+<div class="games-bar" id="gamesBar">
+    <button type="button" class="frutiger-aero-button" onclick="createNewGame()" title="Create a new game">+ New Game</button>
+    <div class="games-list" id="myGamesList"></div>
+</div>
+
+<div class="studio-layout" id="studioLayout">
+    <div class="studio-panel">
+        <div class="panel-title"><span>Hierarchy</span></div>
+        <div class="hierarchy-item selected" id="hierarchyWorkspace" onclick="selectNode('workspace')">Workspace</div>
+        <div class="hierarchy-item" id="hierarchySky" onclick="selectNode('sky')">Sky / Atmosphere</div>
+        <div class="hierarchy-item" id="hierarchyBaseplate" onclick="selectNode('baseplate')">Baseplate</div>
+        <div class="hierarchy-item" id="hierarchyCharacter" onclick="selectNode('character')">Character</div>
+        <div id="dynamicPartsContainer"></div>
+
+        <div style="margin-top:12px;border-top:1px solid rgba(255,255,255,0.2);padding-top:10px;">
+            <div class="panel-title" style="border:none;margin:0 0 6px;padding:0;"><span>Add Shape</span></div>
+            <p class="hint-mini">Pick a shape, then click Add. Parts snap to a 1-stud grid.</p>
+            <div class="shape-grid" id="shapeGrid"></div>
+            <button type="button" class="frutiger-aero-button" onclick="addNewPart()" style="width:100%;margin-top:6px;">+ Add Part</button>
+        </div>
+
+        <div class="arrow-friend">
+            <div class="panel-title" style="border:none;margin:0 0 6px;padding:0;"><span>Arrow Friend</span></div>
+            <div class="arrow-bubble" id="arrowBubble">
+                Parts snap to the grid. Baseplate has full properties. Materials look distinct now. Publish uses your real username.
+            </div>
+        </div>
+    </div>
+
+    <div class="viewport-container">
+        <div class="viewport-tabs">
+            <div class="view-tab active" id="tab3D" onclick="switchView('3d')">3D View</div>
+            <div class="view-tab" id="tabScript" onclick="switchView('script')">Script</div>
+        </div>
+        <div id="canvas3d">
+            <div id="testBanner">TEST MODE — WASD move character · Space jump · Esc to stop</div>
+            <div id="orientCubeWrap" title="Drag to orbit · click a face to snap">
+                <div id="orientCube">
+                    <div class="oc-face px" data-face="px">X</div>
+                    <div class="oc-face nx" data-face="nx">X</div>
+                    <div class="oc-face py" data-face="py">Y</div>
+                    <div class="oc-face ny" data-face="ny">Y</div>
+                    <div class="oc-face pz" data-face="pz">Z</div>
+                    <div class="oc-face nz" data-face="nz">Z</div>
+                </div>
+            </div>
+        </div>
+        <div class="viewport-toolbar">
+            <button type="button" class="frutiger-aero-button" onclick="unselectAll()">Unselect</button>
+            <button type="button" class="frutiger-aero-button" onclick="addNewPart()">+ Part</button>
+            <button type="button" class="frutiger-aero-button" onclick="openMaterialsPopup()" style="background:#7c3aed;border-color:#c084fc;">Materials</button>
+            <button type="button" class="frutiger-aero-button" onclick="resetCamera()">Reset Camera</button>
+            <span class="hint-mini" id="selectHint">Grid snap ON · W/S camera · A/D turn</span>
+        </div>
+        <div id="scriptEditorContainer" ondragover="event.preventDefault()" ondrop="handleBlockDrop(event)">
+            <textarea id="codeArea" placeholder="// Write scripts here…"></textarea>
+        </div>
+    </div>
+
+    <div class="studio-panel" id="propertiesPanel">
+        <div class="panel-title" id="propertiesTitle">Properties</div>
+        <div id="propertiesContent" style="color:rgba(255,255,255,0.9);font-size:13px;">
+            Select an item from the Hierarchy or click a part in the viewport.
+        </div>
+        <div style="margin-top:14px;border-top:1px solid rgba(255,255,255,0.2);padding-top:10px;">
+            <div class="panel-title" style="border:none;margin:0 0 6px;padding:0;"><span>Materials</span></div>
+            <p class="hint-mini">Pick from the dropdown or the 2-wide grid. Also open the full Materials popup from the toolbar.</p>
+            <label class="hint-mini" for="materialsDropdownSide">Materials</label>
+            <select id="materialsDropdownSide" class="materials-dropdown" onchange="pickMaterial(this.value)" style="width:100%;margin:4px 0 8px;"></select>
+            <div class="mat-grid" id="materialsGrid"></div>
+            <button type="button" class="frutiger-aero-button" onclick="openMaterialsPopup()" style="width:100%;margin-top:8px;padding:8px;border-radius:10px;border:1.5px solid rgba(192,132,252,0.6);background:#7c3aed;color:#fff;font-weight:700;cursor:pointer;">Open Materials</button>
+        </div>
+    </div>
+</div>
+
+
+<div class="materials-popup-overlay" id="materialsPopupOverlay" onclick="if(event.target===this)closeMaterialsPopup()">
+    <div class="materials-popup" role="dialog" aria-label="Materials">
+        <h3>Materials</h3>
+        <div class="materials-popup-top">
+            <label for="materialsDropdownPopup">Materials</label>
+            <select id="materialsDropdownPopup" class="materials-dropdown" onchange="pickMaterial(this.value)"></select>
+        </div>
+        <div class="mat-grid" id="materialsPopupGrid"></div>
+        <div class="materials-popup-actions">
+            <button type="button" class="materials-popup-apply" onclick="applySelectedMaterialFromPopup()">Apply</button>
+            <button type="button" class="materials-popup-close" onclick="closeMaterialsPopup()">Close</button>
+        </div>
+    </div>
+</div>
+
+<div id="statusLine">Booting Creator…</div>
+
+<script>
+/* ===== Azora Creator Studio — grid snap, shapes, baseplate props, materials, publish fix ===== */
+var scene, camera, renderer, ambientLight, directionalLight;
+var baseplateMesh = null, gridHelper = null, characterGroup = null;
+var raycaster = null, mouse = null, outlineHelper = null;
+var partsList = [];
+var selectedPartId = null, selectedNodeId = "workspace";
+var selectedMaterialId = "Plastic";
+var selectedShapeId = "Block";
+var currentGameId = null;
+var animating = false;
+var studioForced = false;
+var isTestMode = false;
+var GRID = 1; // 1 stud grid
+
+var camYaw = Math.PI / 4;
+var camPitch = 0.45;
+var camDist = 32;
+var camTarget = null;
+var keys = {};
+
+var isDraggingPart = false;
+var dragPart = null;
+var dragPlane = null;
+var dragOffset = null;
+var dragPointerId = null;
+
+var orientRotX = -25;
+var orientRotY = 35;
+var orientDragging = false;
+var orientLastX = 0, orientLastY = 0;
+
+var charVelY = 0;
+var charOnGround = true;
+var CHAR_SPEED = 10;
+var CHAR_JUMP = 9;
+var GRAVITY = 22;
+
+/* Strongly distinct materials */
+var MATERIALS = {
+    Glass:    { name: "Glass",    color: 0x88d4ff, opacity: 0.35, shininess: 160, transparent: true, specular: 0xffffff },
+    Plastic:  { name: "Plastic",  color: 0x1e60ff, opacity: 1,    shininess: 45,  transparent: false, specular: 0x666666 },
+    Metal:    { name: "Metal",    color: 0xc0c8d0, opacity: 1,    shininess: 200, transparent: false, specular: 0xffffff },
+    Wood:     { name: "Wood",     color: 0xffffff, opacity: 1,    shininess: 8,   transparent: false, specular: 0x222222, map: "wood1.jpg" },
+    Wood2:    { name: "Wood 2",   color: 0xffffff, opacity: 1,    shininess: 10,  transparent: false, specular: 0x333333, map: "wood2.jpg" },
+    Wood3:    { name: "Wood 3",   color: 0xffffff, opacity: 1,    shininess: 6,   transparent: false, specular: 0x222222, map: "wood3.jpg" },
+    Concrete: { name: "Concrete", color: 0xffffff, opacity: 1,    shininess: 2,   transparent: false, specular: 0x111111, map: "concrete.jpg" },
+    Road:     { name: "Road",     color: 0xffffff, opacity: 1,    shininess: 4,   transparent: false, specular: 0x222222, map: "road.jpg" },
+    Neon:     { name: "Neon",     color: 0x00ffcc, opacity: 1,    shininess: 120, transparent: false, specular: 0x00ffcc, emissive: 0x00aa88 },
+    Marble:   { name: "Marble",   color: 0xffffff, opacity: 1,    shininess: 90,  transparent: false, specular: 0xaaaaaa, map: "marble.png" },
+    Rubber:   { name: "Rubber",   color: 0x1a1a1a, opacity: 1,    shininess: 1,   transparent: false, specular: 0x050505 },
+    Grass:    { name: "Grass",    color: 0xffffff, opacity: 1,    shininess: 5,   transparent: false, specular: 0x113311, map: "grass.jpg" },
+    Leaf:     { name: "Leaf",     color: 0xffffff, opacity: 1,    shininess: 15,  transparent: false, specular: 0x224422, map: "leaf.jpg" },
+    Brick:    { name: "Brick",    color: 0xb33a2b, opacity: 1,    shininess: 12,  transparent: false, specular: 0x331111 }
+};
+
+var SHAPES = {
+    Block:        { name: "Block",        icon: "⬛" },
+    Sphere:       { name: "Sphere",       icon: "⬤" },
+    Cylinder:     { name: "Cylinder",     icon: "⬭" },
+    Wedge:        { name: "Wedge",        icon: "◢" },
+    CornerWedge:  { name: "Corner Wedge", icon: "◣" },
+    Triangle:     { name: "Triangle",     icon: "▲" },
+    Pyramid:      { name: "Pyramid",      icon: "△" },
+    Cone:         { name: "Cone",         icon: "▽" },
+    Torus:        { name: "Torus",        icon: "◯" },
+    Prism:        { name: "Prism",        icon: "⬡" }
+};
+
+var skySettings = {
+    skyColor: "#87ceeb",
+    atmosphereOn: true,
+    atmosphereColor: "#a5d8ff",
+    density: 0.25,
+    sunIntensity: 1.0
+};
+
+/* Baseplate is a full part-like object */
+var baseplateProps = {
+    sizeX: 50, sizeY: 1, sizeZ: 50,
+    posX: 0, posY: -0.5, posZ: 0,
+    color: "#3a4555",
+    material: "Concrete",
+    transparency: 1,
+    canTouch: true,
+    canCollide: true
+};
+
+var placedCharacter = {
+    head: 0xffdbac, torso: 0x1e60ff, leftArm: 0xffdbac, rightArm: 0xffdbac,
+    leftLeg: 0x333333, rightLeg: 0x333333
+};
+
+function setStatus(msg) {
+    var el = document.getElementById("statusLine");
+    if (el) el.textContent = msg;
+}
+function arrowBubbleSpeak(html) {
+    var el = document.getElementById("arrowBubble");
+    if (el) el.innerHTML = html;
+}
+function snap(v) { return Math.round(v / GRID) * GRID; }
+function snapVec(x, y, z) {
+    return { x: snap(x), y: snap(y), z: snap(z) };
+}
+
+function enforceComputerOnly() {
+    var err = document.getElementById("desktopError");
+    if (!err) return;
+    if (studioForced) { err.style.display = "none"; return; }
+    err.style.display = (window.innerWidth < 700) ? "flex" : "none";
+}
+function forceContinueStudio() {
+    studioForced = true;
+    var err = document.getElementById("desktopError");
+    if (err) err.style.display = "none";
+    setTimeout(bootStudio, 50);
+}
+
+function getLoggedInUsername() {
+    try {
+        var a = JSON.parse(localStorage.getItem("azoraAccount") || "null");
+        if (a && a.username && String(a.username).trim()) return String(a.username).trim();
+    } catch (e) {}
+    try {
+        var g = JSON.parse(localStorage.getItem("azoraGuest") || "null");
+        if (g && g.id != null) return "Guest #" + g.id;
+    } catch (e2) {}
+    return "Player";
+}
+
+
+var _creatorTexCache = {};
+function loadCreatorTexture(file, onDone) {
+    if (!file || typeof THREE === "undefined") { if (onDone) onDone(null); return; }
+    if (_creatorTexCache[file]) { if (onDone) onDone(_creatorTexCache[file]); return; }
+    try {
+        var loader = new THREE.TextureLoader();
+        loader.load(file, function (tex) {
+            try {
+                tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+                tex.repeat.set(2, 2);
+                tex.needsUpdate = true;
+            } catch (e) {}
+            _creatorTexCache[file] = tex;
+            if (onDone) onDone(tex);
+        }, undefined, function () { if (onDone) onDone(null); });
+    } catch (e2) { if (onDone) onDone(null); }
+}
+
+function makeMaterial(matId, colorHex, opacityOverride) {
+    var def = MATERIALS[matId] || MATERIALS.Plastic;
+    var col = (colorHex != null) ? colorHex : def.color;
+    var opacity = (opacityOverride != null) ? opacityOverride : (def.opacity != null ? def.opacity : 1);
+    var transparent = opacity < 0.999 || !!def.transparent;
+    var mapFile = def.map || null;
+    var cachedMap = (mapFile && _creatorTexCache[mapFile]) ? _creatorTexCache[mapFile] : null;
+    try {
+        var mat = new THREE.MeshPhongMaterial({
+            color: col,
+            map: cachedMap || null,
+            transparent: transparent,
+            opacity: opacity,
+            shininess: def.shininess != null ? def.shininess : 40,
+            specular: def.specular != null ? def.specular : 0x444444,
+            emissive: def.emissive || 0x000000,
+            side: THREE.DoubleSide,
+            depthWrite: opacity > 0.85,
+            flatShading: (matId === "Brick" || matId === "Rubber")
+        });
+        mat.userData = { azoraMaterial: matId, mapFile: mapFile };
+        if (mapFile && !cachedMap) {
+            loadCreatorTexture(mapFile, function (tex) {
+                if (!tex || !mat) return;
+                try { mat.map = tex; mat.needsUpdate = true; } catch (e) {}
+            });
+        }
+        return mat;
+    } catch (e) {
+        return new THREE.MeshLambertMaterial({ color: col, transparent: transparent, opacity: opacity, side: THREE.DoubleSide });
+    }
+}
+/* ---- Shape geometry builders (unit-ish size ~2) ---- */
+function makeShapeGeometry(shapeId) {
+    switch (shapeId) {
+        case "Sphere":
+            return new THREE.SphereGeometry(1, 16, 12);
+        case "Cylinder":
+            return new THREE.CylinderGeometry(1, 1, 2, 16);
+        case "Cone":
+            return new THREE.ConeGeometry(1, 2, 16);
+        case "Torus":
+            return new THREE.TorusGeometry(0.9, 0.35, 12, 24);
+        case "Wedge": {
+            // Right-angle wedge (prism with triangle profile)
+            var g = new THREE.Geometry ? null : null;
+            // BufferGeometry triangle prism
+            var shape = new THREE.Shape();
+            shape.moveTo(-1, -1);
+            shape.lineTo(1, -1);
+            shape.lineTo(-1, 1);
+            shape.lineTo(-1, -1);
+            var extrude = new THREE.ExtrudeGeometry(shape, { depth: 2, bevelEnabled: false });
+            extrude.rotateY(Math.PI / 2);
+            extrude.translate(0, 0, -1);
+            return extrude;
+        }
+        case "CornerWedge": {
+            // Tetrahedron-ish corner
+            var geo = new THREE.TetrahedronGeometry(1.4, 0);
+            geo.rotateY(Math.PI / 4);
+            return geo;
+        }
+        case "Triangle": {
+            // Flat triangle panel
+            var s = new THREE.Shape();
+            s.moveTo(0, 1.2);
+            s.lineTo(-1.2, -1);
+            s.lineTo(1.2, -1);
+            s.lineTo(0, 1.2);
+            var eg = new THREE.ExtrudeGeometry(s, { depth: 0.3, bevelEnabled: false });
+            eg.translate(0, 0, -0.15);
+            return eg;
+        }
+        case "Pyramid":
+            return new THREE.ConeGeometry(1.2, 2, 4);
+        case "Prism":
+            return new THREE.CylinderGeometry(1.1, 1.1, 2, 6);
+        case "Block":
+        default:
+            return new THREE.BoxGeometry(2, 2, 2);
+    }
+}
+
+function initShapeGrid() {
+    var grid = document.getElementById("shapeGrid");
+    if (!grid) return;
+    var html = "";
+    Object.keys(SHAPES).forEach(function (id) {
+        var s = SHAPES[id];
+        html += '<button type="button" class="shape-chip' + (id === selectedShapeId ? " active" : "") +
+            '" onclick="pickShape(\'' + id + '\')">' + s.icon + " " + s.name + "</button>";
+    });
+    grid.innerHTML = html;
+}
+function pickShape(id) {
+    selectedShapeId = id;
+    initShapeGrid();
+    arrowBubbleSpeak("Shape set to <strong>" + (SHAPES[id] ? SHAPES[id].name : id) + "</strong>. Click + Add Part.");
+}
+
+function materialSwatchColor(id) {
+    var m = MATERIALS[id];
+    if (!m) return "#888";
+    var c = m.color != null ? m.color : 0x888888;
+    return "#" + ("000000" + (c >>> 0).toString(16)).slice(-6);
+}
+
+function fillMaterialsDropdown(selectEl) {
+    if (!selectEl) return;
+    var html = "";
+    Object.keys(MATERIALS).forEach(function (id) {
+        var m = MATERIALS[id];
+        html += '<option value="' + id + '"' + (id === selectedMaterialId ? " selected" : "") + ">" +
+            (m.name || id) + (m.map ? " · textured" : "") + "</option>";
+    });
+    selectEl.innerHTML = html;
+    try { selectEl.value = selectedMaterialId; } catch (e) {}
+}
+
+function initMaterialsGrid() {
+    var grid = document.getElementById("materialsGrid");
+    if (grid) {
+        var html = "";
+        Object.keys(MATERIALS).forEach(function (id) {
+            var m = MATERIALS[id];
+            html += '<button type="button" class="mat-chip' + (id === selectedMaterialId ? " active" : "") +
+                '" onclick="pickMaterial(\'' + id + '\')">' + m.name + "</button>";
+        });
+        grid.innerHTML = html;
+    }
+    var popupGrid = document.getElementById("materialsPopupGrid");
+    if (popupGrid) {
+        var html2 = "";
+        Object.keys(MATERIALS).forEach(function (id) {
+            var m = MATERIALS[id];
+            html2 += '<button type="button" class="mat-chip' + (id === selectedMaterialId ? " active" : "") +
+                '" onclick="pickMaterial(\'' + id + '\')">' +
+                '<span class="mat-swatch" style="background:' + materialSwatchColor(id) + '"></span>' +
+                (m.name || id) +
+                (m.map ? '<div class="hint-mini" style="margin:2px 0 0;opacity:.75">texture</div>' : '') +
+                "</button>";
+        });
+        popupGrid.innerHTML = html2;
+    }
+    fillMaterialsDropdown(document.getElementById("materialsDropdownSide"));
+    fillMaterialsDropdown(document.getElementById("materialsDropdownPopup"));
+}
+
+function openMaterialsPopup() {
+    var ov = document.getElementById("materialsPopupOverlay");
+    if (!ov) return;
+    initMaterialsGrid();
+    ov.classList.add("open");
+    try { arrowBubbleSpeak("Materials library open — pick one, then <strong>Apply</strong>."); } catch (e) {}
+}
+function closeMaterialsPopup() {
+    var ov = document.getElementById("materialsPopupOverlay");
+    if (ov) ov.classList.remove("open");
+}
+function applySelectedMaterialFromPopup() {
+    pickMaterial(selectedMaterialId);
+    closeMaterialsPopup();
+}
+window.openMaterialsPopup = openMaterialsPopup;
+window.closeMaterialsPopup = closeMaterialsPopup;
+window.applySelectedMaterialFromPopup = applySelectedMaterialFromPopup;
+
+function pickMaterial(id) {
+    if (!MATERIALS[id]) return;
+    selectedMaterialId = id;
+    initMaterialsGrid();
+    try { if (MATERIALS[id].map) loadCreatorTexture(MATERIALS[id].map); } catch (e) {}
+    if (selectedPartId === "baseplate") {
+        applyMaterialToBaseplate(id);
+    } else if (selectedPartId) {
+        applyMaterialToPart(selectedPartId, id);
+    } else {
+        arrowBubbleSpeak("Material set to <strong>" + (MATERIALS[id].name || id) + "</strong>. Select a part or baseplate to apply.");
+    }
+}
+
+function applyMaterialToPart(partId, matId) {
+    var part = partsList.find(function (p) { return p.id === partId; });
+    if (!part || !part.mesh) return;
+    var col = part.color ? new THREE.Color(part.color) : null;
+    // When switching material, adopt material's default color if user hasn't custom-tinted much
+    var useCol = col ? col.getHex() : (MATERIALS[matId] ? MATERIALS[matId].color : 0x1e60ff);
+    // Always refresh color to material default for strong visual change, unless color was customized
+    if (!part.colorCustom) {
+        useCol = MATERIALS[matId] ? MATERIALS[matId].color : useCol;
+        part.color = "#" + ("000000" + useCol.toString(16)).slice(-6);
+    }
+    part.material = matId;
+    var op = part.transparency != null ? part.transparency : (MATERIALS[matId] && MATERIALS[matId].opacity != null ? MATERIALS[matId].opacity : 1);
+    if (MATERIALS[matId] && MATERIALS[matId].transparent && part.transparency == null) {
+        op = MATERIALS[matId].opacity;
+        part.transparency = op;
+    }
+    part.mesh.material = makeMaterial(matId, useCol, op);
+    refreshPartProperties(partId);
+    refreshHierarchyPartLabel(part);
+    setStatus(partId + " → " + matId);
+}
+
+function applyMaterialToBaseplate(matId) {
+    if (!baseplateMesh) return;
+    baseplateProps.material = matId;
+    if (!baseplateProps.colorCustom) {
+        var c = MATERIALS[matId] ? MATERIALS[matId].color : 0x3a4555;
+        baseplateProps.color = "#" + ("000000" + c.toString(16)).slice(-6);
+    }
+    var col = new THREE.Color(baseplateProps.color).getHex();
+    var op = baseplateProps.transparency != null ? baseplateProps.transparency : 1;
+    baseplateMesh.material = makeMaterial(matId, col, op);
+    refreshBaseplateProperties();
+    setStatus("Baseplate → " + matId);
+}
+
+function applySkySettings() {
+    if (!scene) return;
+    try {
+        scene.background = new THREE.Color(skySettings.skyColor || "#87ceeb");
+        if (skySettings.atmosphereOn) {
+            var fogCol = new THREE.Color(skySettings.atmosphereColor || "#a5d8ff");
+            scene.fog = new THREE.FogExp2(fogCol.getHex(), Math.max(0.0015, (skySettings.density || 0.25) * 0.035));
+        } else {
+            scene.fog = null;
+        }
+        if (directionalLight) directionalLight.intensity = skySettings.sunIntensity || 1;
+        if (ambientLight) ambientLight.intensity = 0.45 + (1 - (skySettings.density || 0.25)) * 0.35;
+    } catch (e) {
+        try { scene.background = new THREE.Color(0x87ceeb); scene.fog = null; } catch (e2) {}
+    }
+}
+
+function updateCameraFromOrbit() {
+    if (!camera || isTestMode) return;
+    if (!camTarget) camTarget = new THREE.Vector3(0, 1, 0);
+    var x = camTarget.x + camDist * Math.sin(camYaw) * Math.cos(camPitch);
+    var y = camTarget.y + camDist * Math.sin(camPitch);
+    var z = camTarget.z + camDist * Math.cos(camYaw) * Math.cos(camPitch);
+    camera.position.set(x, y, z);
+    camera.lookAt(camTarget);
+    syncOrientCube();
+}
+function syncOrientCube() {
+    var cube = document.getElementById("orientCube");
+    if (!cube) return;
+    orientRotY = (camYaw * 180 / Math.PI);
+    orientRotX = -20 - (camPitch * 40);
+    cube.style.transform = "rotateX(" + orientRotX + "deg) rotateY(" + orientRotY + "deg)";
+}
+function resizeRenderer() {
+    var container = document.getElementById("canvas3d");
+    if (!container || !renderer || !camera) return;
+    var w = Math.max(container.clientWidth, 2);
+    var h = Math.max(container.clientHeight, 2);
+    if (h < 40) h = 420;
+    if (w < 40) w = 640;
+    camera.aspect = w / h;
+    camera.updateProjectionMatrix();
+    renderer.setSize(w, h, false);
+    setStatus((isTestMode ? "TEST" : "Studio") + " · grid " + GRID + " · parts: " + partsList.length);
+}
+
+function rebuildBaseplateMesh() {
+    if (!scene) return;
+    if (baseplateMesh) {
+        scene.remove(baseplateMesh);
+        try { baseplateMesh.geometry.dispose(); } catch (e) {}
+    }
+    var geo = new THREE.BoxGeometry(baseplateProps.sizeX, baseplateProps.sizeY, baseplateProps.sizeZ);
+    var col = new THREE.Color(baseplateProps.color || "#3a4555").getHex();
+    var op = baseplateProps.transparency != null ? baseplateProps.transparency : 1;
+    baseplateMesh = new THREE.Mesh(geo, makeMaterial(baseplateProps.material || "Concrete", col, op));
+    baseplateMesh.position.set(baseplateProps.posX, baseplateProps.posY, baseplateProps.posZ);
+    baseplateMesh.userData.azoraKind = "baseplate";
+    scene.add(baseplateMesh);
+}
+
+function init3DScene() {
+    var container = document.getElementById("canvas3d");
+    if (!container) { setStatus("Missing #canvas3d"); return false; }
+    if (typeof THREE === "undefined") {
+        setStatus("Three.js failed to load");
+        return false;
+    }
+    Array.prototype.slice.call(container.querySelectorAll("canvas")).forEach(function (c) { c.remove(); });
+
+    scene = new THREE.Scene();
+    applySkySettings();
+    camTarget = new THREE.Vector3(0, 1, 0);
+
+    var w = Math.max(container.clientWidth, 2);
+    var h = Math.max(container.clientHeight, 2);
+    if (h < 40) h = 420;
+    if (w < 40) w = 640;
+
+    camera = new THREE.PerspectiveCamera(55, w / h, 0.1, 3000);
+    updateCameraFromOrbit();
+
+    renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+    renderer.setClearColor(0x87ceeb, 1);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    renderer.setSize(w, h, false);
+    container.insertBefore(renderer.domElement, container.firstChild);
+
+    ambientLight = new THREE.AmbientLight(0xffffff, 0.55);
+    scene.add(ambientLight);
+    directionalLight = new THREE.DirectionalLight(0xffffff, skySettings.sunIntensity || 1);
+    directionalLight.position.set(20, 30, 12);
+    scene.add(directionalLight);
+    var fill = new THREE.DirectionalLight(0x9ecbff, 0.35);
+    fill.position.set(-12, 10, -8);
+    scene.add(fill);
+
+    rebuildBaseplateMesh();
+
+    gridHelper = new THREE.GridHelper(100, 100, 0xffffff, 0x556677);
+    gridHelper.position.y = 0.02;
+    scene.add(gridHelper);
+
+    characterGroup = new THREE.Group();
+    characterGroup.position.set(0, 1.2, 0);
+    function limb(name, w2, h2, d2, col, x, y) {
+        var m = new THREE.Mesh(new THREE.BoxGeometry(w2, h2, d2), makeMaterial("Plastic", col));
+        m.name = name; m.position.set(x, y, 0); characterGroup.add(m);
+    }
+    limb("head", 1.2, 1.2, 1.2, placedCharacter.head, 0, 2);
+    limb("torso", 1.6, 2.0, 0.8, placedCharacter.torso, 0, 0.4);
+    limb("leftArm", 0.7, 2.0, 0.7, placedCharacter.leftArm, -1.2, 0.4);
+    limb("rightArm", 0.7, 2.0, 0.7, placedCharacter.rightArm, 1.2, 0.4);
+    limb("leftLeg", 0.7, 2.0, 0.7, placedCharacter.leftLeg, -0.45, -1.6);
+    limb("rightLeg", 0.7, 2.0, 0.7, placedCharacter.rightLeg, 0.45, -1.6);
+    scene.add(characterGroup);
+
+    raycaster = new THREE.Raycaster();
+    mouse = new THREE.Vector2();
+    dragPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+    dragOffset = new THREE.Vector3();
+
+    var canvas = renderer.domElement;
+    canvas.addEventListener("pointerdown", onViewportPointerDown);
+    canvas.addEventListener("pointermove", onViewportPointerMove);
+    canvas.addEventListener("pointerup", onViewportPointerUp);
+    canvas.addEventListener("pointercancel", onViewportPointerUp);
+    canvas.addEventListener("wheel", onViewportWheel, { passive: false });
+
+    if (!animating) {
+        animating = true;
+        var lastT = performance.now();
+        (function animate(now) {
+            requestAnimationFrame(animate);
+            var dt = Math.min(0.05, (now - lastT) / 1000);
+            lastT = now;
+            updateStudio(dt);
+            if (renderer && scene && camera) renderer.render(scene, camera);
+        })(performance.now());
+    }
+
+    setTimeout(resizeRenderer, 30);
+    setTimeout(resizeRenderer, 150);
+    setStatus("Studio ready · grid snap ON");
+    arrowBubbleSpeak("Grid snap is on. Baseplate has full properties. Pick a shape and Add Part!");
+    return true;
+}
+
+function updateStudio(dt) {
+    if (isTestMode) { updateTestCharacter(dt); return; }
+    var moved = false;
+    var turnSpeed = 1.6 * dt;
+    var moveSpeed = 18 * dt;
+    if (keys["a"] || keys["arrowleft"]) { camYaw += turnSpeed; moved = true; }
+    if (keys["d"] || keys["arrowright"]) { camYaw -= turnSpeed; moved = true; }
+    var fx = Math.sin(camYaw), fz = Math.cos(camYaw);
+    if (keys["w"] || keys["arrowup"]) { camTarget.x += fx * moveSpeed; camTarget.z += fz * moveSpeed; moved = true; }
+    if (keys["s"] || keys["arrowdown"]) { camTarget.x -= fx * moveSpeed; camTarget.z -= fz * moveSpeed; moved = true; }
+    if (moved) updateCameraFromOrbit();
+    if (characterGroup && selectedNodeId !== "character" && !isDraggingPart) characterGroup.rotation.y += 0.004;
+    if (outlineHelper && outlineHelper.update) { try { outlineHelper.update(); } catch (e) {} }
+}
+
+function updateTestCharacter(dt) {
+    if (!characterGroup || !camera) return;
+    var yaw = characterGroup.rotation.y;
+    var forward = new THREE.Vector3(Math.sin(yaw), 0, Math.cos(yaw));
+    var right = new THREE.Vector3(Math.cos(yaw), 0, -Math.sin(yaw));
+    var move = new THREE.Vector3();
+    if (keys["w"] || keys["arrowup"]) move.add(forward);
+    if (keys["s"] || keys["arrowdown"]) move.sub(forward);
+    if (keys["a"] || keys["arrowleft"]) move.sub(right);
+    if (keys["d"] || keys["arrowright"]) move.add(right);
+    if (move.lengthSq() > 0) {
+        move.normalize().multiplyScalar(CHAR_SPEED * dt);
+        characterGroup.position.x += move.x;
+        characterGroup.position.z += move.z;
+    }
+    if ((keys[" "] || keys["space"]) && charOnGround) { charVelY = CHAR_JUMP; charOnGround = false; }
+    charVelY -= GRAVITY * dt;
+    characterGroup.position.y += charVelY * dt;
+    if (characterGroup.position.y <= 1.2) {
+        characterGroup.position.y = 1.2; charVelY = 0; charOnGround = true;
+    }
+    // Collide with canCollide parts + baseplate
+    var colliders = partsList.filter(function (p) { return p.canCollide && p.mesh; });
+    if (baseplateProps.canCollide && baseplateMesh) {
+        // baseplate is floor — already handled by groundY
+    }
+    colliders.forEach(function (p) {
+        var box = new THREE.Box3().setFromObject(p.mesh);
+        var cpos = characterGroup.position;
+        var r = 0.9;
+        var closest = new THREE.Vector3(
+            Math.max(box.min.x, Math.min(cpos.x, box.max.x)),
+            Math.max(box.min.y, Math.min(cpos.y, box.max.y)),
+            Math.max(box.min.z, Math.min(cpos.z, box.max.z))
+        );
+        var dx = cpos.x - closest.x, dz = cpos.z - closest.z;
+        var distSq = dx * dx + dz * dz;
+        if (distSq < r * r && cpos.y < box.max.y + 0.5 && cpos.y > box.min.y - 1) {
+            var dist = Math.sqrt(distSq) || 0.001;
+            var push = (r - dist) + 0.01;
+            cpos.x += (dx / dist) * push;
+            cpos.z += (dz / dist) * push;
+        }
+    });
+    var back = 10, height = 6;
+    camera.position.set(
+        characterGroup.position.x - Math.sin(yaw) * back,
+        characterGroup.position.y + height,
+        characterGroup.position.z - Math.cos(yaw) * back
+    );
+    camera.lookAt(characterGroup.position.x, characterGroup.position.y + 1.2, characterGroup.position.z);
+}
+
+function getPointerNDC(ev) {
+    var rect = renderer.domElement.getBoundingClientRect();
+    mouse.x = ((ev.clientX - rect.left) / rect.width) * 2 - 1;
+    mouse.y = -((ev.clientY - rect.top) / rect.height) * 2 + 1;
+}
+
+function onViewportPointerDown(ev) {
+    if (!renderer || !camera || !raycaster || isTestMode) return;
+    if (ev.button !== 0) return;
+    getPointerNDC(ev);
+    raycaster.setFromCamera(mouse, camera);
+    var meshes = partsList.map(function (p) { return p.mesh; }).filter(Boolean);
+    if (baseplateMesh) meshes.push(baseplateMesh);
+    var hits = raycaster.intersectObjects(meshes, false);
+    if (hits.length) {
+        var mesh = hits[0].object;
+        if (mesh === baseplateMesh) {
+            selectNode("baseplate");
+            return;
+        }
+        var part = partsList.find(function (p) { return p.mesh === mesh; });
+        if (part) {
+            selectPartNode(part.id);
+            isDraggingPart = true;
+            dragPart = part;
+            dragPointerId = ev.pointerId;
+            try { renderer.domElement.setPointerCapture(ev.pointerId); } catch (e) {}
+            document.getElementById("canvas3d").classList.add("dragging");
+            dragPlane.setFromNormalAndCoplanarPoint(new THREE.Vector3(0, 1, 0), part.mesh.position.clone());
+            var hitPoint = new THREE.Vector3();
+            raycaster.ray.intersectPlane(dragPlane, hitPoint);
+            if (hitPoint) dragOffset.copy(part.mesh.position).sub(hitPoint);
+            return;
+        }
+    } else {
+        unselectAll();
+    }
+}
+
+function onViewportPointerMove(ev) {
+    if (!isDraggingPart || !dragPart || !dragPart.mesh || isTestMode) return;
+    if (dragPointerId != null && ev.pointerId !== dragPointerId) return;
+    getPointerNDC(ev);
+    raycaster.setFromCamera(mouse, camera);
+    var hitPoint = new THREE.Vector3();
+    if (raycaster.ray.intersectPlane(dragPlane, hitPoint)) {
+        var next = hitPoint.add(dragOffset);
+        // GRID SNAP
+        var sx = snap(next.x);
+        var sz = snap(next.z);
+        dragPart.mesh.position.x = sx;
+        dragPart.mesh.position.z = sz;
+        dragPart.pos.x = sx;
+        dragPart.pos.y = dragPart.mesh.position.y;
+        dragPart.pos.z = sz;
+        if (outlineHelper) setOutline(dragPart.mesh);
+        var px = document.getElementById("pPx");
+        var pz = document.getElementById("pPz");
+        if (px && selectedPartId === dragPart.id) {
+            px.value = sx;
+            if (pz) pz.value = sz;
+        }
+    }
+}
+
+function onViewportPointerUp(ev) {
+    if (!isDraggingPart) return;
+    if (dragPointerId != null && ev.pointerId !== dragPointerId) return;
+    isDraggingPart = false;
+    if (dragPart) setStatus("Moved " + dragPart.id + " (snapped)");
+    dragPart = null;
+    dragPointerId = null;
+    document.getElementById("canvas3d").classList.remove("dragging");
+    try { renderer.domElement.releasePointerCapture(ev.pointerId); } catch (e) {}
+}
+
+function onViewportWheel(ev) {
+    if (isTestMode) return;
+    ev.preventDefault();
+    camDist = Math.max(6, Math.min(120, camDist + ev.deltaY * 0.02));
+    updateCameraFromOrbit();
+}
+
+function initOrientCube() {
+    var wrap = document.getElementById("orientCubeWrap");
+    if (!wrap) return;
+    wrap.addEventListener("pointerdown", function (ev) {
+        if (isTestMode) return;
+        var face = ev.target && ev.target.dataset && ev.target.dataset.face;
+        if (face) { snapCameraToFace(face); return; }
+        orientDragging = true;
+        orientLastX = ev.clientX; orientLastY = ev.clientY;
+        try { wrap.setPointerCapture(ev.pointerId); } catch (e) {}
+    });
+    wrap.addEventListener("pointermove", function (ev) {
+        if (!orientDragging || isTestMode) return;
+        var dx = ev.clientX - orientLastX, dy = ev.clientY - orientLastY;
+        orientLastX = ev.clientX; orientLastY = ev.clientY;
+        camYaw -= dx * 0.01;
+        camPitch = Math.max(-1.2, Math.min(1.4, camPitch + dy * 0.01));
+        updateCameraFromOrbit();
+    });
+    wrap.addEventListener("pointerup", function () { orientDragging = false; });
+    wrap.addEventListener("pointercancel", function () { orientDragging = false; });
+}
+function snapCameraToFace(face) {
+    if (face === "px") { camYaw = Math.PI / 2; camPitch = 0.15; }
+    else if (face === "nx") { camYaw = -Math.PI / 2; camPitch = 0.15; }
+    else if (face === "pz") { camYaw = 0; camPitch = 0.15; }
+    else if (face === "nz") { camYaw = Math.PI; camPitch = 0.15; }
+    else if (face === "py") { camYaw = 0; camPitch = 1.4; }
+    else if (face === "ny") { camYaw = 0; camPitch = -1.2; }
+    updateCameraFromOrbit();
+}
+
+function setOutline(mesh) {
+    clearOutline();
+    if (!mesh || !scene) return;
+    try {
+        outlineHelper = new THREE.BoxHelper(mesh, 0x93c5fd);
+        scene.add(outlineHelper);
+    } catch (e) {}
+}
+function clearOutline() {
+    if (outlineHelper && scene) {
+        scene.remove(outlineHelper);
+        try {
+            if (outlineHelper.geometry) outlineHelper.geometry.dispose();
+            if (outlineHelper.material) outlineHelper.material.dispose();
+        } catch (e) {}
+    }
+    outlineHelper = null;
+}
+function unselectAll() {
+    selectedPartId = null;
+    selectedNodeId = null;
+    document.querySelectorAll(".hierarchy-item").forEach(function (item) { item.classList.remove("selected"); });
+    clearOutline();
+    document.getElementById("propertiesTitle").textContent = "Properties";
+    document.getElementById("propertiesContent").innerHTML = "Nothing selected.";
+}
+
+function resizePartOneEnd(part, axis, newSize) {
+    if (!part || !part.mesh) return;
+    newSize = Math.max(GRID, snap(parseFloat(newSize) || GRID));
+    var old = part.size[axis];
+    var delta = newSize - old;
+    part.size[axis] = newSize;
+    // base geometry ~2 units; scale = size/2
+    part.mesh.scale[axis] = newSize / 2;
+    part.mesh.position[axis] = snap(part.mesh.position[axis] + delta / 2);
+    part.pos[axis] = part.mesh.position[axis];
+}
+
+function addNewPart() {
+    if (isTestMode) { alert("Stop Test Mode first."); return; }
+    if (!scene) {
+        if (!init3DScene()) { alert("3D scene not ready."); return; }
+    }
+    var shape = selectedShapeId || "Block";
+    var id = shape + "_" + (partsList.length + 1);
+    var geo = makeShapeGeometry(shape);
+    var matDef = MATERIALS[selectedMaterialId] || MATERIALS.Plastic;
+    var defaultCol = matDef.color;
+    var defaultOp = matDef.opacity != null ? matDef.opacity : 1;
+    var mat = makeMaterial(selectedMaterialId || "Plastic", defaultCol, defaultOp);
+    var mesh = new THREE.Mesh(geo, mat);
+    var spawn = snapVec((Math.random() * 8 - 4), 2, (Math.random() * 8 - 4));
+    // lift so resting on baseplate
+    spawn.y = Math.max(1, spawn.y);
+    mesh.position.set(spawn.x, spawn.y, spawn.z);
+    mesh.userData.azoraPartId = id;
+    scene.add(mesh);
+
+    var partObj = {
+        id: id,
+        shape: shape,
+        mesh: mesh,
+        size: { x: 2, y: 2, z: 2 },
+        pos: { x: spawn.x, y: spawn.y, z: spawn.z },
+        color: "#" + ("000000" + defaultCol.toString(16)).slice(-6),
+        colorCustom: false,
+        material: selectedMaterialId || "Plastic",
+        transparency: defaultOp,
+        canTouch: true,
+        canCollide: true
+    };
+    partsList.push(partObj);
+
+    var div = document.createElement("div");
+    div.className = "hierarchy-item";
+    div.id = "hierarchy_" + id;
+    div.innerHTML = (SHAPES[shape] ? SHAPES[shape].icon + " " : "") + id +
+        " <small style='opacity:0.75'>(" + partObj.material + ")</small>";
+    div.onclick = function () { selectPartNode(id); };
+    document.getElementById("dynamicPartsContainer").appendChild(div);
+
+    selectPartNode(id);
+    setStatus("Added " + id);
+    arrowBubbleSpeak("Spawned <strong>" + id + "</strong> on the grid. Drag to move (snaps).");
+}
+
+function refreshHierarchyPartLabel(part) {
+    var el = document.getElementById("hierarchy_" + part.id);
+    if (!el) return;
+    var icon = (SHAPES[part.shape] && SHAPES[part.shape].icon) ? SHAPES[part.shape].icon + " " : "";
+    el.innerHTML = icon + part.id + " <small style='opacity:0.75'>(" + (part.material || "Plastic") + ")</small>";
+}
+
+function selectPartNode(id) {
+    if (isTestMode) return;
+    document.querySelectorAll(".hierarchy-item").forEach(function (item) { item.classList.remove("selected"); });
+    var h = document.getElementById("hierarchy_" + id);
+    if (h) h.classList.add("selected");
+    var part = partsList.find(function (p) { return p.id === id; });
+    if (!part) return;
+    selectedNodeId = id;
+    selectedPartId = id;
+    setOutline(part.mesh);
+    refreshPartProperties(id);
+}
+
+function refreshPartProperties(id) {
+    var part = partsList.find(function (p) { return p.id === id; });
+    if (!part) return;
+    if (part.transparency == null) part.transparency = 1;
+    if (part.canTouch == null) part.canTouch = true;
+    if (part.canCollide == null) part.canCollide = true;
+
+    var matOpts = Object.keys(MATERIALS).map(function (m) {
+        return '<option value="' + m + '"' + (part.material === m ? " selected" : "") + ">" + m + "</option>";
+    }).join("");
+    var shapeOpts = Object.keys(SHAPES).map(function (s) {
+        return '<option value="' + s + '"' + (part.shape === s ? " selected" : "") + ">" + SHAPES[s].name + "</option>";
+    }).join("");
+    var tPct = Math.round((part.transparency != null ? part.transparency : 1) * 100);
+
+    document.getElementById("propertiesTitle").textContent = "Properties - " + id;
+    document.getElementById("propertiesContent").innerHTML =
+        '<p class="hint-mini">Positions snap to a <strong>' + GRID + '-stud grid</strong>.</p>' +
+        '<div class="property-row"><label>Shape</label><select onchange="changePartShape(\'' + id + '\',this.value)">' + shapeOpts + '</select></div>' +
+        '<div class="property-row"><label>Color</label><input type="color" value="' + part.color + '" oninput="updatePartProperty(\'' + id + '\',\'color\',this.value)"></div>' +
+        '<div class="property-row"><label>Material</label><select onchange="updatePartProperty(\'' + id + '\',\'material\',this.value)">' + matOpts + '</select></div>' +
+        '<div class="property-row"><label>Transparency</label><input type="range" min="0" max="100" value="' + tPct + '" oninput="updatePartProperty(\'' + id + '\',\'transparency\',this.value)"><span id="tLabel">' + tPct + '%</span></div>' +
+        '<div class="toggle-row"><label>Can Touch</label><button type="button" class="toggle-btn ' + (part.canTouch ? "on" : "off") + '" onclick="togglePartFlag(\'' + id + '\',\'canTouch\')">' + (part.canTouch ? "ON" : "OFF") + '</button></div>' +
+        '<div class="toggle-row"><label>Can Collide</label><button type="button" class="toggle-btn ' + (part.canCollide ? "on" : "off") + '" onclick="togglePartFlag(\'' + id + '\',\'canCollide\')">' + (part.canCollide ? "ON" : "OFF") + '</button></div>' +
+        '<div class="property-row"><label>Size X</label><input type="number" step="' + GRID + '" value="' + part.size.x + '" oninput="updatePartProperty(\'' + id + '\',\'sx\',this.value)"></div>' +
+        '<div class="property-row"><label>Size Y</label><input type="number" step="' + GRID + '" value="' + part.size.y + '" oninput="updatePartProperty(\'' + id + '\',\'sy\',this.value)"></div>' +
+        '<div class="property-row"><label>Size Z</label><input type="number" step="' + GRID + '" value="' + part.size.z + '" oninput="updatePartProperty(\'' + id + '\',\'sz\',this.value)"></div>' +
+        '<div class="property-row"><label>Pos X</label><input type="number" step="' + GRID + '" id="pPx" value="' + part.pos.x + '" oninput="updatePartProperty(\'' + id + '\',\'px\',this.value)"></div>' +
+        '<div class="property-row"><label>Pos Y</label><input type="number" step="' + GRID + '" id="pPy" value="' + part.pos.y + '" oninput="updatePartProperty(\'' + id + '\',\'py\',this.value)"></div>' +
+        '<div class="property-row"><label>Pos Z</label><input type="number" step="' + GRID + '" id="pPz" value="' + part.pos.z + '" oninput="updatePartProperty(\'' + id + '\',\'pz\',this.value)"></div>' +
+        '<button type="button" onclick="deleteSelectedPart()" style="width:100%;margin-top:6px;background:#7f1d1d;">Delete Part</button>' +
+        '<button type="button" onclick="unselectAll()" style="width:100%;margin-top:6px;">Unselect</button>';
+}
+
+function changePartShape(id, shapeId) {
+    var part = partsList.find(function (p) { return p.id === id; });
+    if (!part || !part.mesh || !scene) return;
+    part.shape = shapeId;
+    var oldMat = part.mesh.material;
+    scene.remove(part.mesh);
+    try { part.mesh.geometry.dispose(); } catch (e) {}
+    var geo = makeShapeGeometry(shapeId);
+    var mesh = new THREE.Mesh(geo, oldMat);
+    mesh.position.copy(part.mesh.position);
+    mesh.scale.set(part.size.x / 2, part.size.y / 2, part.size.z / 2);
+    mesh.userData.azoraPartId = id;
+    part.mesh = mesh;
+    scene.add(mesh);
+    refreshHierarchyPartLabel(part);
+    setOutline(mesh);
+    refreshPartProperties(id);
+}
+
+function togglePartFlag(id, flag) {
+    if (id === "baseplate") {
+        baseplateProps[flag] = !baseplateProps[flag];
+        refreshBaseplateProperties();
+        setStatus("Baseplate " + flag + " = " + (baseplateProps[flag] ? "ON" : "OFF"));
+        return;
+    }
+    var part = partsList.find(function (p) { return p.id === id; });
+    if (!part) return;
+    part[flag] = !part[flag];
+    refreshPartProperties(id);
+    setStatus(id + " " + flag + " = " + (part[flag] ? "ON" : "OFF"));
+}
+
+function updatePartProperty(id, property, val) {
+    var part = partsList.find(function (p) { return p.id === id; });
+    if (!part) return;
+    if (property === "color") {
+        part.color = val;
+        part.colorCustom = true;
+        if (part.mesh.material && part.mesh.material.color) part.mesh.material.color.set(val);
+    } else if (property === "material") {
+        applyMaterialToPart(id, val);
+        return;
+    } else if (property === "transparency") {
+        var t = Math.max(0, Math.min(100, parseFloat(val) || 0)) / 100;
+        part.transparency = t;
+        var col = part.color ? new THREE.Color(part.color).getHex() : undefined;
+        part.mesh.material = makeMaterial(part.material || "Plastic", col, t);
+        var lab = document.getElementById("tLabel");
+        if (lab) lab.textContent = Math.round(t * 100) + "%";
+    } else if (property === "sx") {
+        resizePartOneEnd(part, "x", val);
+    } else if (property === "sy") {
+        resizePartOneEnd(part, "y", val);
+    } else if (property === "sz") {
+        resizePartOneEnd(part, "z", val);
+    } else if (property === "px") {
+        part.pos.x = snap(parseFloat(val) || 0); part.mesh.position.x = part.pos.x;
+    } else if (property === "py") {
+        part.pos.y = snap(parseFloat(val) || 0); part.mesh.position.y = part.pos.y;
+    } else if (property === "pz") {
+        part.pos.z = snap(parseFloat(val) || 0); part.mesh.position.z = part.pos.z;
+    }
+    if (outlineHelper) setOutline(part.mesh);
+}
+
+function deleteSelectedPart() {
+    if (!selectedPartId || selectedPartId === "baseplate" || isTestMode) return;
+    var idx = partsList.findIndex(function (p) { return p.id === selectedPartId; });
+    if (idx < 0) return;
+    var part = partsList[idx];
+    if (part.mesh && scene) scene.remove(part.mesh);
+    partsList.splice(idx, 1);
+    var el = document.getElementById("hierarchy_" + part.id);
+    if (el) el.remove();
+    unselectAll();
+}
+
+function switchView(view) {
+    document.getElementById("tab3D").classList.toggle("active", view === "3d");
+    document.getElementById("tabScript").classList.toggle("active", view === "script");
+    document.getElementById("canvas3d").style.display = view === "3d" ? "block" : "none";
+    document.getElementById("scriptEditorContainer").style.display = view === "script" ? "flex" : "none";
+    if (view === "3d") setTimeout(resizeRenderer, 20);
+}
+
+function refreshBaseplateProperties() {
+    var matOpts = Object.keys(MATERIALS).map(function (m) {
+        return '<option value="' + m + '"' + (baseplateProps.material === m ? " selected" : "") + ">" + m + "</option>";
+    }).join("");
+    var tPct = Math.round((baseplateProps.transparency != null ? baseplateProps.transparency : 1) * 100);
+    document.getElementById("propertiesTitle").textContent = "Properties - Baseplate";
+    document.getElementById("propertiesContent").innerHTML =
+        '<p class="hint-mini">Baseplate has the <strong>same properties as parts</strong>.</p>' +
+        '<div class="property-row"><label>Color</label><input type="color" value="' + (baseplateProps.color || "#3a4555") + '" oninput="updateBaseplateProp(\'color\',this.value)"></div>' +
+        '<div class="property-row"><label>Material</label><select onchange="updateBaseplateProp(\'material\',this.value)">' + matOpts + '</select></div>' +
+        '<div class="property-row"><label>Transparency</label><input type="range" min="0" max="100" value="' + tPct + '" oninput="updateBaseplateProp(\'transparency\',this.value)"><span id="btLabel">' + tPct + '%</span></div>' +
+        '<div class="toggle-row"><label>Can Touch</label><button type="button" class="toggle-btn ' + (baseplateProps.canTouch ? "on" : "off") + '" onclick="togglePartFlag(\'baseplate\',\'canTouch\')">' + (baseplateProps.canTouch ? "ON" : "OFF") + '</button></div>' +
+        '<div class="toggle-row"><label>Can Collide</label><button type="button" class="toggle-btn ' + (baseplateProps.canCollide ? "on" : "off") + '" onclick="togglePartFlag(\'baseplate\',\'canCollide\')">' + (baseplateProps.canCollide ? "ON" : "OFF") + '</button></div>' +
+        '<div class="property-row"><label>Size X</label><input type="number" id="bsX" value="' + baseplateProps.sizeX + '" oninput="updateBaseplate()"></div>' +
+        '<div class="property-row"><label>Size Y</label><input type="number" id="bsY" value="' + baseplateProps.sizeY + '" oninput="updateBaseplate()"></div>' +
+        '<div class="property-row"><label>Size Z</label><input type="number" id="bsZ" value="' + baseplateProps.sizeZ + '" oninput="updateBaseplate()"></div>' +
+        '<div class="property-row"><label>Pos X</label><input type="number" id="bpX" value="' + baseplateProps.posX + '" oninput="updateBaseplate()"></div>' +
+        '<div class="property-row"><label>Pos Y</label><input type="number" id="bpY" value="' + baseplateProps.posY + '" oninput="updateBaseplate()"></div>' +
+        '<div class="property-row"><label>Pos Z</label><input type="number" id="bpZ" value="' + baseplateProps.posZ + '" oninput="updateBaseplate()"></div>';
+}
+
+function updateBaseplateProp(prop, val) {
+    if (prop === "color") {
+        baseplateProps.color = val;
+        baseplateProps.colorCustom = true;
+        if (baseplateMesh && baseplateMesh.material && baseplateMesh.material.color) {
+            baseplateMesh.material.color.set(val);
+        }
+    } else if (prop === "material") {
+        applyMaterialToBaseplate(val);
+        return;
+    } else if (prop === "transparency") {
+        var t = Math.max(0, Math.min(100, parseFloat(val) || 0)) / 100;
+        baseplateProps.transparency = t;
+        var col = new THREE.Color(baseplateProps.color || "#3a4555").getHex();
+        if (baseplateMesh) baseplateMesh.material = makeMaterial(baseplateProps.material || "Concrete", col, t);
+        var lab = document.getElementById("btLabel");
+        if (lab) lab.textContent = Math.round(t * 100) + "%";
+    }
+    if (baseplateMesh) setOutline(baseplateMesh);
+}
+
+function selectNode(node) {
+    if (isTestMode) return;
+    document.querySelectorAll(".hierarchy-item").forEach(function (item) { item.classList.remove("selected"); });
+    selectedPartId = null;
+    selectedNodeId = node;
+    clearOutline();
+    var map = {
+        workspace: "hierarchyWorkspace",
+        sky: "hierarchySky",
+        baseplate: "hierarchyBaseplate",
+        character: "hierarchyCharacter"
+    };
+    var el = document.getElementById(map[node]);
+    if (el) el.classList.add("selected");
+
+    if (node === "workspace") {
+        document.getElementById("propertiesTitle").textContent = "Properties - Workspace";
+        document.getElementById("propertiesContent").innerHTML =
+            '<p class="hint-mini">Grid snap is <strong>ON</strong> (1 stud). Parts cannot move smoothly.</p>' +
+            '<p>Parts: <strong>' + partsList.length + '</strong></p>';
+    } else if (node === "sky") {
+        document.getElementById("propertiesTitle").textContent = "Properties - Sky / Atmosphere";
+        document.getElementById("propertiesContent").innerHTML =
+            '<div class="property-row"><label>Sky color</label><input type="color" value="' + skySettings.skyColor + '" oninput="skySettings.skyColor=this.value;applySkySettings()"></div>' +
+            '<div class="property-row"><label>Atmosphere</label><select onchange="skySettings.atmosphereOn=(this.value===\'on\');applySkySettings()"><option value="on"' + (skySettings.atmosphereOn ? " selected" : "") + '>On</option><option value="off"' + (!skySettings.atmosphereOn ? " selected" : "") + '>Off</option></select></div>' +
+            '<div class="property-row"><label>Fog color</label><input type="color" value="' + skySettings.atmosphereColor + '" oninput="skySettings.atmosphereColor=this.value;applySkySettings()"></div>' +
+            '<div class="property-row"><label>Density</label><input type="number" min="0" max="1" step="0.05" value="' + skySettings.density + '" oninput="skySettings.density=parseFloat(this.value)||0;applySkySettings()"></div>' +
+            '<div class="property-row"><label>Sun</label><input type="number" min="0" max="3" step="0.05" value="' + skySettings.sunIntensity + '" oninput="skySettings.sunIntensity=parseFloat(this.value)||1;applySkySettings()"></div>';
+    } else if (node === "baseplate") {
+        selectedPartId = "baseplate";
+        refreshBaseplateProperties();
+        if (baseplateMesh) setOutline(baseplateMesh);
+    } else if (node === "character") {
+        document.getElementById("propertiesTitle").textContent = "Properties - Character";
+        document.getElementById("propertiesContent").innerHTML =
+            '<p class="hint-mini">In Test Mode you control this character with WASD + Space.</p>';
+        if (characterGroup) setOutline(characterGroup);
+    }
+}
+
+function updateBaseplate() {
+    baseplateProps.sizeX = parseFloat(document.getElementById("bsX").value) || 1;
+    baseplateProps.sizeY = parseFloat(document.getElementById("bsY").value) || 1;
+    baseplateProps.sizeZ = parseFloat(document.getElementById("bsZ").value) || 1;
+    baseplateProps.posX = parseFloat(document.getElementById("bpX").value) || 0;
+    baseplateProps.posY = parseFloat(document.getElementById("bpY").value) || 0;
+    baseplateProps.posZ = parseFloat(document.getElementById("bpZ").value) || 0;
+    rebuildBaseplateMesh();
+    setOutline(baseplateMesh);
+}
+
+function resetCamera() {
+    if (isTestMode) return;
+    camYaw = Math.PI / 4; camPitch = 0.45; camDist = 32;
+    if (camTarget) camTarget.set(0, 1, 0);
+    updateCameraFromOrbit();
+}
+
+function toggleTestMode() {
+    if (!scene || !characterGroup) { alert("Scene not ready yet."); return; }
+    isTestMode = !isTestMode;
+    var btn = document.getElementById("testBtn");
+    var banner = document.getElementById("testBanner");
+    var orient = document.getElementById("orientCubeWrap");
+    if (isTestMode) {
+        if (btn) { btn.textContent = "⏹ Stop Test"; btn.classList.add("test-on"); }
+        if (banner) banner.style.display = "block";
+        if (orient) orient.style.display = "none";
+        unselectAll();
+        characterGroup.position.set(0, 1.2, 0);
+        characterGroup.rotation.y = 0;
+        charVelY = 0; charOnGround = true;
+        setStatus("TEST MODE");
+    } else {
+        if (btn) { btn.textContent = "▶ Test Game"; btn.classList.remove("test-on"); }
+        if (banner) banner.style.display = "none";
+        if (orient) orient.style.display = "block";
+        characterGroup.position.set(0, 1.2, 0);
+        characterGroup.rotation.y = 0;
+        updateCameraFromOrbit();
+        setStatus("Studio mode");
+    }
+    resizeRenderer();
+}
+
+/* ===== Games / Publish (fixed username + name) ===== */
+function getCreatorGames() {
+    try { return JSON.parse(localStorage.getItem("azoraCreatorGames") || "[]"); }
+    catch (e) { return []; }
+}
+function saveCreatorGames(list) {
+    localStorage.setItem("azoraCreatorGames", JSON.stringify(list));
+}
+function renderGamesList() {
+    var box = document.getElementById("myGamesList");
+    if (!box) return;
+    var games = getCreatorGames();
+    if (!games.length) {
+        box.innerHTML = '<span class="hint-mini">No games yet — click + New Game</span>';
+        return;
+    }
+    box.innerHTML = games.map(function (g) {
+        var active = g.id === currentGameId ? " active" : "";
+        return '<span class="game-chip' + active + '" onclick="loadGame(\'' + g.id + '\')">' +
+            (g.name || "Untitled") +
+            ' <span class="vis" onclick="event.stopPropagation();toggleVisibility(\'' + g.id + '\')">' +
+            (g.visibility === "public" ? "Public" : "Private") + "</span></span>";
+    }).join("");
+}
+function createNewGame() {
+    if (isTestMode) toggleTestMode();
+    var name = prompt("Game name?", "My Azora Game");
+    if (!name || !String(name).trim()) return;
+    name = String(name).trim();
+    var games = getCreatorGames();
+    var g = {
+        id: "game_" + Date.now(),
+        name: name,
+        by: getLoggedInUsername(),
+        visibility: "private",
+        createdAt: Date.now(),
+        parts: []
+    };
+    games.unshift(g);
+    saveCreatorGames(games);
+    currentGameId = g.id;
+    partsList.forEach(function (p) { if (p.mesh && scene) scene.remove(p.mesh); });
+    partsList = [];
+    document.getElementById("dynamicPartsContainer").innerHTML = "";
+    unselectAll();
+    renderGamesList();
+    arrowBubbleSpeak("Created <strong>" + name + "</strong> by " + g.by);
+}
+function loadGame(id) {
+    currentGameId = id;
+    renderGamesList();
+}
+function toggleVisibility(id) {
+    var games = getCreatorGames();
+    var g = games.find(function (x) { return x.id === id; });
+    if (!g) return;
+    g.visibility = g.visibility === "public" ? "private" : "public";
+    saveCreatorGames(games);
+    renderGamesList();
+}
+function saveProject() {
+    if (!currentGameId) {
+        createNewGame();
+        if (!currentGameId) return;
+    }
+    var games = getCreatorGames();
+    var g = games.find(function (x) { return x.id === currentGameId; });
+    if (!g) return;
+    if (!g.name || g.name === "undefined") g.name = "My Azora Game";
+    g.by = getLoggedInUsername();
+    g.parts = partsList.map(function (p) {
+        return {
+            id: p.id, shape: p.shape, size: p.size, pos: p.pos, color: p.color,
+            material: p.material, transparency: p.transparency,
+            canTouch: p.canTouch, canCollide: p.canCollide
+        };
+    });
+    g.baseplate = JSON.parse(JSON.stringify(baseplateProps));
+    g.sky = JSON.parse(JSON.stringify(skySettings));
+    g.updatedAt = Date.now();
+    saveCreatorGames(games);
+    setStatus("Saved " + g.name + " by " + g.by);
+}
+
+function publishCurrentGame() {
+    // Ensure we have a named game
+    if (!currentGameId) {
+        createNewGame();
+        if (!currentGameId) return;
+    }
+    saveProject();
+    var games = getCreatorGames();
+    var g = games.find(function (x) { return x.id === currentGameId; });
+    if (!g) {
+        alert("Could not find your game to publish.");
+        return;
+    }
+    // Fix undefined name
+    var gameName = (g.name && g.name !== "undefined") ? String(g.name).trim() : "";
+    if (!gameName) {
+        gameName = prompt("Name this game before publishing:", "My Azora Game") || "My Azora Game";
+        gameName = String(gameName).trim() || "My Azora Game";
+        g.name = gameName;
+    }
+    var author = getLoggedInUsername();
+    g.by = author;
+    g.visibility = "public";
+    g.published = true;
+    g.publishedAt = Date.now();
+    g.gameKind = "norm"; // Creator Studio games are 3D Norm Games — NOT Feed/Quick Games
+    g.dimensions = "3D";
+    saveCreatorGames(games);
+
+    var partCount = (g.parts && g.parts.length) ? g.parts.length : 0;
+    var failReason = "";
+    if (!author || author === "Unknown" || author === "Player" && !localStorage.getItem("azoraAccount")) {
+        // still allow Player if that's their name; only fail when we truly have no account
+    }
+    if (partCount < 1) failReason = "the world had no parts";
+    try {
+        if (JSON.stringify(g).length > 4000000) failReason = failReason || "the save was too large to store";
+    } catch (eSize) {
+        failReason = failReason || "the save could not be measured";
+    }
+
+    if (failReason) {
+        try {
+            var feedList = [];
+            try { feedList = JSON.parse(localStorage.getItem("azoraAzaFnGames") || "[]"); } catch (eR) { feedList = []; }
+            if (!Array.isArray(feedList)) feedList = [];
+            var sentence = author + "'s game was not published because " + failReason + ".";
+            feedList.unshift({
+                id: "unknown_err_" + Date.now(),
+                title: author + "'s game was not published",
+                description: sentence,
+                creator: "Unknown",
+                author: "Unknown",
+                by: "Unknown",
+                originalCreator: author,
+                errorUsername: author,
+                errorReason: failReason,
+                published: true,
+                unknownFallback: true,
+                gameKind: "unknown-error",
+                layout: "error-text",
+                dimensions: "Interactive Game",
+                world: "error-text",
+                createdAt: Date.now(),
+                likes: 0,
+                likedBy: [],
+                savedBy: [],
+                comments: [],
+                playConfig: { theme: "error-text", genre: "glossary", summary: "Interactive publish report" },
+                genre: "glossary"
+            });
+            localStorage.setItem("azoraAzaFnGames", JSON.stringify(feedList.slice(0, 120)));
+        } catch (eFeed) {}
+        alert("Publish did not finish correctly.\nUnknown posted an interactive error report to the live Feed.");
+        setStatus("Publish failed — Unknown posted a text report to Feed");
+        return;
+    }
+
+    try {
+        // Publish to Norm Games list (GAMES section) — never the TikTok-style Feed
+        var normList = [];
+        try { normList = JSON.parse(localStorage.getItem("azoraPublishedNormGames") || "[]"); } catch (e) { normList = []; }
+        if (!Array.isArray(normList)) normList = [];
+        normList = normList.filter(function (f) { return f && f.id !== g.id; });
+        normList.unshift({
+            id: g.id,
+            name: gameName,
+            title: gameName,
+            by: author,
+            author: author,
+            creator: author,
+            published: true,
+            visibility: "public",
+            gameKind: "norm",
+            dimensions: "3D",
+            world: "studio",
+            createdAt: g.createdAt || Date.now(),
+            publishedAt: Date.now(),
+            parts: g.parts || [],
+            baseplate: g.baseplate || null,
+            sky: g.sky || null
+        });
+        localStorage.setItem("azoraPublishedNormGames", JSON.stringify(normList.slice(0, 80)));
+
+        // Strip this game out of Feed/Quick Games if it was published there before
+        try {
+            var feed = JSON.parse(localStorage.getItem("azoraAzaFnGames") || "[]");
+            if (Array.isArray(feed)) {
+                feed = feed.filter(function (f) { return !f || f.id !== g.id; });
+                localStorage.setItem("azoraAzaFnGames", JSON.stringify(feed));
+            }
+        } catch (eF) {}
+        try {
+            var pub = JSON.parse(localStorage.getItem("azoraPublishedGames") || "[]");
+            if (Array.isArray(pub)) {
+                pub = pub.filter(function (f) { return !f || f.id !== g.id; });
+                localStorage.setItem("azoraPublishedGames", JSON.stringify(pub));
+            }
+        } catch (eP) {}
+    } catch (e) {
+        console.warn("publish norm write failed", e);
+        try {
+            if (typeof localStorage !== "undefined") {
+                var feedErr = [];
+                try { feedErr = JSON.parse(localStorage.getItem("azoraAzaFnGames") || "[]"); } catch (e2) { feedErr = []; }
+                if (!Array.isArray(feedErr)) feedErr = [];
+                var why = "a publish error stopped the upload";
+                feedErr.unshift({
+                    id: "unknown_err_" + Date.now(),
+                    title: author + "'s game was not published",
+                    description: author + "'s game was not published because " + why + ".",
+                    creator: "Unknown",
+                    author: "Unknown",
+                    by: "Unknown",
+                    originalCreator: author,
+                    errorUsername: author,
+                    errorReason: why,
+                    published: true,
+                    unknownFallback: true,
+                    gameKind: "unknown-error",
+                    layout: "error-text",
+                    dimensions: "Interactive Game",
+                    world: "error-text",
+                    createdAt: Date.now(),
+                    likes: 0, likedBy: [], savedBy: [], comments: [],
+                    playConfig: { theme: "error-text", genre: "glossary", summary: "Interactive publish report" },
+                    genre: "glossary"
+                });
+                localStorage.setItem("azoraAzaFnGames", JSON.stringify(feedErr.slice(0, 120)));
+            }
+        } catch (e3) {}
+        alert("Publish did not finish correctly.\nUnknown posted an interactive error report to the live Feed.");
+        setStatus("Publish failed — Unknown posted a text report to Feed");
+        return;
+    }
+
+    renderGamesList();
+    alert('Published "' + gameName + '" by ' + author + ' to Norm Games!\n\nOpen the main Azora page → GAMES → Norm Games to Join it.');
+    arrowBubbleSpeak("Published <strong>" + gameName + "</strong> by <strong>" + author + "</strong> to <strong>Norm Games</strong> (not Feed).");
+    setStatus("Published " + gameName + " to Norm Games");
+}
+
+function handleBack() {
+    if (window.opener) window.close();
+    else window.location.href = "index.html";
+}
+function dragBlock(ev, code) { ev.dataTransfer.setData("text/plain", code); }
+function handleBlockDrop(ev) {
+    ev.preventDefault();
+    var code = ev.dataTransfer.getData("text/plain");
+    var area = document.getElementById("codeArea");
+    if (!area || !code) return;
+    area.value += (area.value ? "\n" : "") + code;
+}
+
+function preloadCreatorMaterialMaps() {
+    Object.keys(MATERIALS).forEach(function (id) {
+        if (MATERIALS[id] && MATERIALS[id].map) loadCreatorTexture(MATERIALS[id].map);
+    });
+}
+
+function migrateOldCreatorGames() {
+    var oldGames = [];
+    try { oldGames = JSON.parse(localStorage.getItem("azoraCreatorGames") || "[]"); } catch (e) { oldGames = []; }
+    var modern = [];
+    try { modern = JSON.parse(localStorage.getItem("azoraGamex8Games") || "[]"); } catch (e2) { modern = []; }
+    if (!Array.isArray(modern)) modern = [];
+    var ids = {};
+    modern.forEach(function (g) { if (g && g.id) ids[g.id] = true; });
+    (oldGames || []).forEach(function (g) {
+        if (!g || ids[g.id]) return;
+        modern.push({
+            id: g.id,
+            name: g.name || "Untitled",
+            by: g.by || "Player",
+            lastModified: g.updatedAt || g.createdAt || Date.now(),
+            createdAt: g.createdAt || Date.now(),
+            parts: g.parts || [],
+            baseplate: g.baseplate || null,
+            sky: g.sky || null,
+            fromOldStudio: true
+        });
+    });
+    localStorage.setItem("azoraGamex8Games", JSON.stringify(modern));
+    return modern;
+}
+function formatGameDate(ts) {
+    var d = new Date(ts || Date.now());
+    return d.toLocaleDateString() + " " + d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+}
+function renderGamexHome() {
+    var box = document.getElementById("gamexHomeList");
+    if (!box) return;
+    var games = migrateOldCreatorGames();
+    if (!games.length) {
+        box.innerHTML = '<p style="opacity:0.7;">No games yet.</p>';
+        return;
+    }
+    box.innerHTML = games.map(function (g) {
+        return '<button type="button" onclick="openGamexGame(\'' + g.id + '\')" style="text-align:left;padding:12px;border-radius:12px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.2);color:#fff;">' +
+            '<strong>' + (g.name || "Untitled") + '</strong><br><span style="opacity:0.75;font-size:12px;">Last modified: ' + formatGameDate(g.lastModified) + '</span></button>';
+    }).join("");
+}
+function createDatedGame() {
+    var now = new Date();
+    var title = now.toLocaleDateString();
+    var games = migrateOldCreatorGames();
+    var g = { id: "gamex_" + Date.now(), name: title, by: (typeof getLoggedInUsername === "function" ? getLoggedInUsername() : "Player"), createdAt: Date.now(), lastModified: Date.now(), parts: [] };
+    games.unshift(g);
+    localStorage.setItem("azoraGamex8Games", JSON.stringify(games));
+    openGamexGame(g.id);
+}
+function openGamexGame(id) {
+    currentGameId = id;
+    var home = document.getElementById("gamexHome");
+    if (home) home.style.display = "none";
+    renderGamesList();
+}
+
+function bootStudio() {
+    try { preloadCreatorMaterialMaps(); } catch (ePre) {}
+
+    enforceComputerOnly();
+    initMaterialsGrid();
+    initShapeGrid();
+    renderGamesList();
+    initOrientCube();
+    var games = getCreatorGames();
+    if (games[0]) currentGameId = games[0].id;
+
+    window.addEventListener("keydown", function (e) {
+        var k = (e.key || "").toLowerCase();
+        keys[k] = true;
+        if (k === " ") keys["space"] = true;
+        if (k === "escape" && isTestMode) toggleTestMode();
+        if ([" ", "arrowup", "arrowdown", "arrowleft", "arrowright"].indexOf(k) >= 0) {
+            if (document.activeElement && (document.activeElement.tagName === "INPUT" || document.activeElement.tagName === "TEXTAREA")) return;
+            e.preventDefault();
+        }
+    });
+    window.addEventListener("keyup", function (e) {
+        var k = (e.key || "").toLowerCase();
+        keys[k] = false;
+        if (k === " ") keys["space"] = false;
+    });
+
+    function tryInit(attempt) {
+        var ok = init3DScene();
+        if (!ok && attempt < 10) {
+            setStatus("Waiting for Three.js… (" + attempt + ")");
+            setTimeout(function () { tryInit(attempt + 1); }, 250);
+            return;
+        }
+        if (ok) { selectNode("workspace"); resizeRenderer(); updateCameraFromOrbit(); }
+    }
+    requestAnimationFrame(function () { setTimeout(function () { tryInit(1); }, 40); });
+}
+
+window.addEventListener("load", function(){ try { renderGamexHome(); } catch(e){} bootStudio(); });
+window.addEventListener("resize", function () { enforceComputerOnly(); resizeRenderer(); });
+</script>
+</body>
+</html>
