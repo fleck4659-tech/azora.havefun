@@ -1,4 +1,16 @@
 
+function reportCurrentProfile() {
+    var name = (document.getElementById("profileUsername") && document.getElementById("profileUsername").textContent) || "this user";
+    var why = prompt("Report " + name + "? Tell us why.");
+    if (!why) return;
+    var list = [];
+    try { list = JSON.parse(localStorage.getItem("azoraReports") || "[]"); } catch (e) { list = []; }
+    list.unshift({ user: name, reason: why, at: Date.now() });
+    localStorage.setItem("azoraReports", JSON.stringify(list.slice(0, 100)));
+    alert("Report sent for " + name + ".");
+}
+window.reportCurrentProfile = reportCurrentProfile;
+
 function getAzoraVolume() {
     var n = parseInt(localStorage.getItem("azoraVolume") || "100", 10);
     if (isNaN(n)) n = 100;

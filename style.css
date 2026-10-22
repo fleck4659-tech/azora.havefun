@@ -9135,3 +9135,6 @@ button.frutiger-aero-button.aero-roblox::after {
 
 .topbar-volume { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; }
 .topbar-volume input { width: 90px; }
+
+.profile-report-btn { background: transparent; border: none; padding: 0; width: 36px; height: 36px; }
+.profile-report-btn img { width: 28px; height: 36px; object-fit: contain; }
