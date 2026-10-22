@@ -308,6 +308,31 @@
             box-shadow: 0 2px 6px rgba(0,0,0,0.35);
         }
         .topbar-brand { display: flex; align-items: center; gap: 10px; }
+
+        /* Gamex editor — Godot / Blender inspired */
+        html, body { background: #1d1d1d !important; color: #e6e6e6; }
+        button { background: #2b2b2b; border: 1px solid #3c3c3c; border-radius: 4px; color: #eee; font-weight: 600; }
+        button:hover { background: #3a3a3a; }
+        .topbar { height: 34px; background: #202020; border-bottom: 1px solid #111; padding: 0 8px; }
+        .topbar h2 { font-size: 13px; font-weight: 600; }
+        .games-bar { margin: 0; border: none; border-bottom: 1px solid #111; border-radius: 0; background: #252525; }
+        .studio-layout { gap: 0; padding: 0; height: calc(100vh - 34px - 52px); grid-template-columns: 280px 1fr 300px; }
+        .studio-panel { background: #252525; border: none; border-right: 1px solid #111; border-radius: 0; }
+        .studio-panel:last-of-type { border-right: none; border-left: 1px solid #111; }
+        .panel-title { font-size: 12px; border-bottom: 1px solid #111; letter-spacing: 0.02em; }
+        .hierarchy-item { background: transparent; border-radius: 3px; }
+        .hierarchy-item.selected { background: #3d4f6b; border: none; box-shadow: none; }
+        .viewport-container { border: none; border-radius: 0; background: #1a1a1a; }
+        .viewport-tabs, .viewport-toolbar { background: #202020; }
+        .view-tab { background: #2a2a2a; font-weight: 600; }
+        .view-tab.active { background: #3d4f6b; }
+        #canvas3d { background: #3a3a3a; }
+        #gamexHome { background: #1e1e1e !important; }
+        .gamex-project {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 12px; border-radius: 6px; background: #2a2a2a; border: 1px solid #3a3a3a; color: #eee;
+        }
+        .gamex-project:hover { background: #333; }
     </style>
 </head>
 <body>
@@ -322,11 +347,15 @@
     <button onclick="window.location.href='index.html'" style="margin-top:10px;">Back to Azora</button>
 </div>
 
-<div id="gamexHome" style="position:fixed;inset:0;z-index:80;background:linear-gradient(160deg,#0b1220,#152238);color:#fff;display:flex;flex-direction:column;padding:24px;">
-  <h1 style="margin:8px 0 4px;">Azora Gamex-8 Studio</h1>
-  <p style="opacity:0.8;margin:0 0 16px;">Click a game to open it, or create a new one. Titles start as today's date.</p>
-  <button type="button" class="frutiger-aero-button" onclick="createDatedGame()" style="max-width:220px;">+ Create a Game</button>
-  <div id="gamexHomeList" style="margin-top:16px;display:flex;flex-direction:column;gap:8px;overflow:auto;"></div>
+<div id="gamexHome" style="position:fixed;inset:0;z-index:80;background:#1e1e1e;color:#eee;display:flex;flex-direction:column;padding:0;">
+  <div style="height:42px;display:flex;align-items:center;gap:16px;padding:0 16px;background:#202020;border-bottom:1px solid #111;">
+    <strong>GAMEX</strong><span>Projects</span>
+  </div>
+  <div style="display:flex;gap:8px;padding:12px 16px;background:#252525;border-bottom:1px solid #111;">
+    <button type="button" onclick="createDatedGame()">+ Create</button>
+    <input id="gamexFilter" placeholder="Filter Projects" oninput="renderGamexHome()" style="flex:1;background:#1a1a1a;color:#eee;border:1px solid #3a6ea5;border-radius:4px;padding:6px 8px;">
+  </div>
+  <div id="gamexHomeList" style="padding:12px 16px;display:flex;flex-direction:column;gap:8px;overflow:auto;"></div>
 </div>
 
 <div class="topbar" id="topbar">
@@ -1790,8 +1819,9 @@ function renderGamexHome() {
         return;
     }
     box.innerHTML = games.map(function (g) {
-        return '<button type="button" onclick="openGamexGame(\'' + g.id + '\')" style="text-align:left;padding:12px;border-radius:12px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.2);color:#fff;">' +
-            '<strong>' + (g.name || "Untitled") + '</strong><br><span style="opacity:0.75;font-size:12px;">Last modified: ' + formatGameDate(g.lastModified) + '</span></button>';
+        return '<button type="button" class="gamex-project" onclick="openGamexGame(\'' + g.id + '\')">' +
+            '<span><strong>' + (g.name || "Untitled") + '</strong><br><span style="opacity:0.7;font-size:12px;">Last edited ' + formatGameDate(g.lastModified) + '</span></span>' +
+            '<span style="opacity:0.6;font-size:12px;">Open</span></button>';
     }).join("");
 }
 function createDatedGame() {
