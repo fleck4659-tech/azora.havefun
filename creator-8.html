@@ -333,6 +333,12 @@
             padding: 12px; border-radius: 6px; background: #2a2a2a; border: 1px solid #3a3a3a; color: #eee;
         }
         .gamex-project:hover { background: #333; }
+
+        .gx-menubar { height: 28px; display: flex; align-items: center; gap: 14px; padding: 0 10px; background: #191919; border-bottom: 1px solid #000; font-size: 12px; }
+        .gx-menubar span { cursor: default; }
+        .gx-viewtools { height: 28px; display: flex; align-items: center; padding: 0 10px; background: #222; border-bottom: 1px solid #111; font-size: 11px; opacity: 0.85; }
+        .gx-statusbar { position: fixed; left: 0; right: 0; bottom: 0; height: 24px; display: flex; gap: 16px; align-items: center; padding: 0 10px; background: #151515; border-top: 1px solid #000; font-size: 11px; z-index: 40; }
+        .studio-layout { height: calc(100vh - 34px - 52px - 28px - 24px); }
     </style>
 </head>
 <body>
@@ -358,6 +364,10 @@
   <div id="gamexHomeList" style="padding:12px 16px;display:flex;flex-direction:column;gap:8px;overflow:auto;"></div>
 </div>
 
+<div class="gx-menubar">
+  <span>File</span><span>Edit</span><span>Scene</span><span>View</span><span>Help</span>
+  <span style="margin-left:auto;opacity:0.7;">Gamex-8</span>
+</div>
 <div class="topbar" id="topbar">
     <div class="topbar-brand"><img class="studio-logo" src="logo.png" alt="Azora"><h2>Azora Gamex-8 Studio</h2></div>
     <div class="actions">
@@ -399,9 +409,12 @@
 
     <div class="viewport-container">
         <div class="viewport-tabs">
-            <div class="view-tab active" id="tab3D" onclick="switchView('3d')">3D View</div>
+            <div class="view-tab active" id="tab3D" onclick="switchView('3d')">3D</div>
             <div class="view-tab" id="tabScript" onclick="switchView('script')">Script</div>
+            <div class="view-tab">Game</div>
+            <div class="view-tab">Assets</div>
         </div>
+        <div class="gx-viewtools">Select · Move · Rotate · Scale · Snap 1 · Grid ON</div>
         <div id="canvas3d">
             <div id="testBanner">TEST MODE — WASD move character · Space jump · Esc to stop</div>
             <div id="orientCubeWrap" title="Drag to orbit · click a face to snap">
@@ -459,6 +472,7 @@
     </div>
 </div>
 
+<div class="gx-statusbar"><span>Ready</span><span>Grid 1</span><span>Snap ON</span><span>Perspective</span></div>
 <div id="statusLine">Booting Creator…</div>
 
 <script>

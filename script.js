@@ -1,4 +1,29 @@
 
+function getAzoraVolume() {
+    var n = parseInt(localStorage.getItem("azoraVolume") || "100", 10);
+    if (isNaN(n)) n = 100;
+    return Math.max(0, Math.min(100, n));
+}
+function applyAzoraVolume(n) {
+    var v = Math.max(0, Math.min(100, n)) / 100;
+    document.querySelectorAll("audio, video").forEach(function (el) { try { el.volume = v; } catch (e) {} });
+}
+function setAzoraVolume(val) {
+    var n = Math.max(0, Math.min(100, parseInt(val, 10) || 0));
+    localStorage.setItem("azoraVolume", String(n));
+    var top = document.getElementById("azoraVolumeTop");
+    var set = document.getElementById("azoraVolumeSettings");
+    var tl = document.getElementById("azoraVolumeTopLabel");
+    var sl = document.getElementById("azoraVolumeSettingsLabel");
+    if (top) top.value = n;
+    if (set) set.value = n;
+    if (tl) tl.textContent = String(n);
+    if (sl) sl.textContent = String(n);
+    applyAzoraVolume(n);
+}
+window.setAzoraVolume = setAzoraVolume;
+document.addEventListener("DOMContentLoaded", function () { try { setAzoraVolume(getAzoraVolume()); } catch (e) {} });
+
 // Scrub legacy forced 99999 display when account balance differs
 (function scrubStaleCoinDisplay() {
     try {

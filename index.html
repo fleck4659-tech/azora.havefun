@@ -466,6 +466,12 @@
                 <p id="azoraMouseNote" class="settings-hint" style="margin-top:6px;"></p>
             </div>
             <div class="settings-section">
+                <label class="settings-label">Sound</label>
+                <p class="settings-hint" style="margin-top:0;">0 is off. 100 is max. This is the same slider as the top of the page.</p>
+                <label class="settings-label" style="font-size:12px;">Sound effects <span id="azoraVolumeSettingsLabel">100</span></label>
+                <input id="azoraVolumeSettings" type="range" min="0" max="100" value="100" oninput="setAzoraVolume(this.value)" style="width:100%;">
+            </div>
+            <div class="settings-section">
                 <label class="settings-label">Phone preview</label>
                 <p class="settings-hint" style="margin-top:0;">See how Azora looks on a phone without using a phone. This is only a preview so we can fix the small screen layout later.</p>
                 <button type="button" onclick="openAzoraPhonePreview()" style="width:100%;">View as phone</button>
@@ -797,6 +803,10 @@
         <button type="button" id="marketplaceBtn" class="topbar-shop-btn frutiger-aero-button small aero-shop" onclick="openMarketplace()" title="Marketplace">🛒 Shop</button>
         <button type="button" id="inventoryBtn" class="topbar-shop-btn frutiger-aero-button small aero-bag" onclick="openInventory()" title="Inventory">🎒 Bag</button>
         <button id="publicFeedButton" class="topbar-feed-btn frutiger-aero-button small aero-feed" onclick="openPublicFeed()">🎮 Feed</button>
+        <label class="topbar-volume" title="Sound effects volume">
+            🔊 <input id="azoraVolumeTop" type="range" min="0" max="100" value="100" oninput="setAzoraVolume(this.value)">
+            <span id="azoraVolumeTopLabel">100</span>
+        </label>
         <button type="button" class="frutiger-aero-button small aero-settings" onclick="openSettings()">⚙️ Settings</button>
         <span id="azoraPlayModeBadge" class="azora-play-mode-badge online frutiger-aero-button small aero-play" title="Connection status" onclick="azoraEggPlayClick(event)">Play Azora Online</span>
         <button type="button" id="installAppBtn" class="install-app-btn frutiger-aero-button small aero-download" onclick="installAzoraApp()" title="Download Azora app">⬇️ Download Azora</button>

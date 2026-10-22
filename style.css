@@ -9132,3 +9132,6 @@ button.frutiger-aero-button.aero-roblox::after {
 .azora-studio-finish button {
   border-radius: 9999px !important;
 }
+
+.topbar-volume { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; }
+.topbar-volume input { width: 90px; }
