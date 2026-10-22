@@ -672,8 +672,8 @@
                 <p id="azoraVersionStatus" class="settings-hint" style="margin-top:8px;"></p>
                 <p class="settings-hint">Custom folder name (must sit under versions/):</p>
                 <input id="azoraVersionCustom" class="settings-input" placeholder="example: 7.2">
-                <button type="button" onclick="launchAzoraVersion(document.getElementById('azoraVersionCustom').value)">Load custom folder</button>
-                <button type="button" onclick="scanAzoraVersions()" style="margin-top:8px;">Check which folders exist</button>
+                <button type="button" class="frutiger-aero-button small aero-folder" onclick="launchAzoraVersion(document.getElementById('azoraVersionCustom').value)">Load custom folder</button>
+                <button type="button" class="frutiger-aero-button small aero-folder" onclick="scanAzoraVersions()" style="margin-top:8px;">Check which folders exist</button>
                 <hr style="margin:14px 0;border:none;border-top:1px solid rgba(30,96,255,0.2);">
                 <label class="settings-label">Azora XP</label>
                 <p class="settings-hint" style="margin-top:0;">A separate desktop version with its own apps, like an old computer inside Azora.</p>
@@ -880,11 +880,11 @@
         <div class="closet-theme-picker" id="closetThemePicker">
             <span class="closet-theme-label">Closet vibe</span>
             <div class="closet-theme-row">
-                <button type="button" class="closet-theme-chip" data-theme="chaos" onclick="setClosetThemeId('chaos')">Chaos Closet</button>
-                <button type="button" class="closet-theme-chip" data-theme="midnight" onclick="setClosetThemeId('midnight')">Midnight Snacks</button>
-                <button type="button" class="closet-theme-chip" data-theme="thrift" onclick="setClosetThemeId('thrift')">Thrift Haul</button>
-                <button type="button" class="closet-theme-chip" data-theme="neon" onclick="setClosetThemeId('neon')">Borrowed Fits</button>
-                <button type="button" class="closet-theme-chip" data-theme="scrap" onclick="setClosetThemeId('scrap')">Cardboard HQ</button>
+                <button type="button" class="closet-theme-chip frutiger-aero-button small aero-closet" data-theme="chaos" onclick="setClosetThemeId('chaos')">Chaos Closet</button>
+                <button type="button" class="closet-theme-chip frutiger-aero-button small aero-closet" data-theme="midnight" onclick="setClosetThemeId('midnight')">Midnight Snacks</button>
+                <button type="button" class="closet-theme-chip frutiger-aero-button small aero-closet" data-theme="thrift" onclick="setClosetThemeId('thrift')">Thrift Haul</button>
+                <button type="button" class="closet-theme-chip frutiger-aero-button small aero-closet" data-theme="neon" onclick="setClosetThemeId('neon')">Borrowed Fits</button>
+                <button type="button" class="closet-theme-chip frutiger-aero-button small aero-closet" data-theme="scrap" onclick="setClosetThemeId('scrap')">Cardboard HQ</button>
             </div>
         </div>
 
@@ -925,8 +925,8 @@
             <label class="avatar-scale-row">Legs <input type="range" id="scaleLegs" min="0.6" max="1.6" step="0.05" value="1" oninput="onAvatarScaleInput()"></label>
         </div>
         <button type="button" id="loadPrevAvatarsBtn" class="load-prev-avatars-btn" onclick="openAvatarHistory()">📂 Load previous avatars</button>
-        <button type="button" id="resetPreviousAvatarBtn" class="reset-previous-avatar-btn" onclick="resetToPreviousAvatar()" title="Load the avatar you had before the latest save">↩ Reset to previous avatar</button>
-        <button type="button" id="resetDefaultAvatarBtn" class="reset-default-avatar-btn" onclick="resetToDefaultAvatar()" title="Reset to Azora's default avatar">↺ Reset to default avatar</button>
+        <button type="button" id="resetPreviousAvatarBtn" class="reset-previous-avatar-btn frutiger-aero-button small aero-save" onclick="resetToPreviousAvatar()" title="Load the avatar you had before the latest save">↩ Reset to previous avatar</button>
+        <button type="button" id="resetDefaultAvatarBtn" class="reset-default-avatar-btn frutiger-aero-button small aero-save" onclick="resetToDefaultAvatar()" title="Reset to Azora's default avatar">↺ Reset to default avatar</button>
         <button onclick="saveAvatar()" id="saveAvatarBtn" class="frutiger-aero-button small aero-save">Save Avatar</button>
         <p id="guestAvatarLock" style="display:none;color:#ffcc00;font-size:12px;font-weight:bold;text-align:center;margin-top:8px;">
             Guest profiles can customize and save. Your Guest name cannot be changed.
@@ -1366,9 +1366,9 @@
     <div class="azafn-header aturius-header">
         <h2><span class="aturius-title-dot"></span> Aturius</h2>
         <div class="azafn-tabs">
-            <button type="button" class="aturius-tab-btn" id="aturiusTabChat" onclick="setAturiusTab('chat')">Chat</button>
-            <button type="button" class="aturius-tab-btn" id="aturiusTabSettings" onclick="setAturiusTab('settings')">Settings</button>
-            <button type="button" class="aturius-tab-btn" onclick="openAzoraStudio()">✂️ Studio</button>
+            <button type="button" class="aturius-tab-btn frutiger-aero-button small aero-aturius" id="aturiusTabChat" onclick="setAturiusTab('chat')">Chat</button>
+            <button type="button" class="aturius-tab-btn frutiger-aero-button small aero-aturius" id="aturiusTabSettings" onclick="setAturiusTab('settings')">Settings</button>
+            <button type="button" class="aturius-tab-btn frutiger-aero-button small aero-aturius" onclick="openAzoraStudio()">✂️ Studio</button>
             <button class="frutiger-aero-button small aero-close" type="button" onclick="closeAturiusPanel()" style="margin:0;background:#ff3b30;color:#fff;">✕ Close</button>
         </div>
     </div>
@@ -1377,7 +1377,7 @@
         <aside class="aturius-history-side" id="aturiusHistorySide">
             <div class="aturius-history-head">
                 <strong>Chats</strong>
-                <button type="button" class="aturius-hist-new" onclick="startNewAIChat(); renderAturiusMessages(); renderAturiusHistoryList();" title="New chat">＋</button>
+                <button type="button" class="aturius-hist-new frutiger-aero-button small aero-aturius" onclick="startNewAIChat(); renderAturiusMessages(); renderAturiusHistoryList();" title="New chat">＋</button>
             </div>
             <div class="aturius-history-list" id="aturiusHistoryList"></div>
         </aside>
@@ -1391,28 +1391,28 @@
             <div class="aturius-model-line" id="aturiusModelLine">Model: Aturius Core</div>
             <div class="aturius-howdoi" id="aturiusHowDoI">
                 <span>How do I…</span>
-                <button type="button" onclick="aturiusAskShortcut('How do I add friends?')">add friends</button>
-                <button type="button" onclick="aturiusAskShortcut('How do I play Norm Games?')">play games</button>
-                <button type="button" onclick="aturiusAskShortcut('How do coins work?')">get coins</button>
-                <button type="button" onclick="aturiusAskShortcut('How do I customize my avatar?')">customize</button>
-                <button type="button" onclick="aturiusAskShortcut('What are the rules of Azora?')">see rules</button>
+                <button type="button" class="frutiger-aero-button small aero-aturius" onclick="aturiusAskShortcut('How do I add friends?')">add friends</button>
+                <button type="button" class="frutiger-aero-button small aero-aturius" onclick="aturiusAskShortcut('How do I play Norm Games?')">play games</button>
+                <button type="button" class="frutiger-aero-button small aero-aturius" onclick="aturiusAskShortcut('How do coins work?')">get coins</button>
+                <button type="button" class="frutiger-aero-button small aero-aturius" onclick="aturiusAskShortcut('How do I customize my avatar?')">customize</button>
+                <button type="button" class="frutiger-aero-button small aero-aturius" onclick="aturiusAskShortcut('What are the rules of Azora?')">see rules</button>
             </div>
             <div class="chat-messages aturius-messages" id="aturiusMessages"></div>
             <div class="aturius-actions">
-                <button type="button" class="aturius-read-btn" id="aturiusReadBtn" onclick="aturiusReadLastMessage()">🔊 Read to me</button>
-                <button type="button" class="aturius-new-btn" onclick="startNewAIChat(); renderAturiusMessages(); renderAturiusHistoryList();">＋ New chat</button>
-                <button type="button" class="aturius-attach-btn" onclick="document.getElementById('aturiusFileInput').click()">📎 Add file / picture</button>
+                <button type="button" class="aturius-read-btn frutiger-aero-button small aero-aturius" id="aturiusReadBtn" onclick="aturiusReadLastMessage()">🔊 Read to me</button>
+                <button type="button" class="aturius-new-btn frutiger-aero-button small aero-aturius" onclick="startNewAIChat(); renderAturiusMessages(); renderAturiusHistoryList();">＋ New chat</button>
+                <button type="button" class="aturius-attach-btn frutiger-aero-button small aero-aturius" onclick="document.getElementById('aturiusFileInput').click()">📎 Add file / picture</button>
                 <input type="file" id="aturiusFileInput" accept="image/*,.txt,.json,.csv,.md,.log,.pdf" style="display:none;" onchange="aturiusHandleFilePick(event)">
             </div>
             <div id="aturiusAttachPreview" class="aturius-attach-preview" style="display:none;"></div>
             <div class="chat-input-row aturius-input-row">
-                <button type="button" class="aturius-phone-btn" id="aturiusPhoneBtn" onclick="openAturiusCall()" title="Talk with your voice" aria-label="Phone Aturius">
+                <button type="button" class="aturius-phone-btn frutiger-aero-button small aero-aturius" id="aturiusPhoneBtn" onclick="openAturiusCall()" title="Talk with your voice" aria-label="Phone Aturius">
                     <svg viewBox="0 0 24 24" width="28" height="28" aria-hidden="true">
                         <path fill="currentColor" d="M7.2 2.4c.5-.5 1.3-.5 1.8 0l1.6 1.6c.5.5.5 1.2.1 1.7L9.4 8.1c-.2.3-.2.7 0 1 1.1 1.8 2.7 3.4 4.5 4.5.3.2.7.2 1 0l2.4-1.3c.5-.4 1.2-.4 1.7.1l1.6 1.6c.5.5.5 1.3 0 1.8l-1.1 1.1c-.8.8-2 1.1-3.1.7-2.6-.9-5-2.6-7.1-4.7S4.6 8.2 3.7 5.6c-.4-1.1-.1-2.3.7-3.1L7.2 2.4z"/>
                     </svg>
                 </button>
                 <input type="text" id="aturiusInput" placeholder="Talk to Aturius… or ask it to generate a game!  Type : for emojis" onkeydown="if(window.azoraEmojiKey&&azoraEmojiKey(event,this))return;if(event.key==='Enter')sendAturiusMessage()" oninput="aturiusWatchTyping(this)">
-                <button type="button" onclick="sendAturiusMessage()">Send</button>
+                <button type="button" class="frutiger-aero-button small aero-aturius" onclick="sendAturiusMessage()">Send</button>
             </div>
             <p id="aturiusWatchLine" class="aturius-watch-line" style="display:none;"></p>
             </div>
@@ -1457,8 +1457,8 @@
                 <input type="range" id="aturiusPitchSlider" class="aturius-pitch-slider" min="0.10" max="5.00" step="0.01" value="1.00" oninput="updateAturiusPitchLabel(this.value)">
 
                 <div class="aturius-voice-actions">
-                    <button type="button" class="aturius-test-btn" onclick="testAturiusVoice()">Test</button>
-                    <button type="button" class="aturius-ok-btn" onclick="applyAturiusVoiceSettings()">OK</button>
+                    <button type="button" class="aturius-test-btn frutiger-aero-button small aero-aturius" onclick="testAturiusVoice()">Test</button>
+                    <button type="button" class="aturius-ok-btn frutiger-aero-button small aero-aturius" onclick="applyAturiusVoiceSettings()">OK</button>
                 </div>
                 <p class="aturius-settings-note" id="aturiusVoiceNote">Drag the slider, tap Test to preview, then OK to save.</p>
             </div>
@@ -1485,7 +1485,7 @@
                 <input type="checkbox" id="aturiusFastReplyToggle" onchange="saveAturiusExtraSetting('fastReply', this.checked)">
             </label>
             <div class="aturius-voice-actions" style="margin-top:8px;">
-                <button type="button" class="aturius-test-btn" onclick="resetAturiusMoodToHappy()">Reset mood to happy</button>
+                <button type="button" class="aturius-test-btn frutiger-aero-button small aero-aturius" onclick="resetAturiusMoodToHappy()">Reset mood to happy</button>
             </div>
 
             <div class="aturius-equip-block" id="aturiusEquipBlock">
@@ -1498,7 +1498,7 @@
                 <label class="aturius-field-label" for="aturiusSphereColor"><strong>Sphere color</strong></label>
                 <input type="color" id="aturiusSphereColor" value="#facc15" onchange="setAturiusSphereColor(this.value)" style="width:100%;height:40px;border:none;border-radius:10px;cursor:pointer;">
                 <div class="aturius-voice-actions" style="margin-top:10px;">
-                    <button type="button" class="aturius-test-btn" onclick="resetAturiusLookDefault()">Reset to default look</button>
+                    <button type="button" class="aturius-test-btn frutiger-aero-button small aero-aturius" onclick="resetAturiusLookDefault()">Reset to default look</button>
                 </div>
             </div>
 
@@ -1511,8 +1511,8 @@
                 <label class="aturius-field-label" for="aturiusTrainReply"><strong>Aturius should answer</strong> (use ~username~ for their name)</label>
                 <textarea id="aturiusTrainReply" class="aturius-train-area" rows="3" placeholder="Hey ~username~! Welcome to Azora!"></textarea>
                 <div class="aturius-voice-actions">
-                    <button type="button" class="aturius-ok-btn" onclick="addAturiusTrainingExample()">Add training</button>
-                    <button type="button" class="aturius-test-btn" onclick="exportAturiusTrainingFiles()">Export code files</button>
+                    <button type="button" class="aturius-ok-btn frutiger-aero-button small aero-aturius" onclick="addAturiusTrainingExample()">Add training</button>
+                    <button type="button" class="aturius-test-btn frutiger-aero-button small aero-aturius" onclick="exportAturiusTrainingFiles()">Export code files</button>
                 </div>
                 <p class="aturius-settings-note" id="aturiusTrainNote">No examples yet.</p>
                 <div id="aturiusTrainList" class="aturius-train-list"></div>
@@ -2138,25 +2138,25 @@ if ("serviceWorker" in navigator) {
             <aside class="azora-studio-tools">
                 <p class="azora-studio-label">Clips</p>
                 <div class="azora-studio-row">
-                    <button type="button" onclick="studioImport('video')">Import video</button>
-                    <button type="button" onclick="studioImport('image')">Import picture</button>
-                    <button type="button" onclick="studioImport('audio')">Import audio</button>
+                    <button class="frutiger-aero-button small aero-studio" type="button" onclick="studioImport('video')">Import video</button>
+                    <button class="frutiger-aero-button small aero-studio" type="button" onclick="studioImport('image')">Import picture</button>
+                    <button class="frutiger-aero-button small aero-studio" type="button" onclick="studioImport('audio')">Import audio</button>
                 </div>
                 <input id="azoraStudioFile" type="file" accept="video/*,image/*,audio/*" style="display:none;" onchange="studioHandleImport(event)">
                 <p class="azora-studio-label">Edit</p>
                 <div class="azora-studio-row">
-                    <button type="button" onclick="studioTrimSelected()">Trim</button>
-                    <button type="button" onclick="studioSpeedSelected(2)">Speed ×2</button>
-                    <button type="button" onclick="studioSpeedSelected(0.5)">Slow ×0.5</button>
-                    <button type="button" onclick="studioDeleteSelected()">Delete</button>
+                    <button class="frutiger-aero-button small aero-studio" type="button" onclick="studioTrimSelected()">Trim</button>
+                    <button class="frutiger-aero-button small aero-studio" type="button" onclick="studioSpeedSelected(2)">Speed ×2</button>
+                    <button class="frutiger-aero-button small aero-studio" type="button" onclick="studioSpeedSelected(0.5)">Slow ×0.5</button>
+                    <button class="frutiger-aero-button small aero-studio" type="button" onclick="studioDeleteSelected()">Delete</button>
                 </div>
                 <p class="azora-studio-label">Shapes</p>
                 <div class="azora-studio-row">
-                    <button type="button" onclick="studioAddShape('aturius')">Aturius</button>
-                    <button type="button" onclick="studioAddShape('sphere')">Sphere</button>
-                    <button type="button" onclick="studioAddShape('box')">Box</button>
-                    <button type="button" onclick="studioAddShape('star')">Star</button>
-                    <button type="button" onclick="studioAddShape('triangle')">Triangle</button>
+                    <button class="frutiger-aero-button small aero-studio" type="button" onclick="studioAddShape('aturius')">Aturius</button>
+                    <button class="frutiger-aero-button small aero-studio" type="button" onclick="studioAddShape('sphere')">Sphere</button>
+                    <button class="frutiger-aero-button small aero-studio" type="button" onclick="studioAddShape('box')">Box</button>
+                    <button class="frutiger-aero-button small aero-studio" type="button" onclick="studioAddShape('star')">Star</button>
+                    <button class="frutiger-aero-button small aero-studio" type="button" onclick="studioAddShape('triangle')">Triangle</button>
                 </div>
                 <div id="azoraStudioShapeColors" class="azora-studio-colors" style="display:none;">
                     <label>Fill <input type="color" id="studioColorFill" value="#facc15" oninput="studioSetShapeColor('fill', this.value)"></label>
@@ -2166,27 +2166,27 @@ if ("serviceWorker" in navigator) {
                 </div>
                 <p class="azora-studio-label">Animate shape</p>
                 <div class="azora-studio-row">
-                    <button type="button" onclick="studioAnimSelected('bounce')">Bounce</button>
-                    <button type="button" onclick="studioAnimSelected('spin')">Spin</button>
-                    <button type="button" onclick="studioAnimSelected('float')">Float</button>
-                    <button type="button" onclick="studioAnimSelected('slide')">Slide</button>
-                    <button type="button" onclick="studioAnimSelected('pulse')">Pulse</button>
-                    <button type="button" onclick="studioAnimSelected('wiggle')">Wiggle</button>
-                    <button type="button" onclick="studioAnimSelected('hop')">Hop</button>
-                    <button type="button" onclick="studioAnimSelected('orbit')">Orbit</button>
-                    <button type="button" onclick="studioAnimSelected('shake')">Shake</button>
-                    <button type="button" onclick="studioAnimSelected('wave')">Wave</button>
-                    <button type="button" onclick="studioAnimSelected('grow')">Grow</button>
-                    <button type="button" onclick="studioAnimSelected('none')">Stop</button>
+                    <button class="frutiger-aero-button small aero-studio" type="button" onclick="studioAnimSelected('bounce')">Bounce</button>
+                    <button class="frutiger-aero-button small aero-studio" type="button" onclick="studioAnimSelected('spin')">Spin</button>
+                    <button class="frutiger-aero-button small aero-studio" type="button" onclick="studioAnimSelected('float')">Float</button>
+                    <button class="frutiger-aero-button small aero-studio" type="button" onclick="studioAnimSelected('slide')">Slide</button>
+                    <button class="frutiger-aero-button small aero-studio" type="button" onclick="studioAnimSelected('pulse')">Pulse</button>
+                    <button class="frutiger-aero-button small aero-studio" type="button" onclick="studioAnimSelected('wiggle')">Wiggle</button>
+                    <button class="frutiger-aero-button small aero-studio" type="button" onclick="studioAnimSelected('hop')">Hop</button>
+                    <button class="frutiger-aero-button small aero-studio" type="button" onclick="studioAnimSelected('orbit')">Orbit</button>
+                    <button class="frutiger-aero-button small aero-studio" type="button" onclick="studioAnimSelected('shake')">Shake</button>
+                    <button class="frutiger-aero-button small aero-studio" type="button" onclick="studioAnimSelected('wave')">Wave</button>
+                    <button class="frutiger-aero-button small aero-studio" type="button" onclick="studioAnimSelected('grow')">Grow</button>
+                    <button class="frutiger-aero-button small aero-studio" type="button" onclick="studioAnimSelected('none')">Stop</button>
                 </div>
                 <p class="azora-studio-hint" id="azoraStudioHint">Import a clip or open an Aturius video to start.</p>
             </aside>
         </div>
         <div class="azora-studio-transport">
-            <button type="button" onclick="studioPlayToggle()" id="azoraStudioPlayBtn">Play</button>
+            <button class="frutiger-aero-button small aero-studio" type="button" onclick="studioPlayToggle()" id="azoraStudioPlayBtn">Play</button>
             <input id="azoraStudioSeek" type="range" min="0" max="1000" value="0" oninput="studioSeek(this.value)">
             <span id="azoraStudioTime">0.0s</span>
-            <button type="button" onclick="studioOpenFinish()">Done</button>
+            <button class="frutiger-aero-button small aero-studio" type="button" onclick="studioOpenFinish()">Done</button>
         </div>
         <div class="azora-studio-timeline" id="azoraStudioTimeline"></div>
     </div>

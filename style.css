@@ -9034,3 +9034,101 @@ button.frutiger-aero-button.aero-roblox::before,
 button.frutiger-aero-button.aero-roblox::after {
   opacity: 0.45;
 }
+
+/* Aero header — not a button */
+.topbar {
+  position: relative;
+  overflow: hidden;
+  background-image: radial-gradient(farthest-corner at bottom center, rgba(255,255,255,0.55), transparent 55%), linear-gradient(to bottom, #3d6fd4, #7eb6ff) !important;
+  border: 1px solid rgba(255,255,255,0.55) !important;
+  border-radius: 18px !important;
+  box-shadow: 0 6px 14px rgba(0,0,0,0.28), inset 0 1px 0 rgba(255,255,255,0.7) !important;
+  margin: 8px !important;
+}
+.topbar::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(120deg, transparent 30%, rgba(255,255,255,0.35) 45%, rgba(255,255,255,0.05) 55%, transparent 70%);
+  pointer-events: none;
+}
+.topbar::after {
+  content: "";
+  position: absolute;
+  top: 6%;
+  left: 8%;
+  width: 84%;
+  height: 34%;
+  background: linear-gradient(to bottom, rgba(255,255,255,0.55), rgba(255,255,255,0.05));
+  border-radius: 14px;
+  pointer-events: none;
+}
+.topbar h2, .topbar .topbar-title {
+  color: #12305a !important;
+  text-shadow: 0 1px 0 rgba(255,255,255,0.45) !important;
+  position: relative;
+  z-index: 1;
+}
+.topbar .topbar-left, .topbar .topbar-right { position: relative; z-index: 1; }
+
+.aero-window {
+  width: min(420px, calc(100vw - 24px));
+  border-radius: 8px 8px 6px 6px;
+  overflow: hidden;
+  background: linear-gradient(180deg, #eef6ff 0%, #d7e7f7 100%);
+  border: 1px solid #8fb4d8;
+  box-shadow: 0 12px 28px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.8);
+  font-family: "Segoe UI", Tahoma, system-ui, sans-serif;
+}
+.aero-titlebar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 30px;
+  padding: 0 6px 0 8px;
+  background: linear-gradient(180deg, #eaf4ff 0%, #b9d4f0 40%, #8eb6dc 100%);
+  border-bottom: 1px solid #7aa3c9;
+  position: relative;
+}
+.aero-titlebar::after {
+  content: "";
+  position: absolute;
+  left: 0; right: 0; top: 0; height: 45%;
+  background: linear-gradient(to bottom, rgba(255,255,255,0.55), transparent);
+  pointer-events: none;
+}
+.aero-titlebar-icon { flex: 0 0 auto; }
+.aero-titlebar-text {
+  flex: 1;
+  font-size: 12px;
+  font-weight: 600;
+  color: #1b3a5c;
+  text-shadow: 0 1px 0 rgba(255,255,255,0.6);
+}
+.aero-caption { display: flex; gap: 2px; }
+.aero-caption button {
+  width: 22px; height: 18px;
+  border: 1px solid #6f97c0;
+  border-radius: 3px;
+  background: linear-gradient(180deg, #f7fbff, #c5dcf3);
+  cursor: pointer;
+  position: relative;
+}
+.aero-caption .close { background: linear-gradient(180deg, #f36, #c33); border-color: #a22; }
+.aero-body {
+  margin: 8px;
+  padding: 16px;
+  min-height: 90px;
+  background: #fff;
+  border: 1px solid #c5d6e8;
+  color: #222;
+  font-size: 14px;
+}
+
+.frutiger-aero-button.aero-folder { --hue: 210; --sat: 0.3; }
+.frutiger-aero-button.aero-closet { --hue: 300; --sat: 0.35; }
+.azora-studio-tools button,
+.azora-studio-transport button,
+.azora-studio-finish button {
+  border-radius: 9999px !important;
+}
