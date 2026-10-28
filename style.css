@@ -9162,3 +9162,7 @@ button.frutiger-aero-button.aero-roblox::after {
 
 .azora-coin-icon { width: 18px; height: 18px; vertical-align: -3px; object-fit: contain; }
 .daily-claim-icon .azora-coin-icon { width: 48px; height: 48px; }
+
+.coins-menu-wrap { position: relative; z-index: 50; }
+.coins-dropdown { z-index: 80; }
+.coins-dropdown.open { display: block !important; }

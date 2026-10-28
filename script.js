@@ -26375,8 +26375,7 @@ function updateCoinsUI() {
 
         var btn = document.getElementById("coinsMenuBtn");
         if (btn) {
-            var label = btn.childNodes[0];
-            btn.innerHTML = "🪙 AzoraCoins: <span id=\"bucks\">" + formatCoins(getCoins()) + "</span> ▾";
+            btn.innerHTML = '<img class="azora-coin-icon" src="azoracoins.png" alt=""> AzoraCoins: <span id="bucks">' + formatCoins(getCoins()) + '</span> ▾';
         }
     } catch (e) {}
 }
