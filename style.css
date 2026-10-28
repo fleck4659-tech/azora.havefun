@@ -9140,7 +9140,7 @@ button.frutiger-aero-button.aero-roblox::after {
 .profile-report-btn img { width: 28px; height: 36px; object-fit: contain; }
 
 .overlay { background: #000 !important; }
-.popup, .profile-popup, .settings-popup {
+.azora-frame, .popup, .profile-popup, .settings-popup {
     background: #fff !important;
     color: #111 !important;
     border: 10px solid #0000ff !important;
@@ -9149,7 +9149,7 @@ button.frutiger-aero-button.aero-roblox::after {
     position: relative;
     padding-top: 52px !important;
 }
-.popup::before, .profile-popup::before, .settings-popup::before {
+.azora-frame::before, .popup::before, .profile-popup::before, .settings-popup::before {
     content: "";
     position: absolute;
     top: 10px;
@@ -9159,3 +9159,6 @@ button.frutiger-aero-button.aero-roblox::after {
     background: url("logo.png") center/cover no-repeat;
 }
 .popup h2, .popup h3, .profile-popup h2 { color: #111 !important; }
+
+.azora-coin-icon { width: 18px; height: 18px; vertical-align: -3px; object-fit: contain; }
+.daily-claim-icon .azora-coin-icon { width: 48px; height: 48px; }

@@ -779,10 +779,10 @@
         <button id="aturiusButtonTop" type="button" class="aturius-btn frutiger-aero-button small aero-aturius" onclick="openAturiusPanel()" title="Talk to Aturius">✨ Aturius</button>
         <div class="currency-display coins-menu-wrap" id="coinsMenuWrap">
             <button type="button" class="coins-menu-btn frutiger-aero-button small aero-coins" id="coinsMenuBtn" onclick="toggleCoinsDropdown(event)" aria-haspopup="true">
-                🪙 AzoraCoins: <span id="bucks">0</span> ▾
+                <img class="azora-coin-icon" src="azoracoins.png" alt="AzoraCoins"> AzoraCoins: <span id="bucks">0</span> ▾
             </button>
             <div class="coins-dropdown" id="coinsDropdown" aria-hidden="true">
-                <div class="coins-drop-row"><span>Balance</span><strong><span id="coinsDropBalance">0</span> 🪙</strong></div>
+                <div class="coins-drop-row"><span>Balance</span><strong><span id="coinsDropBalance">0</span> <img class="azora-coin-icon" src="azoracoins.png" alt="AzoraCoins"></strong></div>
                 <button type="button" class="coins-drop-item coins-drop-buy" onclick="openBuyAzoraCoins(); closeCoinsDropdown();">Buy AzoraCoins</button>
                 <button type="button" class="coins-drop-item" onclick="openPendingCoins()">Pending AzoraCoins <span id="coinsDropPending">0</span></button>
                 <button type="button" class="coins-drop-item" onclick="openAzoraStock(); closeCoinsDropdown();">Azora Stock</button>
@@ -957,7 +957,7 @@
                 <p class="azora-hero-sub">Build. Play. Customize. Hang out. Pick something fun below — or jump straight into a game.</p>
             </div>
             <div class="azora-hero-stats" id="azoraHeroStats">
-                <div class="azora-stat-pill"><span class="azora-stat-ico">🪙</span><span id="heroCoinsStat">0</span> coins</div>
+                <div class="azora-stat-pill"><span class="azora-stat-ico"><img class="azora-coin-icon" src="azoracoins.png" alt="AzoraCoins"></span><span id="heroCoinsStat">0</span> coins</div>
                 <div class="azora-stat-pill"><span class="azora-stat-ico">🔥</span><span id="heroStreakStat">0</span> day streak</div>
                 <div class="azora-stat-pill"><span class="azora-stat-ico">✨</span>Family-friendly</div>
             </div>
@@ -980,7 +980,7 @@
                 <span class="azora-action-desc">Creator Studio</span>
             </button>
             <button type="button" class="azora-action-card" onclick="toggleCoinsDropdown(event)">
-                <span class="azora-action-emoji">🪙</span>
+                <span class="azora-action-emoji"><img class="azora-coin-icon" src="azoracoins.png" alt="AzoraCoins"></span>
                 <span class="azora-action-title">Coins</span>
                 <span class="azora-action-desc">AzoraCoins</span>
             </button>
@@ -1030,7 +1030,7 @@
         <div class="azora-news-chips">
             <span class="azora-news-chip">🧱 Studio → Norm Games</span>
             <span class="azora-news-chip">🎭 Roleplay online</span>
-            <span class="azora-news-chip">🪙 Daily coins</span>
+            <span class="azora-news-chip"><img class="azora-coin-icon" src="azoracoins.png" alt="AzoraCoins"> Daily coins</span>
         </div>
     </div>
 
@@ -1045,8 +1045,8 @@
         <div class="azora-ads-tabs" role="tablist">
             <button type="button" class="azora-ads-tab active" id="adsTabAll" onclick="setAdsBoardFilter('all')">All</button>
             <button type="button" class="azora-ads-tab" id="adsTabText" onclick="setAdsBoardFilter('text')">Free text</button>
-            <button type="button" class="azora-ads-tab" id="adsTabPicture" onclick="setAdsBoardFilter('picture')">Pictures · 5 🪙</button>
-            <button type="button" class="azora-ads-tab" id="adsTabSpotlight" onclick="setAdsBoardFilter('spotlight')">Spotlight · 35 🪙</button>
+            <button type="button" class="azora-ads-tab" id="adsTabPicture" onclick="setAdsBoardFilter('picture')">Pictures · 5 <img class="azora-coin-icon" src="azoracoins.png" alt=""></button>
+            <button type="button" class="azora-ads-tab" id="adsTabSpotlight" onclick="setAdsBoardFilter('spotlight')">Spotlight · 35 <img class="azora-coin-icon" src="azoracoins.png" alt=""></button>
             <button type="button" class="azora-ads-tab" id="adsTabMine" onclick="setAdsBoardFilter('mine')">My ads</button>
         </div>
         <div id="azoraAdsList" class="azora-ads-list"></div>
@@ -2073,7 +2073,7 @@ if ("serviceWorker" in navigator) {
 <div id="dailyClaimOverlay" class="overlay daily-claim-overlay" style="display:none;" aria-hidden="true">
     <div class="popup daily-claim-popup" role="dialog" aria-labelledby="dailyClaimTitle">
         <div class="daily-claim-coins-fx" id="dailyClaimCoinsFx" aria-hidden="true"></div>
-        <div class="daily-claim-icon">🪙</div>
+        <div class="daily-claim-icon"><img class="azora-coin-icon" src="azoracoins.png" alt="AzoraCoins"></div>
         <h2 id="dailyClaimTitle">You have just gotten 0.05 AzoraCoins!</h2>
         <p id="dailyClaimSub" class="daily-claim-sub">A small daily reward for logging in. Resets at 12:00 AM local time.</p>
         <button type="button" id="dailyClaimBtn" class="daily-claim-btn" onclick="claimDailyGiftAnimated()">CLAIM</button>
@@ -2089,7 +2089,7 @@ if ("serviceWorker" in navigator) {
 <div id="marketplaceOverlay" class="overlay" style="display:none;">
     <div class="popup market-popup" style="max-width:min(460px,calc(100vw - 16px));text-align:left;">
         <h2 style="text-align:center;margin:0 0 8px;">🛒 Marketplace</h2>
-        <p style="text-align:center;margin:0 0 10px;opacity:0.85;font-size:0.9rem;">Your balance: <strong id="marketCoinBalance">0</strong> 🪙</p>
+        <p style="text-align:center;margin:0 0 10px;opacity:0.85;font-size:0.9rem;">Your balance: <strong id="marketCoinBalance">0</strong> <img class="azora-coin-icon" src="azoracoins.png" alt="AzoraCoins"></p>
         <div class="market-tabs" role="tablist">
             <button type="button" class="market-tab active" id="marketTabMarket" onclick="setMarketplaceTab('market')">Market</button>
             <button type="button" class="market-tab" id="marketTabShop" onclick="setMarketplaceTab('shop')">Shop</button>
@@ -2104,7 +2104,7 @@ if ("serviceWorker" in navigator) {
                     <option value="halloween">Halloween</option>
                 </select>
             </label>
-            <button type="button" id="uploadTShirtBtn" class="market-upload-btn" style="display:none;" onclick="openCreateTShirt()">📤 Upload T-Shirt (Free · 0 🪙)</button>
+            <button type="button" id="uploadTShirtBtn" class="market-upload-btn" style="display:none;" onclick="openCreateTShirt()">📤 Upload T-Shirt (Free · 0 <img class="azora-coin-icon" src="azoracoins.png" alt="">)</button>
             <label id="marketGenderFilterWrap" style="font-size:0.85rem;">Filter:
                 <select id="marketGenderFilter" onchange="renderMarketplace()">
                     <option value="all">All</option>
@@ -2347,7 +2347,7 @@ if ("serviceWorker" in navigator) {
         </div>
         <div class="buy-coins-balance-row">
             <span>Your balance</span>
-            <strong><span id="buyCoinsBalance">0</span> 🪙</strong>
+            <strong><span id="buyCoinsBalance">0</span> <img class="azora-coin-icon" src="azoracoins.png" alt=""></strong>
         </div>
         <p id="buyCoinsStatus" class="buy-coins-status"></p>
 
@@ -2409,7 +2409,7 @@ if ("serviceWorker" in navigator) {
     <div class="popup donate-popup">
         <h2 style="text-align:center;margin:0 0 6px;">Donate AzoraCoins</h2>
         <p id="donateTargetLabel" class="donate-target-label">To: Player</p>
-        <p class="donate-balance-line">Your balance: <strong id="donateBalanceText">0</strong> 🪙</p>
+        <p class="donate-balance-line">Your balance: <strong id="donateBalanceText">0</strong> <img class="azora-coin-icon" src="azoracoins.png" alt=""></p>
         <div class="donate-row">
             <div class="donate-amount-wrap">
                 <label for="donateAmountInput">Amount</label>
@@ -2451,7 +2451,7 @@ if ("serviceWorker" in navigator) {
     <div class="popup azora-ad-popup" role="dialog" aria-labelledby="createAdTitle">
         <h2 id="createAdTitle">Create an Ad</h2>
         <p class="azora-ad-lead">Pick a category. Text ads are free. Picture ads cost 5 AzoraCoins. Spotlight ads cost 35 AzoraCoins and can include extra images, a tagline, and a game button.</p>
-        <p class="azora-ad-balance">Your balance: <strong id="adCreateBalance">0</strong> 🪙</p>
+        <p class="azora-ad-balance">Your balance: <strong id="adCreateBalance">0</strong> <img class="azora-coin-icon" src="azoracoins.png" alt=""></p>
 
         <div class="azora-ad-tier-grid" role="list">
             <button type="button" class="azora-ad-tier-card selected" data-ad-tier="text" onclick="selectAdTier('text')">
@@ -2460,12 +2460,12 @@ if ("serviceWorker" in navigator) {
                 <span>Words only. Shows on the ads board for 1 day.</span>
             </button>
             <button type="button" class="azora-ad-tier-card" data-ad-tier="picture" onclick="selectAdTier('picture')">
-                <span class="azora-ad-tier-price">5 🪙</span>
+                <span class="azora-ad-tier-price">5 <img class="azora-coin-icon" src="azoracoins.png" alt=""></span>
                 <strong>Picture Ad</strong>
                 <span>Text plus 1 image. Lasts 3 days.</span>
             </button>
             <button type="button" class="azora-ad-tier-card spotlight" data-ad-tier="spotlight" onclick="selectAdTier('spotlight')">
-                <span class="azora-ad-tier-price">35 🪙</span>
+                <span class="azora-ad-tier-price">35 <img class="azora-coin-icon" src="azoracoins.png" alt=""></span>
                 <strong>Spotlight Ad</strong>
                 <span>Text, up to 3 images, tagline, and a game button. Lasts 7 days at the top.</span>
             </button>
