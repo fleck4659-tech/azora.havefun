@@ -34917,10 +34917,13 @@ function buildAzoraCursorImage(done) {
         ctx.putImageData(data, 0, 0);
         done(canvas.toDataURL("image/png"), size);
     };
-    img.onerror = function () { done("", azoraMouseSizePx()); };
-    img.src = azoraMouseSource();
+    img.onerror = function () { try { done("", azoraMouseSizePx()); } catch (e) {} };
+    try { img.src = azoraMouseSource(); } catch (e2) { done("", azoraMouseSizePx()); }
 }
 function applyAzoraMouse() {
+    try { _applyAzoraMouseInner(); } catch (eMouse) { /* mouse not defined — ignore */ }
+}
+function _applyAzoraMouseInner() {
     if (!localStorage.getItem("azoraMouseSize")) localStorage.setItem("azoraMouseSize", "1");
     var saved = localStorage.getItem("azoraCustomMouse");
     var on = saved !== "off";
