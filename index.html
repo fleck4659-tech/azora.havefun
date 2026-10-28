@@ -303,7 +303,7 @@
 </div>
 
 <div id="accountOverlay" class="overlay" style="display:none;">
-    <div class="popup">
+    <div class="popup azora-frame">
         <img src="logo.jpg?v=70.2" class="popupLogo" alt="Azora Logo">
         <h1 id="popupTitle">Join Azora</h1>
         <p id="popupSubtitle">Build games.<br>Customize avatars.<br>Have fun.</p>
@@ -352,7 +352,7 @@
 
 
 <div id="forgotPasswordOverlay" class="overlay" style="display:none;z-index:10050;">
-    <div class="popup" style="max-width:min(360px,calc(100vw - 20px));text-align:left;">
+    <div class="popup azora-frame" style="max-width:min(360px,calc(100vw - 20px));text-align:left;">
         <h2 style="text-align:center;color:#1e60ff !important;">Forgot password</h2>
         <p id="forgotStatus" class="account-error" style="display:block;min-height:1.2em;"></p>
         <div id="forgotStepEmail">
@@ -1263,7 +1263,7 @@
 
 <!-- Change Username flow -->
 <div id="usernameChangeOverlay" class="overlay" style="display:none;z-index:100080;">
-    <div class="popup" style="max-width:min(380px,calc(100vw - 20px));text-align:left;">
+    <div class="popup azora-frame" style="max-width:min(380px,calc(100vw - 20px));text-align:left;">
         <h2 style="text-align:center;margin-top:0;">Change Username</h2>
         <p class="settings-hint">This updates your name everywhere on Azora (profiles, chat, friends, search). Past usernames stay in history unless you hide them in Settings.</p>
         <div id="unameStep1">
@@ -1288,7 +1288,7 @@
 </div>
 
 <div id="profileOverlay" class="overlay" style="display:none;">
-    <div class="popup profile-popup" style="max-width:min(360px,calc(100vw - 20px));">
+    <div class="popup profile-popup azora-frame" style="max-width:min(360px,calc(100vw - 20px));">
         <div class="profile-avatar-wrap" id="profileAvatarWrap">
             <img src="logo.jpg?v=70.2" class="popupLogo profile-avatar-img" alt="Profile picture" id="profileAvatarImg">
             <button type="button" id="profileAvatarEditBtn" class="profile-avatar-edit-btn" style="display:none;" title="Change profile picture" onclick="openProfilePicPicker()">📷</button>
@@ -1542,7 +1542,7 @@
 
 <!-- Player message archives -->
 <div id="chatArchivesOverlay" class="overlay" style="display:none;">
-    <div class="popup" style="max-width:min(380px,calc(100vw - 20px));max-height:min(86vh,620px);display:flex;flex-direction:column;">
+    <div class="popup azora-frame" style="max-width:min(380px,calc(100vw - 20px));max-height:min(86vh,620px);display:flex;flex-direction:column;">
         <h1 style="font-size:1.25rem;">Message Archives</h1>
         <p style="color:#666;font-size:12px;margin-top:-6px;">Every friend message is saved here, even if removed from the live chat.</p>
         <div id="chatArchivesBody" style="text-align:left;overflow-y:auto;flex:1;max-height:50vh;font-size:13px;"></div>
@@ -1552,7 +1552,7 @@
 
 <!-- Legacy AI companion overlay kept hidden for compatibility -->
 <div id="aiCompanionOverlay" class="overlay" style="display:none;" aria-hidden="true">
-    <div class="popup" style="max-width:min(360px,calc(100vw - 20px));">
+    <div class="popup azora-frame" style="max-width:min(360px,calc(100vw - 20px));">
         <h1 style="font-size:1.3rem;">Aturius</h1>
         <p style="color:#666;font-size:13px;">Open Aturius from the top bar for chat and settings.</p>
         <button type="button" class="secondary" onclick="closeAICompanionSettings(); openAturiusPanel();">Open Aturius</button>
@@ -1570,7 +1570,7 @@
 
 <!-- Notifications Panel -->
 <div id="notifOverlay" class="overlay" style="display:none;">
-    <div class="popup" style="max-width:min(360px,calc(100vw - 20px));text-align:left;">
+    <div class="popup azora-frame" style="max-width:min(360px,calc(100vw - 20px));text-align:left;">
         <h2 style="text-align:center;">🔔 Notifications</h2>
         <div id="notifList" class="notif-list"></div>
         <div style="display:flex;gap:8px;margin-top:15px;">
@@ -1581,7 +1581,7 @@
     </div>
 </div>
 <div id="azoraDeviceNotifOverlay" class="overlay" style="display:none;">
-    <div class="popup" style="max-width:min(380px,calc(100vw - 20px));text-align:left;">
+    <div class="popup azora-frame" style="max-width:min(380px,calc(100vw - 20px));text-align:left;">
         <h2 style="text-align:center;">Turn on notifications?</h2>
         <p>Azora can send alerts for friend requests, chat, and other updates. On iPhone, add Azora to your Home Screen to get the red badge with a white number.</p>
         <div style="display:flex;gap:8px;margin-top:12px;">
@@ -1826,7 +1826,7 @@
     </div>
 </div>
 <div id="normLeaveConfirm" class="overlay" style="display:none;z-index:2147483000;">
-    <div class="popup" style="max-width:min(340px,calc(100vw - 20px));">
+    <div class="popup azora-frame" style="max-width:min(340px,calc(100vw - 20px));">
         <h2 style="color:#7c3aed !important;">Are you sure?</h2>
         <p style="color:#333 !important;">Leave this Norm Game and return to Azora?</p>
         <div style="display:flex;gap:10px;margin-top:8px;">
@@ -1837,7 +1837,7 @@
 </div>
 
 <div id="normResetConfirm" class="overlay" style="display:none;z-index:2147483000;">
-    <div class="popup" style="max-width:min(340px,calc(100vw - 20px));">
+    <div class="popup azora-frame" style="max-width:min(340px,calc(100vw - 20px));">
         <h2 style="color:#1e60ff !important;">Are you sure?</h2>
         <p style="color:#333 !important;">Reset your character? Your avatar will fall apart and collapse, then respawn.</p>
         <div style="display:flex;gap:10px;margin-top:8px;">
@@ -2129,7 +2129,7 @@ if ("serviceWorker" in navigator) {
 </div>
 
 <div id="azoraRecordDoneOverlay" class="overlay" style="display:none;">
-    <div class="popup" style="max-width:420px;text-align:center;">
+    <div class="popup azora-frame" style="max-width:420px;text-align:center;">
         <h2>Recording saved</h2>
         <p>It's in Azora Recordings. Download a copy too?</p>
         <button type="button" onclick="downloadLastAzoraRecording()">Download</button>
@@ -2137,7 +2137,7 @@ if ("serviceWorker" in navigator) {
     </div>
 </div>
 <div id="azoraRecordingsOverlay" class="overlay" style="display:none;">
-    <div class="popup" style="max-width:480px;text-align:left;">
+    <div class="popup azora-frame" style="max-width:480px;text-align:left;">
         <h2 style="text-align:center;">Recordings</h2>
         <div id="azoraRecordingsList"></div>
         <button class="frutiger-aero-button small aero-close" type="button" onclick="closeAzoraRecordings()" style="width:100%;margin-top:10px;">Close</button>
@@ -2229,7 +2229,7 @@ if ("serviceWorker" in navigator) {
     </div>
 </div>
 <div id="azoraMyVideosOverlay" class="overlay" style="display:none;">
-    <div class="popup" style="max-width:480px;text-align:left;">
+    <div class="popup azora-frame" style="max-width:480px;text-align:left;">
         <h2 style="text-align:center;">My Videos</h2>
         <p class="azora-studio-hint">Private clips saved from Studio.</p>
         <div id="azoraMyVideosList"></div>
@@ -2237,14 +2237,14 @@ if ("serviceWorker" in navigator) {
     </div>
 </div>
 <div id="eventCalendarOverlay" class="overlay" style="display:none;">
-    <div class="popup" style="max-width:440px;text-align:left;">
+    <div class="popup azora-frame" style="max-width:440px;text-align:left;">
         <h2 style="text-align:center;">Event calendar</h2>
         <ul id="eventCalendarList" class="event-cal-list"></ul>
         <button class="frutiger-aero-button small aero-close" type="button" onclick="closeEventCalendar()" style="width:100%;margin-top:8px;">Close</button>
     </div>
 </div>
 <div id="halloConvertOverlay" class="overlay" style="display:none;">
-    <div class="popup" style="max-width:420px;text-align:left;">
+    <div class="popup azora-frame" style="max-width:420px;text-align:left;">
         <h2 style="text-align:center;">Convert coins</h2>
         <p class="settings-hint">HalloCoins are event coins. You can keep them as long as you like. After Nov 2, 2026 you can still hold them; the only extra action is converting to AzoraCoins if you want.</p>
         <p>AzoraCoins: <strong id="convAz">0</strong> · HalloCoins: <strong id="convHallo">0</strong></p>
@@ -2283,7 +2283,7 @@ if ("serviceWorker" in navigator) {
     </div>
 </div>
 <div id="pumpkinSmashOverlay" class="overlay" style="display:none;">
-    <div class="popup" style="max-width:min(520px,96vw);text-align:center;">
+    <div class="popup azora-frame" style="max-width:min(520px,96vw);text-align:center;">
         <h2>Pumpkin Smash</h2>
         <p id="pumpkinSmashHud">Time 30 · Smashed 0 · Seeds 0</p>
         <canvas id="pumpkinSmashCanvas" width="480" height="280" style="width:100%;background:#1a0b24;border-radius:12px;touch-action:none;"></canvas>
@@ -2547,7 +2547,7 @@ if ("serviceWorker" in navigator) {
 <!-- Owner Moderation Console (stable — not inside profile) -->
 
 <div id="reportUserOverlay" class="overlay" style="display:none;z-index:100050;">
-    <div class="popup" style="max-width:min(360px,calc(100vw - 24px));text-align:left;background:#0f172a;color:#e2e8f0;border:1px solid #334155;">
+    <div class="popup azora-frame" style="max-width:min(360px,calc(100vw - 24px));text-align:left;background:#0f172a;color:#e2e8f0;border:1px solid #334155;">
         <h2 style="margin-top:0;text-align:center;">Report user</h2>
         <p id="reportUserTarget" style="color:#93c5fd;font-size:0.9rem;margin:0 0 10px;"></p>
         <label for="reportReasonSelect"><strong>Reason</strong></label>
